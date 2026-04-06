@@ -22,6 +22,9 @@ return new class extends Migration
             $table->timestamps();
             
             $table->index(['entity_type', 'entity_id']);
+            $table->index('user_id');
+            $table->index('created_at');
+            $table->index('action');
         });
     }
 

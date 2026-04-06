@@ -6,11 +6,18 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\StockLog;
+use App\Services\Inventory\AdjustStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReturnSaleService
 {
+    public function __construct(
+        private readonly AdjustStockService $adjustStockService,
+    ) {
+    }
+
     public function execute(Sale $sale): Sale
     {
         return DB::transaction(function () use ($sale): Sale {
@@ -30,10 +37,16 @@ class ReturnSaleService
                     continue;
                 }
 
-                $product = Product::query()->lockForUpdate()->find($item->item_id);
+                $product = Product::query()->find($item->item_id);
 
                 if ($product !== null) {
-                    $product->increment('qty', $item->qty);
+                    $this->adjustStockService->execute(
+                        $product,
+                        $item->qty,
+                        StockLog::CHANGE_TYPE_RETURN,
+                        'sale',
+                        $sale->id
+                    );
                 }
             }
 

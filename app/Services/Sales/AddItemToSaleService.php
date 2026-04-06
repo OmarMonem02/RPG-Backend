@@ -6,6 +6,8 @@ use App\Models\BikeInventory;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\StockLog;
+use App\Services\Inventory\AdjustStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +15,7 @@ class AddItemToSaleService
 {
     public function __construct(
         private readonly SyncSaleTotalsService $syncSaleTotalsService,
+        private readonly AdjustStockService $adjustStockService,
     ) {
     }
 
@@ -71,7 +74,13 @@ class AddItemToSaleService
             'discount' => $discount,
         ]);
 
-        $product->decrement('qty', $qty);
+        $this->adjustStockService->execute(
+            $product,
+            $qty,
+            StockLog::CHANGE_TYPE_REDUCE,
+            'sale',
+            $sale->id
+        );
     }
 
     private function addBikeItem(Sale $sale, array $data): void

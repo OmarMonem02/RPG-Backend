@@ -6,11 +6,18 @@ use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
+use App\Models\StockLog;
+use App\Services\Inventory\AdjustStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DeleteTaskService
 {
+    public function __construct(
+        private readonly AdjustStockService $adjustStockService,
+    ) {
+    }
+
     public function execute(Ticket $ticket, TicketTask $task): void
     {
         DB::transaction(function () use ($ticket, $task): void {
@@ -32,10 +39,16 @@ class DeleteTaskService
                     continue;
                 }
 
-                $product = Product::query()->lockForUpdate()->find($item->item_id);
+                $product = Product::query()->find($item->item_id);
 
                 if ($product !== null) {
-                    $product->increment('qty', $item->qty);
+                    $this->adjustStockService->execute(
+                        $product,
+                        $item->qty,
+                        StockLog::CHANGE_TYPE_RETURN,
+                        'ticket',
+                        $ticket->id
+                    );
                 }
             }
 

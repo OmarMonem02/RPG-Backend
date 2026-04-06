@@ -16,9 +16,13 @@ return new class extends Migration
             $table->enum('category', ['goods', 'bills', 'supplies'])->index();
             $table->decimal('amount', 15, 2);
             $table->text('description')->nullable();
+            $table->date('expense_date')->index();
+            $table->enum('paid_by', ['cash', 'bank'])->index();
             $table->string('attachment')->nullable(); // file path
             $table->boolean('is_recurring')->default(false);
             $table->enum('recurring_type', ['monthly', 'weekly', 'yearly', 'none'])->default('none');
+            $table->foreignId('generated_from_id')->nullable()->constrained('expenses')->nullOnDelete();
+            $table->date('source_period_date')->nullable()->index();
             $table->softDeletes();
             $table->timestamps();
         });

@@ -7,11 +7,18 @@ use App\Models\Service;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
+use App\Models\StockLog;
+use App\Services\Inventory\AdjustStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AssignItemToTaskService
 {
+    public function __construct(
+        private readonly AdjustStockService $adjustStockService,
+    ) {
+    }
+
     public function execute(Ticket $ticket, TicketTask $task, array $data): TicketItem
     {
         return DB::transaction(function () use ($ticket, $task, $data): TicketItem {
@@ -60,7 +67,13 @@ class AssignItemToTaskService
             'qty' => $qty,
         ]);
 
-        $product->decrement('qty', $qty);
+        $this->adjustStockService->execute(
+            $product,
+            $qty,
+            StockLog::CHANGE_TYPE_REDUCE,
+            'ticket',
+            $ticket->id
+        );
 
         return $item->fresh();
     }
