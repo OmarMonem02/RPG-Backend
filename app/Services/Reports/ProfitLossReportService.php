@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\Expense;
 use App\Models\SaleItem;
+use App\Models\SaleReturn;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\Reports\Concerns\ResolvesReportDateRange;
@@ -22,6 +23,13 @@ class ProfitLossReportService
             ->selectRaw('COALESCE(SUM((sale_items.price_snapshot * sale_items.qty) - sale_items.discount), 0) as total')
             ->value('total');
 
+        $returnedSalesValue = (float) SaleReturn::query()
+            ->join('sale_items', 'sale_items.id', '=', 'returns.item_id')
+            ->join('sales', 'sales.id', '=', 'returns.sale_id')
+            ->whereBetween('returns.created_at', [$from, $to])
+            ->selectRaw('COALESCE(SUM((sale_items.price_snapshot * returns.qty) - ((sale_items.discount / NULLIF(sale_items.qty, 0)) * returns.qty)), 0) as total')
+            ->value('total');
+
         $servicesRevenue = (float) TicketItem::query()
             ->join('tickets', 'tickets.id', '=', 'ticket_items.ticket_id')
             ->where('ticket_items.item_type', TicketItem::ITEM_TYPE_SERVICE)
@@ -36,7 +44,7 @@ class ProfitLossReportService
             ->selectRaw('COALESCE(SUM(amount), 0) as total')
             ->value('total');
 
-        $totalRevenue = round($salesRevenue + $servicesRevenue, 2);
+        $totalRevenue = round(($salesRevenue - $returnedSalesValue) + $servicesRevenue, 2);
         $netProfit = round($totalRevenue - $totalExpenses, 2);
 
         return [
@@ -45,7 +53,7 @@ class ProfitLossReportService
                 'to_date' => $to->toDateString(),
             ],
             'revenue' => [
-                'sales' => round($salesRevenue, 2),
+                'sales' => round($salesRevenue - $returnedSalesValue, 2),
                 'services' => round($servicesRevenue, 2),
                 'total' => $totalRevenue,
             ],

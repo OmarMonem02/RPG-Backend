@@ -5,10 +5,16 @@ namespace App\Services\Inventory;
 use App\Models\ExchangeRate;
 use App\Models\Product;
 use App\Models\ProductUnit;
+use App\Services\Settings\SettingService;
 use Illuminate\Validation\ValidationException;
 
 class CalculateProductPriceService
 {
+    public function __construct(
+        private readonly SettingService $settingService,
+    ) {
+    }
+
     public function execute(Product $product, ?int $unitId = null): array
     {
         $unit = null;
@@ -23,9 +29,14 @@ class CalculateProductPriceService
             }
         }
 
-        $exchangeRate = (float) ExchangeRate::query()
-            ->where('currency', ExchangeRate::USD)
-            ->value('rate') ?: 1.0;
+        $exchangeRate = (float) (
+            ExchangeRate::query()
+                ->where('currency', ExchangeRate::USD)
+                ->whereNotNull('value')
+                ->latest('id')
+                ->value('value')
+            ?? $this->settingService->get('exchange_rate', 1.0)
+        );
 
         $sellingPrice = (float) ($unit?->price ?? $product->selling_price);
         $costPriceEgp = $product->cost_price_usd !== null

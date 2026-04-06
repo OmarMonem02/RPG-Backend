@@ -3,11 +3,17 @@
 namespace App\Services\Tickets;
 
 use App\Models\Ticket;
+use App\Services\Invoices\GenerateInvoiceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CompleteTicketService
 {
+    public function __construct(
+        private readonly GenerateInvoiceService $generateInvoiceService,
+    ) {
+    }
+
     public function execute(Ticket $ticket): Ticket
     {
         return DB::transaction(function () use ($ticket): Ticket {
@@ -35,6 +41,7 @@ class CompleteTicketService
             }
 
             $ticket->update(['status' => Ticket::STATUS_COMPLETED]);
+            $this->generateInvoiceService->forTicket($ticket);
 
             return $ticket->load(['customer', 'customerBike', 'tasks.items', 'items']);
         });

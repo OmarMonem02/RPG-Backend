@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\Reports\Concerns\ResolvesReportDateRange;
@@ -59,6 +60,12 @@ class BalanceSheetService
             ->selectRaw('COALESCE(SUM(GREATEST((sales.total - sales.discount) - COALESCE(payment_totals.paid_total, 0), 0)), 0) as total')
             ->value('total');
 
+        $returnedSalesValue = (float) SaleReturn::query()
+            ->join('sale_items', 'sale_items.id', '=', 'returns.item_id')
+            ->whereBetween('returns.created_at', [$from, $to])
+            ->selectRaw('COALESCE(SUM((sale_items.price_snapshot * returns.qty) - ((sale_items.discount / NULLIF(sale_items.qty, 0)) * returns.qty)), 0) as total')
+            ->value('total');
+
         $servicesReceivables = (float) TicketItem::query()
             ->join('tickets', 'tickets.id', '=', 'ticket_items.ticket_id')
             ->where('ticket_items.item_type', TicketItem::ITEM_TYPE_SERVICE)
@@ -68,7 +75,7 @@ class BalanceSheetService
             ->selectRaw('COALESCE(SUM(ticket_items.price_snapshot * ticket_items.qty), 0) as total')
             ->value('total');
 
-        $receivables = round($salesReceivables + $servicesReceivables, 2);
+        $receivables = round(max($salesReceivables - $returnedSalesValue, 0) + $servicesReceivables, 2);
         $netCash = round($cash - $cashExpenseOutflow, 2);
         $netBank = round($bank - $bankExpenseOutflow, 2);
         $totalAssets = round($netCash + $netBank + $inventoryValue + $receivables, 2);

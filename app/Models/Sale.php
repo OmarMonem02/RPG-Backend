@@ -64,6 +64,11 @@ class Sale extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
     public function getFinalAmountAttribute(): float
     {
         return round((float) $this->total - (float) $this->discount, 2);

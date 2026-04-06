@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\Sale;
+use App\Services\Invoices\GenerateInvoiceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -10,6 +11,7 @@ class CompleteSaleService
 {
     public function __construct(
         private readonly SyncSaleTotalsService $syncSaleTotalsService,
+        private readonly GenerateInvoiceService $generateInvoiceService,
     ) {
     }
 
@@ -27,7 +29,10 @@ class CompleteSaleService
                 ]);
             }
 
-            return $this->syncSaleTotalsService->sync($sale);
+            $sale = $this->syncSaleTotalsService->sync($sale);
+            $this->generateInvoiceService->forSale($sale);
+
+            return $sale;
         });
     }
 }

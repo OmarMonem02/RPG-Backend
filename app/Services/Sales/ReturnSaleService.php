@@ -3,18 +3,16 @@
 namespace App\Services\Sales;
 
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\StockLog;
-use App\Services\Inventory\AdjustStockService;
+use App\Services\Returns\HandleReturnService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReturnSaleService
 {
     public function __construct(
-        private readonly AdjustStockService $adjustStockService,
+        private readonly HandleReturnService $handleReturnService,
     ) {
     }
 
@@ -33,20 +31,15 @@ class ReturnSaleService
             }
 
             foreach ($sale->items as $item) {
-                if ($item->item_type !== SaleItem::ITEM_TYPE_PRODUCT) {
-                    continue;
-                }
+                $alreadyReturned = (int) $item->returns()->sum('qty');
+                $remainingQty = $item->qty - $alreadyReturned;
 
-                $product = Product::query()->find($item->item_id);
-
-                if ($product !== null) {
-                    $this->adjustStockService->execute(
-                        $product,
-                        $item->qty,
-                        StockLog::CHANGE_TYPE_RETURN,
-                        'sale',
-                        $sale->id
-                    );
+                if ($remainingQty > 0) {
+                    $this->handleReturnService->execute($sale, [
+                        'item_id' => $item->id,
+                        'qty' => $remainingQty,
+                        'reason' => 'Full sale return',
+                    ]);
                 }
             }
 
