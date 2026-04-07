@@ -4,10 +4,10 @@ namespace App\Services\Tickets;
 
 use App\Models\Product;
 use App\Models\Service;
+use App\Models\StockLog;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
-use App\Models\StockLog;
 use App\Services\Inventory\AdjustStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,8 +16,7 @@ class AssignItemToTaskService
 {
     public function __construct(
         private readonly AdjustStockService $adjustStockService,
-    ) {
-    }
+    ) {}
 
     public function execute(Ticket $ticket, TicketTask $task, array $data): TicketItem
     {

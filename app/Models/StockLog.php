@@ -11,7 +11,9 @@ class StockLog extends Model
     use HasFactory;
 
     public const CHANGE_TYPE_ADD = 'add';
+
     public const CHANGE_TYPE_REDUCE = 'reduce';
+
     public const CHANGE_TYPE_RETURN = 'return';
 
     protected $fillable = [

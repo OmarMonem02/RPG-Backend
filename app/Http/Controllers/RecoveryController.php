@@ -9,8 +9,7 @@ class RecoveryController extends Controller
 {
     public function __construct(
         private readonly SoftDeleteRecoveryService $softDeleteRecoveryService,
-    ) {
-    }
+    ) {}
 
     public function index(string $entity): JsonResponse
     {

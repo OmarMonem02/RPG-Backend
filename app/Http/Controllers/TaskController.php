@@ -22,8 +22,7 @@ class TaskController extends Controller
         private readonly DeleteTaskService $deleteTaskService,
         private readonly AssignItemToTaskService $assignItemToTaskService,
         private readonly RemoveItemFromTaskService $removeItemFromTaskService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreTaskRequest $request, Ticket $ticket): JsonResponse
     {

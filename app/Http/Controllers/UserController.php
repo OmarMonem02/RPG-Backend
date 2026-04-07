@@ -17,8 +17,7 @@ class UserController extends Controller
         private readonly CreateUserService $createUserService,
         private readonly UpdateUserService $updateUserService,
         private readonly AssignPermissionsService $assignPermissionsService,
-    ) {
-    }
+    ) {}
 
     public function index(): JsonResponse
     {

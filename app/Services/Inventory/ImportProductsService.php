@@ -13,8 +13,7 @@ class ImportProductsService
     public function __construct(
         private readonly CreateProductService $createProductService,
         private readonly UpdateProductService $updateProductService,
-    ) {
-    }
+    ) {}
 
     public function execute(UploadedFile $file, string $mode = 'upsert'): array
     {
@@ -55,6 +54,7 @@ class ImportProductsService
 
                     $this->createProductService->execute($payload);
                     $created++;
+
                     continue;
                 }
 
@@ -84,6 +84,7 @@ class ImportProductsService
         while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             if ($header === null) {
                 $header = array_map('trim', $data);
+
                 continue;
             }
 

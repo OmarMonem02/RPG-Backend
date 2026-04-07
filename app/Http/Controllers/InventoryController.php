@@ -23,8 +23,7 @@ class InventoryController extends Controller
         private readonly ExportProductsService $exportProductsService,
         private readonly UpdateExchangeRateService $updateExchangeRateService,
         private readonly AdjustStockService $adjustStockService,
-    ) {
-    }
+    ) {}
 
     public function bulkUpdate(BulkUpdateRequest $request): JsonResponse
     {

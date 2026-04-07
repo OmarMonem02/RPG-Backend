@@ -8,6 +8,7 @@ use App\Models\SaleReturn;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\Reports\Concerns\ResolvesReportDateRange;
+
 class ProfitLossReportService
 {
     use ResolvesReportDateRange;

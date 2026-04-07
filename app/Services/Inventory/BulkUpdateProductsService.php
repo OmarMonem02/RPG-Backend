@@ -12,8 +12,7 @@ class BulkUpdateProductsService
 {
     public function __construct(
         private readonly CalculateProductPriceService $calculateProductPriceService,
-    ) {
-    }
+    ) {}
 
     public function execute(array $productIds, array $attributes): int
     {

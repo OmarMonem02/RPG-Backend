@@ -13,8 +13,7 @@ class SettingController extends Controller
     public function __construct(
         private readonly SettingService $settingService,
         private readonly UpdateExchangeRateService $updateExchangeRateService,
-    ) {
-    }
+    ) {}
 
     public function index(): JsonResponse
     {

@@ -11,9 +11,11 @@ class TicketItem extends Model
     use HasFactory;
 
     public const ITEM_TYPE_PRODUCT = 'product';
+
     public const ITEM_TYPE_SERVICE = 'service';
 
     public const PRICE_SOURCE_CURRENT = 'current';
+
     public const PRICE_SOURCE_OLD = 'old';
 
     protected $fillable = [

@@ -23,8 +23,7 @@ class ProductController extends Controller
         private readonly AssignProductToBikeService $assignProductToBikeService,
         private readonly CalculateProductPriceService $calculateProductPriceService,
         private readonly ListCompatibleProductsService $listCompatibleProductsService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreProductRequest $request): JsonResponse
     {
@@ -59,9 +58,11 @@ class ProductController extends Controller
     public function compatible(FilterProductsRequest $request): JsonResponse
     {
         $products = $this->listCompatibleProductsService->execute(
+            $request->validated('bike_id'),
             $request->validated('brand'),
             $request->validated('model'),
-            $request->validated('year')
+            $request->validated('year'),
+            $request->validated('per_page', 15)
         );
 
         return response()->json([

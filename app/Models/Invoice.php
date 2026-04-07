@@ -10,10 +10,13 @@ class Invoice extends Model
     use HasFactory;
 
     public const TYPE_SALE = 'sale';
+
     public const TYPE_TICKET = 'ticket';
 
     public const STATUS_PAID = 'paid';
+
     public const STATUS_PARTIAL = 'partial';
+
     public const STATUS_UNPAID = 'unpaid';
 
     protected $fillable = [

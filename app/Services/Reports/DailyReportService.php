@@ -6,8 +6,7 @@ class DailyReportService
 {
     public function __construct(
         private readonly ProfitLossReportService $profitLossReportService,
-    ) {
-    }
+    ) {}
 
     public function execute(array $filters): array
     {

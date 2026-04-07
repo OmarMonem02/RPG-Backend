@@ -16,10 +16,21 @@ class Customer extends Model
         'name',
         'phone',
         'address',
+        'notes',
     ];
 
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function customerBikes(): HasMany
+    {
+        return $this->hasMany(CustomerBike::class);
+    }
+
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
     }
 }

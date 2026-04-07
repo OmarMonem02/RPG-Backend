@@ -20,8 +20,7 @@ class TicketController extends Controller
         private readonly CompleteTicketService $completeTicketService,
         private readonly ReopenTicketService $reopenTicketService,
         private readonly AddTicketNoteService $addTicketNoteService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreTicketRequest $request): JsonResponse
     {

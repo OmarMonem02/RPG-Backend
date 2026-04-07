@@ -1,6 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BikeController;
+use App\Http\Controllers\BikeInventoryController;
+use App\Http\Controllers\BrandController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CustomerBikeController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
@@ -11,10 +17,11 @@ use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\RecoveryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TicketController;
-use App\Http\Controllers\SaleController;
-use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use App\Models\Permission;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +73,65 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('{product}/units', [ProductUnitController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::put('{product}/units/{unit}', [ProductUnitController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::delete('{product}/units/{unit}', [ProductUnitController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('categories')->group(function (): void {
+        Route::get('/', [CategoryController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{category}', [CategoryController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::post('/', [CategoryController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::put('{category}', [CategoryController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::delete('{category}', [CategoryController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('brands')->group(function (): void {
+        Route::get('/', [BrandController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{brand}', [BrandController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::post('/', [BrandController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::put('{brand}', [BrandController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::delete('{brand}', [BrandController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('bikes')->group(function (): void {
+        Route::get('/', [BikeController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{bike}', [BikeController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::post('/', [BikeController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::put('{bike}', [BikeController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::delete('{bike}', [BikeController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('bike-inventory')->group(function (): void {
+        Route::get('/', [BikeInventoryController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{bikeInventory}', [BikeInventoryController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::post('/', [BikeInventoryController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::put('{bikeInventory}', [BikeInventoryController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::delete('{bikeInventory}', [BikeInventoryController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('services')->group(function (): void {
+        Route::get('/', [ServiceController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{service}', [ServiceController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::post('/', [ServiceController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::put('{service}', [ServiceController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::delete('{service}', [ServiceController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+    });
+
+    Route::prefix('customers')->group(function (): void {
+        Route::get('/', [CustomerController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::get('{customer}', [CustomerController::class, 'show'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::post('/', [CustomerController::class, 'store'])->middleware('permission:'.Permission::CREATE_SALE);
+        Route::put('{customer}', [CustomerController::class, 'update'])->middleware('permission:'.Permission::CREATE_SALE);
+        Route::delete('{customer}', [CustomerController::class, 'destroy'])->middleware('permission:'.Permission::CREATE_SALE);
+
+        Route::get('{customer}/bikes', [CustomerBikeController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::post('{customer}/bikes', [CustomerBikeController::class, 'store'])->middleware('permission:'.Permission::CREATE_SALE);
+    });
+
+    Route::prefix('customer-bikes')->group(function (): void {
+        Route::get('/', [CustomerBikeController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::get('{customerBike}', [CustomerBikeController::class, 'show'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::post('/', [CustomerBikeController::class, 'store'])->middleware('permission:'.Permission::CREATE_SALE);
+        Route::put('{customerBike}', [CustomerBikeController::class, 'update'])->middleware('permission:'.Permission::CREATE_SALE);
+        Route::delete('{customerBike}', [CustomerBikeController::class, 'destroy'])->middleware('permission:'.Permission::CREATE_SALE);
     });
 
     Route::prefix('inventory')->group(function (): void {

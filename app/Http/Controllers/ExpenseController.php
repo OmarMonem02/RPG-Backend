@@ -20,8 +20,7 @@ class ExpenseController extends Controller
         private readonly UpdateExpenseService $updateExpenseService,
         private readonly DeleteExpenseService $deleteExpenseService,
         private readonly GenerateRecurringExpensesService $generateRecurringExpensesService,
-    ) {
-    }
+    ) {}
 
     public function index(ExpenseFilterRequest $request): JsonResponse
     {

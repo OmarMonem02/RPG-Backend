@@ -6,256 +6,251 @@
 http://127.0.0.1:8000/api
 ```
 
-## Notes
+## Authentication
 
-- All endpoints below are based on the current `php artisan route:list`.
-- Replace placeholder IDs like `{product}`, `{sale}`, `{ticket}`, `{task}`, `{expense}`, `{log}` with real database IDs.
-- File uploads should be sent as `multipart/form-data`.
-- Date format: `YYYY-MM-DD`
+- `POST /auth/login` is public.
+- All other API routes require `Authorization: Bearer {{token}}`.
+- Use `Accept: application/json` for all requests.
+- Replace placeholder IDs such as `{user}`, `{product}`, `{sale}`, `{ticket}` with real database IDs.
 
----
+## Suggested Setup Order
 
-## 1. Sales APIs
+1. Login and save the token.
+2. Create categories, brands, bikes, services, and products.
+3. Create customers and customer bikes.
+4. Create bike inventory entries if you want to sell bikes.
+5. Create sales and tickets.
+6. Create expenses.
+7. Run reports, invoices, recovery, and logs.
 
-### Create Sale
+## Seed / Reference Data Checklist
 
-```http
-POST /sales
-Content-Type: application/json
-```
+Before testing the full flow, make sure these entities exist when needed:
 
-```json
-{
-  "customer_id": 1,
-  "seller_id": 1,
-  "type": "garage"
-}
-```
+- `users`
+- `sellers`
+- `categories`
+- `brands`
+- `bikes`
+- `products`
+- `services`
+- `customers`
+- `customer_bikes`
+- `bike_inventory`
 
-Or create with new customer:
+## Auth
 
-```json
-{
-  "seller_id": 1,
-  "type": "garage",
-  "customer": {
-    "name": "Ahmed Ali",
-    "phone": "01000000000",
-    "address": "Cairo"
-  }
-}
-```
-
-### Add Item To Sale
-
-```http
-POST /sales/{sale}/items
-Content-Type: application/json
-```
-
-Product item:
+### Login
+- Method: `POST`
+- Path: `/auth/login`
+- Auth: `No`
+- Purpose: Authenticate a user and return a Sanctum token.
 
 ```json
 {
-  "item_type": "product",
-  "item_id": 1,
-  "qty": 2,
-  "discount": 20
+  "email": "admin@example.com",
+  "password": "password123",
+  "device_name": "postman"
 }
 ```
 
-Bike item:
+### Current User
+- Method: `GET`
+- Path: `/auth/me`
+- Auth: `Yes`
+- Purpose: Return the authenticated user and effective permissions.
+
+### Logout
+- Method: `POST`
+- Path: `/auth/logout`
+- Auth: `Yes`
+- Purpose: Revoke the current access token.
+
+## Users
+
+### List Users
+- Method: `GET`
+- Path: `/users`
+- Auth: `Yes`
+- Purpose: Return all users with role and permission data.
+
+### Create User
+- Method: `POST`
+- Path: `/users`
+- Auth: `Yes`
 
 ```json
 {
-  "item_type": "bike",
-  "item_id": 1,
-  "qty": 1,
-  "discount": 0
+  "name": "Staff User",
+  "email": "staff@example.com",
+  "password": "password123",
+  "role": "staff"
 }
 ```
 
-### Add Payment To Sale
-
-```http
-POST /sales/{sale}/payments
-Content-Type: application/json
-```
+### Update User
+- Method: `PUT`
+- Path: `/users/{user}`
+- Auth: `Yes`
 
 ```json
 {
-  "amount": 500,
-  "method": "cash",
-  "status": "completed"
+  "name": "Updated Staff User",
+  "email": "staff.updated@example.com",
+  "password": "newpassword123",
+  "role": "technician"
 }
 ```
 
-### Complete Sale
-
-```http
-POST /sales/{sale}/complete
-```
-
-### Return Sale
-
-```http
-POST /sales/{sale}/return
-```
-
----
-
-## 2. Tickets APIs
-
-### Create Ticket
-
-```http
-POST /tickets
-Content-Type: application/json
-```
+### Assign User Permissions
+- Method: `POST`
+- Path: `/users/{user}/permissions`
+- Auth: `Yes`
 
 ```json
 {
-  "customer_id": 1,
-  "customer_bike_id": 1,
-  "notes": "Engine sound check"
+  "permissions": [
+    "view_sales",
+    "create_sale",
+    "edit_sale",
+    "view_inventory",
+    "edit_inventory"
+  ]
 }
 ```
 
-### Start Ticket
+## Categories
 
-```http
-POST /tickets/{ticket}/start
-```
+### List Categories
+- Method: `GET`
+- Path: `/categories?type=part&search=brake&per_page=15`
+- Auth: `Yes`
+- Purpose: Paginated categories with optional filtering by type and search.
 
-### Complete Ticket
+### Show Category
+- Method: `GET`
+- Path: `/categories/{category}`
+- Auth: `Yes`
 
-```http
-POST /tickets/{ticket}/complete
-```
-
-### Reopen Ticket
-
-```http
-POST /tickets/{ticket}/reopen
-```
-
-### Add Ticket Note
-
-```http
-POST /tickets/{ticket}/notes
-Content-Type: application/json
-```
-
-Staff note:
+### Create Category
+- Method: `POST`
+- Path: `/categories`
+- Auth: `Yes`
 
 ```json
 {
-  "type": "staff",
-  "note": "Client approved extra work"
+  "name": "Brake Parts",
+  "type": "part",
+  "description": "Brake system inventory"
 }
 ```
 
-Client note:
+### Update Category
+- Method: `PUT`
+- Path: `/categories/{category}`
+- Auth: `Yes`
 
 ```json
 {
-  "type": "client",
-  "note": "Please finish before Friday"
+  "name": "Brake Consumables",
+  "description": "Pads, fluids, and rotors"
 }
 ```
 
-### Add Task
+### Delete Category
+- Method: `DELETE`
+- Path: `/categories/{category}`
+- Auth: `Yes`
 
-```http
-POST /tickets/{ticket}/tasks
-Content-Type: application/json
-```
+## Brands
+
+### List Brands
+- Method: `GET`
+- Path: `/brands?search=honda&per_page=15`
+- Auth: `Yes`
+
+### Show Brand
+- Method: `GET`
+- Path: `/brands/{brand}`
+- Auth: `Yes`
+
+### Create Brand
+- Method: `POST`
+- Path: `/brands`
+- Auth: `Yes`
 
 ```json
 {
-  "name": "Change engine oil",
-  "status": "pending",
-  "approved_by_client": true
+  "name": "Honda",
+  "description": "OEM and genuine brand"
 }
 ```
 
-### Update Task
-
-```http
-PUT /tickets/{ticket}/tasks/{task}
-Content-Type: application/json
-```
+### Update Brand
+- Method: `PUT`
+- Path: `/brands/{brand}`
+- Auth: `Yes`
 
 ```json
 {
-  "name": "Change engine oil and filter",
-  "status": "completed",
-  "approved_by_client": true
+  "name": "Honda Motorcycles",
+  "description": "Updated notes"
 }
 ```
 
-### Delete Task
+### Delete Brand
+- Method: `DELETE`
+- Path: `/brands/{brand}`
+- Auth: `Yes`
 
-```http
-DELETE /tickets/{ticket}/tasks/{task}
-```
+## Bikes
 
-### Assign Item To Task
+### List Bike Blueprints
+- Method: `GET`
+- Path: `/bikes?brand=Yamaha&model=MT&year=2024&search=MT&per_page=15`
+- Auth: `Yes`
 
-```http
-POST /tickets/{ticket}/tasks/{task}/items
-Content-Type: application/json
-```
+### Show Bike Blueprint
+- Method: `GET`
+- Path: `/bikes/{bike}`
+- Auth: `Yes`
 
-Service item:
+### Create Bike Blueprint
+- Method: `POST`
+- Path: `/bikes`
+- Auth: `Yes`
 
 ```json
 {
-  "item_type": "service",
-  "item_id": 1,
-  "qty": 1,
-  "price_source": "current"
+  "brand": "Yamaha",
+  "model": "MT-07",
+  "year": 2024
 }
 ```
 
-Product item with current price:
+### Update Bike Blueprint
+- Method: `PUT`
+- Path: `/bikes/{bike}`
+- Auth: `Yes`
 
 ```json
 {
-  "item_type": "product",
-  "item_id": 1,
-  "qty": 2,
-  "price_source": "current"
+  "model": "MT-09"
 }
 ```
 
-Product item with old price:
+### Delete Bike Blueprint
+- Method: `DELETE`
+- Path: `/bikes/{bike}`
+- Auth: `Yes`
 
-```json
-{
-  "item_type": "product",
-  "item_id": 1,
-  "qty": 1,
-  "price_source": "old"
-}
-```
-
-### Remove Item From Task
-
-```http
-DELETE /tickets/{ticket}/tasks/{task}/items/{item}
-```
-
----
-
-## 3. Products APIs
+## Products
 
 ### Create Product
-
-```http
-POST /products
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/products`
+- Auth: `Yes`
+- Notes: `category_id` must match the chosen product `type`.
 
 ```json
 {
@@ -290,11 +285,9 @@ Content-Type: application/json
 ```
 
 ### Update Product
-
-```http
-PUT /products/{product}
-Content-Type: application/json
-```
+- Method: `PUT`
+- Path: `/products/{product}`
+- Auth: `Yes`
 
 ```json
 {
@@ -319,11 +312,9 @@ Content-Type: application/json
 ```
 
 ### Assign Product To Bikes
-
-```http
-POST /products/{product}/bikes
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/products/{product}/bikes`
+- Auth: `Yes`
 
 ```json
 {
@@ -332,24 +323,22 @@ Content-Type: application/json
 ```
 
 ### Get Compatible Products
-
-```http
-GET /products/compatible?brand=Honda&model=CBR&year=2022
-```
+- Method: `GET`
+- Path: `/products/compatible?bike_id=1&per_page=15`
+- Auth: `Yes`
+- Alternate path: `/products/compatible?brand=Honda&model=CBR 600&year=2024&per_page=15`
 
 ### Calculate Product Price
+- Method: `GET`
+- Path: `/products/{product}/calculate-price?unit_id=1`
+- Auth: `Yes`
 
-```http
-GET /products/{product}/calculate-price
-GET /products/{product}/calculate-price?unit_id=1
-```
+## Product Units
 
 ### Create Product Unit
-
-```http
-POST /products/{product}/units
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/products/{product}/units`
+- Auth: `Yes`
 
 ```json
 {
@@ -360,11 +349,9 @@ Content-Type: application/json
 ```
 
 ### Update Product Unit
-
-```http
-PUT /products/{product}/units/{unit}
-Content-Type: application/json
-```
+- Method: `PUT`
+- Path: `/products/{product}/units/{unit}`
+- Auth: `Yes`
 
 ```json
 {
@@ -375,21 +362,16 @@ Content-Type: application/json
 ```
 
 ### Delete Product Unit
+- Method: `DELETE`
+- Path: `/products/{product}/units/{unit}`
+- Auth: `Yes`
 
-```http
-DELETE /products/{product}/units/{unit}
-```
-
----
-
-## 4. Inventory APIs
+## Inventory
 
 ### Bulk Update Products
-
-```http
-POST /inventory/bulk-update
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/inventory/bulk-update`
+- Auth: `Yes`
 
 ```json
 {
@@ -397,19 +379,17 @@ Content-Type: application/json
   "attributes": {
     "selling_price": 350,
     "max_discount_type": "percentage",
-    "max_discount_value": 5
+    "max_discount_value": 5,
+    "is_universal": false
   }
 }
 ```
 
 ### Import Products
-
-```http
-POST /inventory/import
-Content-Type: multipart/form-data
-```
-
-Fields:
+- Method: `POST`
+- Path: `/inventory/import`
+- Auth: `Yes`
+- Content type: `multipart/form-data`
 
 ```text
 file: products.csv
@@ -417,27 +397,21 @@ mode: upsert
 ```
 
 ### Export Products
-
-```http
-GET /inventory/export
-GET /inventory/export?format=csv
-GET /inventory/export?format=excel
-```
+- Method: `GET`
+- Path: `/inventory/export?format=csv`
+- Auth: `Yes`
+- Allowed formats: `csv`, `excel`
 
 ### Download Import Template
+- Method: `GET`
+- Path: `/inventory/template?format=csv`
+- Auth: `Yes`
+- Allowed formats: `csv`, `excel`
 
-```http
-GET /inventory/template
-GET /inventory/template?format=csv
-GET /inventory/template?format=excel
-```
-
-### Update Exchange Rate
-
-```http
-POST /inventory/exchange-rate
-Content-Type: application/json
-```
+### Update Inventory Exchange Rate
+- Method: `POST`
+- Path: `/inventory/exchange-rate`
+- Auth: `Yes`
 
 ```json
 {
@@ -447,11 +421,9 @@ Content-Type: application/json
 ```
 
 ### Adjust Stock
-
-```http
-POST /inventory/adjust-stock
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/inventory/adjust-stock`
+- Auth: `Yes`
 
 ```json
 {
@@ -476,29 +448,436 @@ With unit:
 }
 ```
 
----
+## Customers
 
-## 5. Expenses APIs
+### List Customers
+- Method: `GET`
+- Path: `/customers?search=ahmed&phone=0100&per_page=15`
+- Auth: `Yes`
+
+### Show Customer
+- Method: `GET`
+- Path: `/customers/{customer}`
+- Auth: `Yes`
+
+### Create Customer
+- Method: `POST`
+- Path: `/customers`
+- Auth: `Yes`
+- Notes: Can create customer bikes inline.
+
+```json
+{
+  "name": "Ahmed Rider",
+  "phone": "01000000001",
+  "address": "Nasr City",
+  "notes": "VIP customer",
+  "bikes": [
+    {
+      "brand": "BMW",
+      "model": "S1000RR",
+      "year": 2021,
+      "modifications": "Exhaust upgrade",
+      "notes": "Track bike"
+    }
+  ]
+}
+```
+
+### Update Customer
+- Method: `PUT`
+- Path: `/customers/{customer}`
+- Auth: `Yes`
+
+```json
+{
+  "address": "New Cairo",
+  "notes": "Prefers WhatsApp"
+}
+```
+
+### Delete Customer
+- Method: `DELETE`
+- Path: `/customers/{customer}`
+- Auth: `Yes`
+
+### List Customer Bikes By Customer
+- Method: `GET`
+- Path: `/customers/{customer}/bikes?per_page=15`
+- Auth: `Yes`
+
+### Create Customer Bike Under Customer
+- Method: `POST`
+- Path: `/customers/{customer}/bikes`
+- Auth: `Yes`
+
+```json
+{
+  "brand": "Kawasaki",
+  "model": "ZX-6R",
+  "year": 2020,
+  "modifications": "Quick shifter",
+  "notes": "Daily rider"
+}
+```
+
+## Customer Bikes
+
+### List Customer Bikes
+- Method: `GET`
+- Path: `/customer-bikes?customer_id=1&search=BMW&per_page=15`
+- Auth: `Yes`
+
+### Show Customer Bike
+- Method: `GET`
+- Path: `/customer-bikes/{customerBike}`
+- Auth: `Yes`
+
+### Create Customer Bike
+- Method: `POST`
+- Path: `/customer-bikes`
+- Auth: `Yes`
+
+```json
+{
+  "customer_id": 1,
+  "brand": "Kawasaki",
+  "model": "ZX-6R",
+  "year": 2020,
+  "modifications": "Quick shifter",
+  "notes": "Daily rider"
+}
+```
+
+### Update Customer Bike
+- Method: `PUT`
+- Path: `/customer-bikes/{customerBike}`
+- Auth: `Yes`
+
+```json
+{
+  "notes": "Updated inspection notes"
+}
+```
+
+### Delete Customer Bike
+- Method: `DELETE`
+- Path: `/customer-bikes/{customerBike}`
+- Auth: `Yes`
+
+## Bike Inventory
+
+### List Bike Inventory
+- Method: `GET`
+- Path: `/bike-inventory?type=consignment&sold=false&per_page=15`
+- Auth: `Yes`
+
+### Show Bike Inventory
+- Method: `GET`
+- Path: `/bike-inventory/{bikeInventory}`
+- Auth: `Yes`
+
+### Create Bike Inventory
+- Method: `POST`
+- Path: `/bike-inventory`
+- Auth: `Yes`
+- Notes: For `consignment`, `owner_name` and `owner_phone` are required. You can either use `bike_id` or send `brand/model/year` directly.
+
+```json
+{
+  "bike_id": 1,
+  "type": "consignment",
+  "cost_price": 350000,
+  "selling_price": 390000,
+  "mileage": 12000,
+  "cc": 1103,
+  "horse_power": 214,
+  "owner_name": "Mostafa",
+  "owner_phone": "01111111111",
+  "notes": "Clean condition"
+}
+```
+
+### Update Bike Inventory
+- Method: `PUT`
+- Path: `/bike-inventory/{bikeInventory}`
+- Auth: `Yes`
+
+```json
+{
+  "selling_price": 395000,
+  "notes": "Price updated after inspection"
+}
+```
+
+### Delete Bike Inventory
+- Method: `DELETE`
+- Path: `/bike-inventory/{bikeInventory}`
+- Auth: `Yes`
+
+## Services
+
+### List Services
+- Method: `GET`
+- Path: `/services?category_id=3&search=diagnostic&per_page=15`
+- Auth: `Yes`
+
+### Show Service
+- Method: `GET`
+- Path: `/services/{service}`
+- Auth: `Yes`
+
+### Create Service
+- Method: `POST`
+- Path: `/services`
+- Auth: `Yes`
+- Notes: `category_id` must reference a category with type `service`.
+
+```json
+{
+  "category_id": 3,
+  "name": "Engine Diagnostics",
+  "price": 800,
+  "max_discount_type": "percentage",
+  "max_discount_value": 10,
+  "description": "Full diagnostics service"
+}
+```
+
+### Update Service
+- Method: `PUT`
+- Path: `/services/{service}`
+- Auth: `Yes`
+
+```json
+{
+  "price": 900,
+  "max_discount_type": "fixed",
+  "max_discount_value": 50
+}
+```
+
+### Delete Service
+- Method: `DELETE`
+- Path: `/services/{service}`
+- Auth: `Yes`
+
+## Sales
+
+### Create Sale
+- Method: `POST`
+- Path: `/sales`
+- Auth: `Yes`
+
+```json
+{
+  "customer_id": 1,
+  "seller_id": 1,
+  "type": "garage"
+}
+```
+
+Or create with new customer:
+
+```json
+{
+  "seller_id": 1,
+  "type": "garage",
+  "customer": {
+    "name": "Ahmed Ali",
+    "phone": "01000000000",
+    "address": "Cairo"
+  }
+}
+```
+
+### Add Sale Item
+- Method: `POST`
+- Path: `/sales/{sale}/items`
+- Auth: `Yes`
+
+Product item:
+
+```json
+{
+  "item_type": "product",
+  "item_id": 1,
+  "qty": 2,
+  "discount": 20
+}
+```
+
+Bike item:
+
+```json
+{
+  "item_type": "bike",
+  "item_id": 1,
+  "qty": 1,
+  "discount": 0
+}
+```
+
+### Add Sale Payment
+- Method: `POST`
+- Path: `/sales/{sale}/payments`
+- Auth: `Yes`
+
+```json
+{
+  "amount": 500,
+  "method": "cash",
+  "status": "completed"
+}
+```
+
+### Complete Sale
+- Method: `POST`
+- Path: `/sales/{sale}/complete`
+- Auth: `Yes`
+
+### List Sale Returns
+- Method: `GET`
+- Path: `/sales/{sale}/returns`
+- Auth: `Yes`
+
+### Return Sale Item
+- Method: `POST`
+- Path: `/sales/{sale}/returns`
+- Auth: `Yes`
+
+```json
+{
+  "item_id": 1,
+  "qty": 1,
+  "reason": "Damaged item"
+}
+```
+
+### Return Full Sale
+- Method: `POST`
+- Path: `/sales/{sale}/return`
+- Auth: `Yes`
+
+## Tickets
+
+### Create Ticket
+- Method: `POST`
+- Path: `/tickets`
+- Auth: `Yes`
+
+```json
+{
+  "customer_id": 1,
+  "customer_bike_id": 1,
+  "notes": "Engine sound check"
+}
+```
+
+### Start Ticket
+- Method: `POST`
+- Path: `/tickets/{ticket}/start`
+- Auth: `Yes`
+
+### Complete Ticket
+- Method: `POST`
+- Path: `/tickets/{ticket}/complete`
+- Auth: `Yes`
+
+### Reopen Ticket
+- Method: `POST`
+- Path: `/tickets/{ticket}/reopen`
+- Auth: `Yes`
+
+### Add Ticket Note
+- Method: `POST`
+- Path: `/tickets/{ticket}/notes`
+- Auth: `Yes`
+
+```json
+{
+  "type": "staff",
+  "note": "Client approved extra work"
+}
+```
+
+## Tasks
+
+### Create Task
+- Method: `POST`
+- Path: `/tickets/{ticket}/tasks`
+- Auth: `Yes`
+
+```json
+{
+  "name": "Change engine oil",
+  "status": "pending",
+  "approved_by_client": true
+}
+```
+
+### Update Task
+- Method: `PUT`
+- Path: `/tickets/{ticket}/tasks/{task}`
+- Auth: `Yes`
+
+```json
+{
+  "name": "Change engine oil and filter",
+  "status": "completed",
+  "approved_by_client": true
+}
+```
+
+### Delete Task
+- Method: `DELETE`
+- Path: `/tickets/{ticket}/tasks/{task}`
+- Auth: `Yes`
+
+### Assign Item To Task
+- Method: `POST`
+- Path: `/tickets/{ticket}/tasks/{task}/items`
+- Auth: `Yes`
+
+Service item:
+
+```json
+{
+  "item_type": "service",
+  "item_id": 1,
+  "qty": 1,
+  "price_source": "current"
+}
+```
+
+Product item:
+
+```json
+{
+  "item_type": "product",
+  "item_id": 1,
+  "qty": 2,
+  "price_source": "current"
+}
+```
+
+### Remove Item From Task
+- Method: `DELETE`
+- Path: `/tickets/{ticket}/tasks/{task}/items/{item}`
+- Auth: `Yes`
+
+## Expenses
 
 ### List Expenses
-
-```http
-GET /expenses
-GET /expenses?category=bills
-GET /expenses?from_date=2026-04-01&to_date=2026-04-30
-GET /expenses?min_amount=100&max_amount=1000
-GET /expenses?search=rent
-GET /expenses?paid_by=cash
-```
+- Method: `GET`
+- Path: `/expenses?category=bills&paid_by=bank&from_date=2026-04-01&to_date=2026-04-30&min_amount=100&max_amount=5000&search=rent`
+- Auth: `Yes`
 
 ### Create Expense
-
-```http
-POST /expenses
-Content-Type: multipart/form-data
-```
-
-Fields:
+- Method: `POST`
+- Path: `/expenses`
+- Auth: `Yes`
+- Content type: `multipart/form-data`
 
 ```text
 category: bills
@@ -512,13 +891,10 @@ attachment: rent.pdf
 ```
 
 ### Update Expense
-
-```http
-PUT /expenses/{expense}
-Content-Type: multipart/form-data
-```
-
-Fields example:
+- Method: `PUT`
+- Path: `/expenses/{expense}`
+- Auth: `Yes`
+- Content type: `multipart/form-data`
 
 ```text
 category: bills
@@ -533,17 +909,14 @@ remove_attachment: 0
 ```
 
 ### Delete Expense
-
-```http
-DELETE /expenses/{expense}
-```
+- Method: `DELETE`
+- Path: `/expenses/{expense}`
+- Auth: `Yes`
 
 ### Generate Recurring Expenses
-
-```http
-POST /expenses/generate-recurring
-Content-Type: application/json
-```
+- Method: `POST`
+- Path: `/expenses/generate-recurring`
+- Auth: `Yes`
 
 ```json
 {
@@ -551,92 +924,107 @@ Content-Type: application/json
 }
 ```
 
----
+## Reports
 
-## 6. Reports APIs
-
-All reports support:
-
-- `from_date`
-- `to_date`
-- `date` for daily report
-- `format=json|csv|excel|pdf`
+All report endpoints accept `format=json|csv|excel|pdf` plus either `date` or a date range depending on the report.
 
 ### Profit & Loss
-
-```http
-GET /reports/profit-loss?from_date=2026-04-01&to_date=2026-04-30
-GET /reports/profit-loss?from_date=2026-04-01&to_date=2026-04-30&format=pdf
-```
+- Method: `GET`
+- Path: `/reports/profit-loss?from_date=2026-04-01&to_date=2026-04-30&format=json`
+- Auth: `Yes`
 
 ### Balance Sheet
-
-```http
-GET /reports/balance-sheet?from_date=2026-04-01&to_date=2026-04-30
-```
+- Method: `GET`
+- Path: `/reports/balance-sheet?from_date=2026-04-01&to_date=2026-04-30&format=json`
+- Auth: `Yes`
 
 ### Daily Report
-
-```http
-GET /reports/daily?date=2026-04-06
-```
+- Method: `GET`
+- Path: `/reports/daily?date=2026-04-06&format=json`
+- Auth: `Yes`
 
 ### Expenses Report
-
-```http
-GET /reports/expenses?from_date=2026-04-01&to_date=2026-04-30
-```
+- Method: `GET`
+- Path: `/reports/expenses?from_date=2026-04-01&to_date=2026-04-30&format=json`
+- Auth: `Yes`
 
 ### Cash & Bank Report
+- Method: `GET`
+- Path: `/reports/cash-bank?from_date=2026-04-01&to_date=2026-04-30&format=json`
+- Auth: `Yes`
 
-```http
-GET /reports/cash-bank?from_date=2026-04-01&to_date=2026-04-30
+## Invoices
+
+### List Invoices
+- Method: `GET`
+- Path: `/invoices?type=sale&status=paid&from_date=2026-04-01&to_date=2026-04-30`
+- Auth: `Yes`
+
+### Show Invoice
+- Method: `GET`
+- Path: `/invoices/{invoice}`
+- Auth: `Yes`
+
+## Settings
+
+### List Settings
+- Method: `GET`
+- Path: `/settings`
+- Auth: `Yes`
+
+### Update Setting
+- Method: `PUT`
+- Path: `/settings`
+- Auth: `Yes`
+
+```json
+{
+  "key": "default_currency",
+  "value": "EGP"
+}
 ```
 
----
+### Update Settings Exchange Rate
+- Method: `POST`
+- Path: `/settings/exchange-rate`
+- Auth: `Yes`
 
-## 7. Audit Logs APIs
+```json
+{
+  "currency": "USD",
+  "rate": 50.25
+}
+```
+
+## Dashboard
+
+### Dashboard Metrics
+- Method: `GET`
+- Path: `/dashboard/metrics`
+- Auth: `Yes`
+
+## Recovery
+
+Supported recovery entities are: `sales`, `tickets`, `products`, `expenses`, `customers`.
+
+### List Deleted Records
+- Method: `GET`
+- Path: `/recovery/products`
+- Auth: `Yes`
+
+### Restore Deleted Record
+- Method: `POST`
+- Path: `/recovery/products/{id}/restore`
+- Auth: `Yes`
+
+## Logs
 
 ### List Logs
-
-```http
-GET /logs
-GET /logs?user_id=1
-GET /logs?action=update
-GET /logs?entity_type=product
-GET /logs?from_date=2026-04-01&to_date=2026-04-30
-```
+- Method: `GET`
+- Path: `/logs?user_id=1&action=update&entity_type=product&from_date=2026-04-01&to_date=2026-04-30`
+- Auth: `Yes`
 
 ### Show Log Details
-
-```http
-GET /logs/{log}
-```
-
----
-
-## Suggested Testing Order
-
-1. Create products and units
-2. Adjust stock
-3. Create sale and add sale items
-4. Create ticket, tasks, and assign items
-5. Create expenses
-6. Generate reports
-7. Review audit logs
-
----
-
-## Quick Seed IDs Checklist
-
-Before testing, make sure these tables have records:
-
-- `customers`
-- `customer_bikes`
-- `sellers`
-- `categories`
-- `brands`
-- `bikes`
-- `services`
-- `users`
-
+- Method: `GET`
+- Path: `/logs/{log}`
+- Auth: `Yes`

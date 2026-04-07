@@ -12,8 +12,7 @@ class AdjustStockService
 {
     public function __construct(
         private readonly ConvertUnitService $convertUnitService,
-    ) {
-    }
+    ) {}
 
     public function execute(Product|int $product, float $quantity, string $changeType, string $referenceType, ?int $referenceId = null, ?int $unitId = null): Product
     {

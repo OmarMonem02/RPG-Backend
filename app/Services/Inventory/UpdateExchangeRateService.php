@@ -12,8 +12,7 @@ class UpdateExchangeRateService
 {
     public function __construct(
         private readonly SettingService $settingService,
-    ) {
-    }
+    ) {}
 
     public function execute(float $rate, string $currency = ExchangeRate::USD): ExchangeRate
     {

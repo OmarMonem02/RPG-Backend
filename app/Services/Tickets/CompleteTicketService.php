@@ -11,8 +11,7 @@ class CompleteTicketService
 {
     public function __construct(
         private readonly GenerateInvoiceService $generateInvoiceService,
-    ) {
-    }
+    ) {}
 
     public function execute(Ticket $ticket): Ticket
     {

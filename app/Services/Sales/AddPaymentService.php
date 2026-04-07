@@ -13,8 +13,7 @@ class AddPaymentService
     public function __construct(
         private readonly SyncSaleTotalsService $syncSaleTotalsService,
         private readonly GenerateInvoiceService $generateInvoiceService,
-    ) {
-    }
+    ) {}
 
     public function execute(Sale $sale, array $data): Sale
     {

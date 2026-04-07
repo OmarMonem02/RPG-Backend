@@ -9,8 +9,7 @@ class UpdateExpenseService
 {
     public function __construct(
         private readonly UploadExpenseAttachmentService $uploadExpenseAttachmentService,
-    ) {
-    }
+    ) {}
 
     public function execute(Expense $expense, array $data): Expense
     {

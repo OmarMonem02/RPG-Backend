@@ -11,11 +11,15 @@ class Payment extends Model
     use HasFactory;
 
     public const METHOD_CASH = 'cash';
+
     public const METHOD_VISA = 'visa';
+
     public const METHOD_INSTAPAY = 'instapay';
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_REFUNDED = 'refunded';
 
     protected $fillable = [

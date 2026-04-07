@@ -12,8 +12,7 @@ class CalculateProductPriceService
 {
     public function __construct(
         private readonly SettingService $settingService,
-    ) {
-    }
+    ) {}
 
     public function execute(Product $product, ?int $unitId = null): array
     {

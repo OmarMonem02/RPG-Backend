@@ -22,8 +22,7 @@ class ReportController extends Controller
         private readonly ExpenseReportService $expenseReportService,
         private readonly CashBankReportService $cashBankReportService,
         private readonly ExportReportService $exportReportService,
-    ) {
-    }
+    ) {}
 
     public function profitLoss(ReportFilterRequest $request): JsonResponse|Response|StreamedResponse
     {

@@ -12,8 +12,7 @@ class CreateProductService
     public function __construct(
         private readonly CalculateProductPriceService $calculateProductPriceService,
         private readonly AssignProductToBikeService $assignProductToBikeService,
-    ) {
-    }
+    ) {}
 
     public function execute(array $data): Product
     {
@@ -60,7 +59,7 @@ class CreateProductService
                 'changed_by' => Auth::id(),
             ]);
 
-            return $product->fresh(['units', 'bikes', 'stockLogs', 'priceHistories']);
+            return $product->fresh(['units', 'bikes', 'category', 'brand', 'stockLogs', 'priceHistories']);
         });
     }
 }

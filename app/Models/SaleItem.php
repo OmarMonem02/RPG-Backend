@@ -12,6 +12,7 @@ class SaleItem extends Model
     use HasFactory;
 
     public const ITEM_TYPE_PRODUCT = 'product';
+
     public const ITEM_TYPE_BIKE = 'bike';
 
     protected $fillable = [

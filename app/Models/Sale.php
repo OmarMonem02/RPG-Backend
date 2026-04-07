@@ -14,11 +14,15 @@ class Sale extends Model
     use SoftDeletes;
 
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_PARTIAL = 'partial';
+
     public const STATUS_PENDING = 'pending';
 
     public const TYPE_GARAGE = 'garage';
+
     public const TYPE_DELIVERY = 'delivery';
+
     public const TYPE_ONLINE = 'online';
 
     protected $fillable = [

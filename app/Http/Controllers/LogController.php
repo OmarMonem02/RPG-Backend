@@ -11,8 +11,7 @@ class LogController extends Controller
 {
     public function __construct(
         private readonly LogActivityService $logActivityService,
-    ) {
-    }
+    ) {}
 
     public function index(LogFilterRequest $request): JsonResponse
     {

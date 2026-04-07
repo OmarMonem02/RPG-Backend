@@ -13,8 +13,7 @@ class ReturnController extends Controller
     public function __construct(
         private readonly HandleReturnService $handleReturnService,
         private readonly ListSaleReturnsService $listSaleReturnsService,
-    ) {
-    }
+    ) {}
 
     public function index(Sale $sale): JsonResponse
     {

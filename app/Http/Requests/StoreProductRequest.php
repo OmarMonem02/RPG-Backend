@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -62,6 +63,12 @@ class StoreProductRequest extends FormRequest
 
             if ($type === Product::DISCOUNT_TYPE_FIXED && $value > $sellingPrice) {
                 $validator->errors()->add('max_discount_value', 'Fixed discount cannot exceed the selling price.');
+            }
+
+            $category = Category::query()->find($this->input('category_id'));
+
+            if ($category !== null && $category->type !== $this->input('type')) {
+                $validator->errors()->add('category_id', 'Product category type must match the selected product type.');
             }
         });
     }

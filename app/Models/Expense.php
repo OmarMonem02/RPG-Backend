@@ -12,15 +12,21 @@ class Expense extends Model
     use SoftDeletes;
 
     public const CATEGORY_GOODS = 'goods';
+
     public const CATEGORY_BILLS = 'bills';
+
     public const CATEGORY_SUPPLIES = 'supplies';
 
     public const PAID_BY_CASH = 'cash';
+
     public const PAID_BY_BANK = 'bank';
 
     public const RECURRING_WEEKLY = 'weekly';
+
     public const RECURRING_MONTHLY = 'monthly';
+
     public const RECURRING_YEARLY = 'yearly';
+
     public const RECURRING_NONE = 'none';
 
     protected $fillable = [

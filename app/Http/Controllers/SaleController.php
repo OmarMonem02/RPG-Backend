@@ -21,8 +21,7 @@ class SaleController extends Controller
         private readonly AddPaymentService $addPaymentService,
         private readonly CompleteSaleService $completeSaleService,
         private readonly ReturnSaleService $returnSaleService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreSaleRequest $request): JsonResponse
     {

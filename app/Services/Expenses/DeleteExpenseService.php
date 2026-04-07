@@ -9,8 +9,7 @@ class DeleteExpenseService
 {
     public function __construct(
         private readonly UploadExpenseAttachmentService $uploadExpenseAttachmentService,
-    ) {
-    }
+    ) {}
 
     public function execute(Expense $expense): void
     {

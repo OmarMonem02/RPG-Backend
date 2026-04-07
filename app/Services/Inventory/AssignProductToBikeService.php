@@ -17,7 +17,7 @@ class AssignProductToBikeService
                 $product->update(['is_universal' => false]);
             }
 
-            return $product->fresh(['units', 'bikes', 'stockLogs', 'priceHistories']);
+            return $product->fresh(['units', 'bikes', 'category', 'brand', 'stockLogs', 'priceHistories']);
         });
     }
 }

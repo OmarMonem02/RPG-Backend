@@ -19,8 +19,7 @@ class HandleReturnService
     public function __construct(
         private readonly AdjustStockService $adjustStockService,
         private readonly GenerateInvoiceService $generateInvoiceService,
-    ) {
-    }
+    ) {}
 
     public function execute(Sale $sale, array $data): SaleReturn
     {

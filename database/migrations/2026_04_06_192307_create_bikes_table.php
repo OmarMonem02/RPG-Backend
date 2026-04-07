@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('model')->index();
             $table->year('year')->index();
             $table->timestamps();
-            
+
             $table->unique(['brand', 'model', 'year']);
         });
     }

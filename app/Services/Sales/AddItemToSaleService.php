@@ -16,8 +16,7 @@ class AddItemToSaleService
     public function __construct(
         private readonly SyncSaleTotalsService $syncSaleTotalsService,
         private readonly AdjustStockService $adjustStockService,
-    ) {
-    }
+    ) {}
 
     public function execute(Sale $sale, array $data): Sale
     {

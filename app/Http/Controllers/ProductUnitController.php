@@ -12,8 +12,7 @@ class ProductUnitController extends Controller
 {
     public function __construct(
         private readonly ManageProductUnitService $manageProductUnitService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreProductUnitRequest $request, Product $product): JsonResponse
     {

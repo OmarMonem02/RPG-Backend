@@ -21,7 +21,7 @@ return new class extends Migration
             $table->enum('price_source', ['current', 'old'])->default('current');
             $table->integer('qty')->default(1);
             $table->timestamps();
-            
+
             $table->index(['item_type', 'item_id']);
         });
     }

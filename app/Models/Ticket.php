@@ -14,7 +14,9 @@ class Ticket extends Model
     use SoftDeletes;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [

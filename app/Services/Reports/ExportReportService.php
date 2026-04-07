@@ -47,13 +47,13 @@ class ExportReportService
             $text .= $line['key'].': '.$line['value']."\n";
         }
 
-        $stream = "BT /F1 10 Tf 40 780 Td (".$this->escapePdfText($text).") Tj ET";
+        $stream = 'BT /F1 10 Tf 40 780 Td ('.$this->escapePdfText($text).') Tj ET';
         $objects = [];
-        $objects[] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj";
-        $objects[] = "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj";
-        $objects[] = "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj";
-        $objects[] = "4 0 obj << /Length ".strlen($stream)." >> stream\n".$stream."\nendstream endobj";
-        $objects[] = "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj";
+        $objects[] = '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj';
+        $objects[] = '2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj';
+        $objects[] = '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj';
+        $objects[] = '4 0 obj << /Length '.strlen($stream)." >> stream\n".$stream."\nendstream endobj";
+        $objects[] = '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj';
 
         $pdf = $content;
         $offsets = [0];
@@ -71,7 +71,7 @@ class ExportReportService
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
 
-        $pdf .= "trailer << /Size ".(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
+        $pdf .= 'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
@@ -88,6 +88,7 @@ class ExportReportService
 
             if (is_array($value)) {
                 $rows = array_merge($rows, $this->flattenReport($value, $label));
+
                 continue;
             }
 
@@ -102,7 +103,7 @@ class ExportReportService
 
     private function escapePdfText(string $text): string
     {
-        $text = str_replace(["\\", "(", ")"], ["\\\\", "\\(", "\\)"], $text);
+        $text = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
 
         return str_replace(["\r", "\n"], [' ', ' '], $text);
     }

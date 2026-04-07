@@ -11,6 +11,7 @@ class Seller extends Model
     use HasFactory;
 
     public const COMMISSION_TYPE_TOTAL = 'total';
+
     public const COMMISSION_TYPE_PROFIT = 'profit';
 
     protected $fillable = [

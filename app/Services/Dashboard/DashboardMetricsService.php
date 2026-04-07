@@ -5,7 +5,6 @@ namespace App\Services\Dashboard;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\Ticket;

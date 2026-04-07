@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8f99f5e9-c1aa-4c3b-aac9-7e1c7b9e6f01",
     "name": "Garage ERP API",
-    "description": "Updated Postman collection for Garage ERP enterprise APIs.",
+    "description": "Complete Postman collection for the current Garage ERP Laravel API surface.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -14,26 +14,35 @@
   "variable": [
     { "key": "base_url", "value": "http://127.0.0.1:8000/api" },
     { "key": "token", "value": "" },
+    { "key": "user_id", "value": "1" },
+    { "key": "category_id", "value": "1" },
+    { "key": "brand_id", "value": "1" },
+    { "key": "bike_id", "value": "1" },
+    { "key": "product_id", "value": "1" },
+    { "key": "unit_id", "value": "1" },
+    { "key": "customer_id", "value": "1" },
+    { "key": "customer_bike_id", "value": "1" },
+    { "key": "bike_inventory_id", "value": "1" },
+    { "key": "service_id", "value": "1" },
     { "key": "sale_id", "value": "1" },
     { "key": "sale_item_id", "value": "1" },
+    { "key": "seller_id", "value": "1" },
     { "key": "ticket_id", "value": "1" },
     { "key": "task_id", "value": "1" },
     { "key": "ticket_item_id", "value": "1" },
-    { "key": "product_id", "value": "1" },
-    { "key": "unit_id", "value": "1" },
     { "key": "expense_id", "value": "1" },
     { "key": "invoice_id", "value": "1" },
-    { "key": "user_id", "value": "1" },
     { "key": "log_id", "value": "1" },
     { "key": "recovery_entity", "value": "products" },
     { "key": "recovery_id", "value": "1" }
   ],
   "item": [
     {
-      "name": "Auth & Users",
+      "name": "Auth",
       "item": [
         {
           "name": "Login",
+          "auth": { "type": "noauth" },
           "event": [
             {
               "listen": "test",
@@ -54,8 +63,25 @@
             "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
           }
         },
-        { "name": "Current User", "request": { "method": "GET", "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] } } },
-        { "name": "Logout", "request": { "method": "POST", "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] } } },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
         { "name": "List Users", "request": { "method": "GET", "url": { "raw": "{{base_url}}/users", "host": ["{{base_url}}"], "path": ["users"] } } },
         {
           "name": "Create User",
@@ -67,14 +93,315 @@
           }
         },
         {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Staff User\",\n  \"email\": \"staff.updated@example.com\",\n  \"password\": \"newpassword123\",\n  \"role\": \"technician\"\n}" },
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] }
+          }
+        },
+        {
           "name": "Assign User Permissions",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\"view_sales\", \"create_sale\", \"edit_sale\", \"view_reports\"]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\n    \"view_sales\",\n    \"create_sale\",\n    \"edit_sale\",\n    \"view_inventory\",\n    \"edit_inventory\"\n  ]\n}" },
             "url": { "raw": "{{base_url}}/users/{{user_id}}/permissions", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}", "permissions"] }
           }
         }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        { "name": "List Categories", "request": { "method": "GET", "url": { "raw": "{{base_url}}/categories?type=part&search=brake&per_page=15", "host": ["{{base_url}}"], "path": ["categories"], "query": [{ "key": "type", "value": "part" }, { "key": "search", "value": "brake" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Category", "request": { "method": "GET", "url": { "raw": "{{base_url}}/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["categories", "{{category_id}}"] } } },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Brake Parts\",\n  \"type\": \"part\",\n  \"description\": \"Brake system inventory\"\n}" },
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Brake Consumables\",\n  \"description\": \"Pads, fluids, and rotors\"\n}" },
+            "url": { "raw": "{{base_url}}/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["categories", "{{category_id}}"] }
+          }
+        },
+        { "name": "Delete Category", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/categories/{{category_id}}", "host": ["{{base_url}}"], "path": ["categories", "{{category_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Brands",
+      "item": [
+        { "name": "List Brands", "request": { "method": "GET", "url": { "raw": "{{base_url}}/brands?search=honda&per_page=15", "host": ["{{base_url}}"], "path": ["brands"], "query": [{ "key": "search", "value": "honda" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Brand", "request": { "method": "GET", "url": { "raw": "{{base_url}}/brands/{{brand_id}}", "host": ["{{base_url}}"], "path": ["brands", "{{brand_id}}"] } } },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Honda\",\n  \"description\": \"OEM and genuine brand\"\n}" },
+            "url": { "raw": "{{base_url}}/brands", "host": ["{{base_url}}"], "path": ["brands"] }
+          }
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Honda Motorcycles\",\n  \"description\": \"Updated notes\"\n}" },
+            "url": { "raw": "{{base_url}}/brands/{{brand_id}}", "host": ["{{base_url}}"], "path": ["brands", "{{brand_id}}"] }
+          }
+        },
+        { "name": "Delete Brand", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/brands/{{brand_id}}", "host": ["{{base_url}}"], "path": ["brands", "{{brand_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Bikes",
+      "item": [
+        { "name": "List Bike Blueprints", "request": { "method": "GET", "url": { "raw": "{{base_url}}/bikes?brand=Yamaha&model=MT&year=2024&search=MT&per_page=15", "host": ["{{base_url}}"], "path": ["bikes"], "query": [{ "key": "brand", "value": "Yamaha" }, { "key": "model", "value": "MT" }, { "key": "year", "value": "2024" }, { "key": "search", "value": "MT" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Bike Blueprint", "request": { "method": "GET", "url": { "raw": "{{base_url}}/bikes/{{bike_id}}", "host": ["{{base_url}}"], "path": ["bikes", "{{bike_id}}"] } } },
+        {
+          "name": "Create Bike Blueprint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"brand\": \"Yamaha\",\n  \"model\": \"MT-07\",\n  \"year\": 2024\n}" },
+            "url": { "raw": "{{base_url}}/bikes", "host": ["{{base_url}}"], "path": ["bikes"] }
+          }
+        },
+        {
+          "name": "Update Bike Blueprint",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"model\": \"MT-09\"\n}" },
+            "url": { "raw": "{{base_url}}/bikes/{{bike_id}}", "host": ["{{base_url}}"], "path": ["bikes", "{{bike_id}}"] }
+          }
+        },
+        { "name": "Delete Bike Blueprint", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/bikes/{{bike_id}}", "host": ["{{base_url}}"], "path": ["bikes", "{{bike_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"part\",\n  \"name\": \"Engine Oil\",\n  \"sku\": \"OIL-001\",\n  \"part_number\": \"EO-5L\",\n  \"category_id\": 1,\n  \"brand_id\": 1,\n  \"qty\": 50,\n  \"cost_price\": 200,\n  \"selling_price\": 300,\n  \"cost_price_usd\": 4,\n  \"max_discount_type\": \"percentage\",\n  \"max_discount_value\": 10,\n  \"is_universal\": false,\n  \"description\": \"Synthetic oil\",\n  \"bike_ids\": [1, 2],\n  \"units\": [\n    {\n      \"unit_name\": \"liter\",\n      \"conversion_factor\": 1,\n      \"price\": 80\n    },\n    {\n      \"unit_name\": \"gallon\",\n      \"conversion_factor\": 5,\n      \"price\": 300\n    }\n  ]\n}" },
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Engine Oil Premium\",\n  \"selling_price\": 320,\n  \"max_discount_type\": \"fixed\",\n  \"max_discount_value\": 30,\n  \"units\": [\n    {\n      \"id\": 1,\n      \"unit_name\": \"liter\",\n      \"conversion_factor\": 1,\n      \"price\": 85\n    },\n    {\n      \"unit_name\": \"gallon\",\n      \"conversion_factor\": 5,\n      \"price\": 320\n    }\n  ]\n}" },
+            "url": { "raw": "{{base_url}}/products/{{product_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}"] }
+          }
+        },
+        {
+          "name": "Assign Product To Bikes",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"bike_ids\": [1, 2, 3]\n}" },
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/bikes", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "bikes"] }
+          }
+        },
+        { "name": "Get Compatible Products", "request": { "method": "GET", "url": { "raw": "{{base_url}}/products/compatible?bike_id={{bike_id}}&per_page=15", "host": ["{{base_url}}"], "path": ["products", "compatible"], "query": [{ "key": "bike_id", "value": "{{bike_id}}" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Calculate Product Price", "request": { "method": "GET", "url": { "raw": "{{base_url}}/products/{{product_id}}/calculate-price?unit_id={{unit_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "calculate-price"], "query": [{ "key": "unit_id", "value": "{{unit_id}}" }] } } }
+      ]
+    },
+    {
+      "name": "Product Units",
+      "item": [
+        {
+          "name": "Create Product Unit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"unit_name\": \"half-liter\",\n  \"conversion_factor\": 0.5,\n  \"price\": 45\n}" },
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/units", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "units"] }
+          }
+        },
+        {
+          "name": "Update Product Unit",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"unit_name\": \"half-liter\",\n  \"conversion_factor\": 0.5,\n  \"price\": 50\n}" },
+            "url": { "raw": "{{base_url}}/products/{{product_id}}/units/{{unit_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "units", "{{unit_id}}"] }
+          }
+        },
+        { "name": "Delete Product Unit", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/products/{{product_id}}/units/{{unit_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "units", "{{unit_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Bulk Update Products",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_ids\": [1, 2, 3],\n  \"attributes\": {\n    \"selling_price\": 350,\n    \"max_discount_type\": \"percentage\",\n    \"max_discount_value\": 5,\n    \"is_universal\": false\n  }\n}" },
+            "url": { "raw": "{{base_url}}/inventory/bulk-update", "host": ["{{base_url}}"], "path": ["inventory", "bulk-update"] }
+          }
+        },
+        {
+          "name": "Import Products",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }, { "key": "mode", "value": "upsert", "type": "text" }] },
+            "url": { "raw": "{{base_url}}/inventory/import", "host": ["{{base_url}}"], "path": ["inventory", "import"] }
+          }
+        },
+        { "name": "Export Products", "request": { "method": "GET", "url": { "raw": "{{base_url}}/inventory/export?format=csv", "host": ["{{base_url}}"], "path": ["inventory", "export"], "query": [{ "key": "format", "value": "csv" }] } } },
+        { "name": "Inventory Template", "request": { "method": "GET", "url": { "raw": "{{base_url}}/inventory/template?format=csv", "host": ["{{base_url}}"], "path": ["inventory", "template"], "query": [{ "key": "format", "value": "csv" }] } } },
+        {
+          "name": "Update Inventory Exchange Rate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currency\": \"USD\",\n  \"rate\": 50.25\n}" },
+            "url": { "raw": "{{base_url}}/inventory/exchange-rate", "host": ["{{base_url}}"], "path": ["inventory", "exchange-rate"] }
+          }
+        },
+        {
+          "name": "Adjust Stock",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_id\": 1,\n  \"qty\": 5,\n  \"change_type\": \"add\",\n  \"reference_type\": \"manual\",\n  \"reference_id\": 1001\n}" },
+            "url": { "raw": "{{base_url}}/inventory/adjust-stock", "host": ["{{base_url}}"], "path": ["inventory", "adjust-stock"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        { "name": "List Customers", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customers?search=ahmed&phone=0100&per_page=15", "host": ["{{base_url}}"], "path": ["customers"], "query": [{ "key": "search", "value": "ahmed" }, { "key": "phone", "value": "0100" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Customer", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["customers", "{{customer_id}}"] } } },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ahmed Rider\",\n  \"phone\": \"01000000001\",\n  \"address\": \"Nasr City\",\n  \"notes\": \"VIP customer\",\n  \"bikes\": [\n    {\n      \"brand\": \"BMW\",\n      \"model\": \"S1000RR\",\n      \"year\": 2021,\n      \"modifications\": \"Exhaust upgrade\",\n      \"notes\": \"Track bike\"\n    }\n  ]\n}" },
+            "url": { "raw": "{{base_url}}/customers", "host": ["{{base_url}}"], "path": ["customers"] }
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"address\": \"New Cairo\",\n  \"notes\": \"Prefers WhatsApp\"\n}" },
+            "url": { "raw": "{{base_url}}/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["customers", "{{customer_id}}"] }
+          }
+        },
+        { "name": "Delete Customer", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["customers", "{{customer_id}}"] } } },
+        { "name": "List Customer Bikes By Customer", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customers/{{customer_id}}/bikes?per_page=15", "host": ["{{base_url}}"], "path": ["customers", "{{customer_id}}", "bikes"], "query": [{ "key": "per_page", "value": "15" }] } } },
+        {
+          "name": "Create Customer Bike Under Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"brand\": \"Kawasaki\",\n  \"model\": \"ZX-6R\",\n  \"year\": 2020,\n  \"modifications\": \"Quick shifter\",\n  \"notes\": \"Daily rider\"\n}" },
+            "url": { "raw": "{{base_url}}/customers/{{customer_id}}/bikes", "host": ["{{base_url}}"], "path": ["customers", "{{customer_id}}", "bikes"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Bikes",
+      "item": [
+        { "name": "List Customer Bikes", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customer-bikes?customer_id={{customer_id}}&search=BMW&per_page=15", "host": ["{{base_url}}"], "path": ["customer-bikes"], "query": [{ "key": "customer_id", "value": "{{customer_id}}" }, { "key": "search", "value": "BMW" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Customer Bike", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customer-bikes/{{customer_bike_id}}", "host": ["{{base_url}}"], "path": ["customer-bikes", "{{customer_bike_id}}"] } } },
+        {
+          "name": "Create Customer Bike",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"customer_id\": 1,\n  \"brand\": \"Kawasaki\",\n  \"model\": \"ZX-6R\",\n  \"year\": 2020,\n  \"modifications\": \"Quick shifter\",\n  \"notes\": \"Daily rider\"\n}" },
+            "url": { "raw": "{{base_url}}/customer-bikes", "host": ["{{base_url}}"], "path": ["customer-bikes"] }
+          }
+        },
+        {
+          "name": "Update Customer Bike",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Updated inspection notes\"\n}" },
+            "url": { "raw": "{{base_url}}/customer-bikes/{{customer_bike_id}}", "host": ["{{base_url}}"], "path": ["customer-bikes", "{{customer_bike_id}}"] }
+          }
+        },
+        { "name": "Delete Customer Bike", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/customer-bikes/{{customer_bike_id}}", "host": ["{{base_url}}"], "path": ["customer-bikes", "{{customer_bike_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Bike Inventory",
+      "item": [
+        { "name": "List Bike Inventory", "request": { "method": "GET", "url": { "raw": "{{base_url}}/bike-inventory?type=consignment&sold=false&per_page=15", "host": ["{{base_url}}"], "path": ["bike-inventory"], "query": [{ "key": "type", "value": "consignment" }, { "key": "sold", "value": "false" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Bike Inventory", "request": { "method": "GET", "url": { "raw": "{{base_url}}/bike-inventory/{{bike_inventory_id}}", "host": ["{{base_url}}"], "path": ["bike-inventory", "{{bike_inventory_id}}"] } } },
+        {
+          "name": "Create Bike Inventory",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"bike_id\": 1,\n  \"type\": \"consignment\",\n  \"cost_price\": 350000,\n  \"selling_price\": 390000,\n  \"mileage\": 12000,\n  \"cc\": 1103,\n  \"horse_power\": 214,\n  \"owner_name\": \"Mostafa\",\n  \"owner_phone\": \"01111111111\",\n  \"notes\": \"Clean condition\"\n}" },
+            "url": { "raw": "{{base_url}}/bike-inventory", "host": ["{{base_url}}"], "path": ["bike-inventory"] }
+          }
+        },
+        {
+          "name": "Update Bike Inventory",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"selling_price\": 395000,\n  \"notes\": \"Price updated after inspection\"\n}" },
+            "url": { "raw": "{{base_url}}/bike-inventory/{{bike_inventory_id}}", "host": ["{{base_url}}"], "path": ["bike-inventory", "{{bike_inventory_id}}"] }
+          }
+        },
+        { "name": "Delete Bike Inventory", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/bike-inventory/{{bike_inventory_id}}", "host": ["{{base_url}}"], "path": ["bike-inventory", "{{bike_inventory_id}}"] } } }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        { "name": "List Services", "request": { "method": "GET", "url": { "raw": "{{base_url}}/services?category_id={{category_id}}&search=diagnostic&per_page=15", "host": ["{{base_url}}"], "path": ["services"], "query": [{ "key": "category_id", "value": "{{category_id}}" }, { "key": "search", "value": "diagnostic" }, { "key": "per_page", "value": "15" }] } } },
+        { "name": "Show Service", "request": { "method": "GET", "url": { "raw": "{{base_url}}/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["services", "{{service_id}}"] } } },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category_id\": 3,\n  \"name\": \"Engine Diagnostics\",\n  \"price\": 800,\n  \"max_discount_type\": \"percentage\",\n  \"max_discount_value\": 10,\n  \"description\": \"Full diagnostics service\"\n}" },
+            "url": { "raw": "{{base_url}}/services", "host": ["{{base_url}}"], "path": ["services"] }
+          }
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 900,\n  \"max_discount_type\": \"fixed\",\n  \"max_discount_value\": 50\n}" },
+            "url": { "raw": "{{base_url}}/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["services", "{{service_id}}"] }
+          }
+        },
+        { "name": "Delete Service", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/services/{{service_id}}", "host": ["{{base_url}}"], "path": ["services", "{{service_id}}"] } } }
       ]
     },
     {
@@ -110,11 +437,11 @@
         { "name": "Complete Sale", "request": { "method": "POST", "url": { "raw": "{{base_url}}/sales/{{sale_id}}/complete", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "complete"] } } },
         { "name": "List Sale Returns", "request": { "method": "GET", "url": { "raw": "{{base_url}}/sales/{{sale_id}}/returns", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "returns"] } } },
         {
-          "name": "Process Item Return",
+          "name": "Return Sale Item",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"item_id\": {{sale_item_id}},\n  \"qty\": 1,\n  \"reason\": \"Damaged item\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"item_id\": 1,\n  \"qty\": 1,\n  \"reason\": \"Damaged item\"\n}" },
             "url": { "raw": "{{base_url}}/sales/{{sale_id}}/returns", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "returns"] }
           }
         },
@@ -134,8 +461,24 @@
           }
         },
         { "name": "Start Ticket", "request": { "method": "POST", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/start", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "start"] } } },
+        { "name": "Complete Ticket", "request": { "method": "POST", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/complete", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "complete"] } } },
+        { "name": "Reopen Ticket", "request": { "method": "POST", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/reopen", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "reopen"] } } },
         {
-          "name": "Add Task",
+          "name": "Add Ticket Note",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"staff\",\n  \"note\": \"Client approved extra work\"\n}" },
+            "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/notes", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "notes"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -143,6 +486,16 @@
             "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/tasks", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "tasks"] }
           }
         },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Change engine oil and filter\",\n  \"status\": \"completed\",\n  \"approved_by_client\": true\n}" },
+            "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "tasks", "{{task_id}}"] }
+          }
+        },
+        { "name": "Delete Task", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "tasks", "{{task_id}}"] } } },
         {
           "name": "Assign Item To Task",
           "request": {
@@ -152,56 +505,13 @@
             "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/tasks/{{task_id}}/items", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "tasks", "{{task_id}}", "items"] }
           }
         },
-        { "name": "Complete Ticket", "request": { "method": "POST", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/complete", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "complete"] } } },
-        { "name": "Reopen Ticket", "request": { "method": "POST", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/reopen", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "reopen"] } } }
-      ]
-    },
-    {
-      "name": "Products & Inventory",
-      "item": [
-        {
-          "name": "Create Product",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"type\": \"part\",\n  \"name\": \"Engine Oil\",\n  \"sku\": \"OIL-001\",\n  \"part_number\": \"EO-5L\",\n  \"category_id\": 1,\n  \"brand_id\": 1,\n  \"qty\": 50,\n  \"cost_price\": 200,\n  \"selling_price\": 300,\n  \"cost_price_usd\": 4,\n  \"max_discount_type\": \"percentage\",\n  \"max_discount_value\": 10,\n  \"is_universal\": false,\n  \"description\": \"Synthetic oil\"\n}" },
-            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] }
-          }
-        },
-        { "name": "Calculate Product Price", "request": { "method": "GET", "url": { "raw": "{{base_url}}/products/{{product_id}}/calculate-price?unit_id={{unit_id}}", "host": ["{{base_url}}"], "path": ["products", "{{product_id}}", "calculate-price"], "query": [{ "key": "unit_id", "value": "{{unit_id}}" }] } } },
-        {
-          "name": "Bulk Update Products",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"product_ids\": [1, 2, 3],\n  \"attributes\": {\n    \"selling_price\": 350,\n    \"max_discount_type\": \"percentage\",\n    \"max_discount_value\": 5\n  }\n}" },
-            "url": { "raw": "{{base_url}}/inventory/bulk-update", "host": ["{{base_url}}"], "path": ["inventory", "bulk-update"] }
-          }
-        },
-        {
-          "name": "Adjust Stock",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"product_id\": {{product_id}},\n  \"qty\": 5,\n  \"change_type\": \"add\",\n  \"reference_type\": \"manual\",\n  \"reference_id\": 1001\n}" },
-            "url": { "raw": "{{base_url}}/inventory/adjust-stock", "host": ["{{base_url}}"], "path": ["inventory", "adjust-stock"] }
-          }
-        },
-        {
-          "name": "Import Products",
-          "request": {
-            "method": "POST",
-            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }, { "key": "mode", "value": "upsert", "type": "text" }] },
-            "url": { "raw": "{{base_url}}/inventory/import", "host": ["{{base_url}}"], "path": ["inventory", "import"] }
-          }
-        },
-        { "name": "Export Products CSV", "request": { "method": "GET", "url": { "raw": "{{base_url}}/inventory/export?format=csv", "host": ["{{base_url}}"], "path": ["inventory", "export"], "query": [{ "key": "format", "value": "csv" }] } } }
+        { "name": "Remove Item From Task", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}/tasks/{{task_id}}/items/{{ticket_item_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}", "tasks", "{{task_id}}", "items", "{{ticket_item_id}}"] } } }
       ]
     },
     {
       "name": "Expenses",
       "item": [
-        { "name": "List Expenses", "request": { "method": "GET", "url": { "raw": "{{base_url}}/expenses", "host": ["{{base_url}}"], "path": ["expenses"] } } },
+        { "name": "List Expenses", "request": { "method": "GET", "url": { "raw": "{{base_url}}/expenses?category=bills&paid_by=bank&from_date=2026-04-01&to_date=2026-04-30&min_amount=100&max_amount=5000&search=rent", "host": ["{{base_url}}"], "path": ["expenses"], "query": [{ "key": "category", "value": "bills" }, { "key": "paid_by", "value": "bank" }, { "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }, { "key": "min_amount", "value": "100" }, { "key": "max_amount", "value": "5000" }, { "key": "search", "value": "rent" }] } } },
         {
           "name": "Create Expense",
           "request": {
@@ -210,6 +520,15 @@
             "url": { "raw": "{{base_url}}/expenses", "host": ["{{base_url}}"], "path": ["expenses"] }
           }
         },
+        {
+          "name": "Update Expense",
+          "request": {
+            "method": "PUT",
+            "body": { "mode": "formdata", "formdata": [{ "key": "category", "value": "bills", "type": "text" }, { "key": "amount", "value": "1800", "type": "text" }, { "key": "description", "value": "Workshop rent updated", "type": "text" }, { "key": "expense_date", "value": "2026-04-06", "type": "text" }, { "key": "paid_by", "value": "bank", "type": "text" }, { "key": "is_recurring", "value": "1", "type": "text" }, { "key": "recurring_type", "value": "monthly", "type": "text" }, { "key": "remove_attachment", "value": "0", "type": "text" }, { "key": "attachment", "type": "file", "src": "" }] },
+            "url": { "raw": "{{base_url}}/expenses/{{expense_id}}", "host": ["{{base_url}}"], "path": ["expenses", "{{expense_id}}"] }
+          }
+        },
+        { "name": "Delete Expense", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/expenses/{{expense_id}}", "host": ["{{base_url}}"], "path": ["expenses", "{{expense_id}}"] } } },
         {
           "name": "Generate Recurring Expenses",
           "request": {
@@ -222,16 +541,24 @@
       ]
     },
     {
-      "name": "Reports & Invoices",
+      "name": "Reports",
       "item": [
-        { "name": "Profit Loss", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/profit-loss?from_date=2026-04-01&to_date=2026-04-30", "host": ["{{base_url}}"], "path": ["reports", "profit-loss"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }] } } },
-        { "name": "Balance Sheet", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/balance-sheet?from_date=2026-04-01&to_date=2026-04-30", "host": ["{{base_url}}"], "path": ["reports", "balance-sheet"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }] } } },
-        { "name": "List Invoices", "request": { "method": "GET", "url": { "raw": "{{base_url}}/invoices", "host": ["{{base_url}}"], "path": ["invoices"] } } },
+        { "name": "Profit Loss", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/profit-loss?from_date=2026-04-01&to_date=2026-04-30&format=json", "host": ["{{base_url}}"], "path": ["reports", "profit-loss"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }, { "key": "format", "value": "json" }] } } },
+        { "name": "Balance Sheet", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/balance-sheet?from_date=2026-04-01&to_date=2026-04-30&format=json", "host": ["{{base_url}}"], "path": ["reports", "balance-sheet"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }, { "key": "format", "value": "json" }] } } },
+        { "name": "Daily Report", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/daily?date=2026-04-06&format=json", "host": ["{{base_url}}"], "path": ["reports", "daily"], "query": [{ "key": "date", "value": "2026-04-06" }, { "key": "format", "value": "json" }] } } },
+        { "name": "Expenses Report", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/expenses?from_date=2026-04-01&to_date=2026-04-30&format=json", "host": ["{{base_url}}"], "path": ["reports", "expenses"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }, { "key": "format", "value": "json" }] } } },
+        { "name": "Cash Bank Report", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reports/cash-bank?from_date=2026-04-01&to_date=2026-04-30&format=json", "host": ["{{base_url}}"], "path": ["reports", "cash-bank"], "query": [{ "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }, { "key": "format", "value": "json" }] } } }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        { "name": "List Invoices", "request": { "method": "GET", "url": { "raw": "{{base_url}}/invoices?type=sale&status=paid&from_date=2026-04-01&to_date=2026-04-30", "host": ["{{base_url}}"], "path": ["invoices"], "query": [{ "key": "type", "value": "sale" }, { "key": "status", "value": "paid" }, { "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }] } } },
         { "name": "Show Invoice", "request": { "method": "GET", "url": { "raw": "{{base_url}}/invoices/{{invoice_id}}", "host": ["{{base_url}}"], "path": ["invoices", "{{invoice_id}}"] } } }
       ]
     },
     {
-      "name": "Settings, Dashboard & Recovery",
+      "name": "Settings",
       "item": [
         { "name": "List Settings", "request": { "method": "GET", "url": { "raw": "{{base_url}}/settings", "host": ["{{base_url}}"], "path": ["settings"] } } },
         {
@@ -244,15 +571,25 @@
           }
         },
         {
-          "name": "Update Exchange Rate",
+          "name": "Update Settings Exchange Rate",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"currency\": \"USD\",\n  \"rate\": 50.25\n}" },
             "url": { "raw": "{{base_url}}/settings/exchange-rate", "host": ["{{base_url}}"], "path": ["settings", "exchange-rate"] }
           }
-        },
-        { "name": "Dashboard Metrics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/dashboard/metrics", "host": ["{{base_url}}"], "path": ["dashboard", "metrics"] } } },
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "Dashboard Metrics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/dashboard/metrics", "host": ["{{base_url}}"], "path": ["dashboard", "metrics"] } } }
+      ]
+    },
+    {
+      "name": "Recovery",
+      "item": [
         { "name": "List Deleted Records", "request": { "method": "GET", "url": { "raw": "{{base_url}}/recovery/{{recovery_entity}}", "host": ["{{base_url}}"], "path": ["recovery", "{{recovery_entity}}"] } } },
         { "name": "Restore Deleted Record", "request": { "method": "POST", "url": { "raw": "{{base_url}}/recovery/{{recovery_entity}}/{{recovery_id}}/restore", "host": ["{{base_url}}"], "path": ["recovery", "{{recovery_entity}}", "{{recovery_id}}", "restore"] } } }
       ]
@@ -260,7 +597,7 @@
     {
       "name": "Logs",
       "item": [
-        { "name": "List Logs", "request": { "method": "GET", "url": { "raw": "{{base_url}}/logs", "host": ["{{base_url}}"], "path": ["logs"] } } },
+        { "name": "List Logs", "request": { "method": "GET", "url": { "raw": "{{base_url}}/logs?user_id={{user_id}}&action=update&entity_type=product&from_date=2026-04-01&to_date=2026-04-30", "host": ["{{base_url}}"], "path": ["logs"], "query": [{ "key": "user_id", "value": "{{user_id}}" }, { "key": "action", "value": "update" }, { "key": "entity_type", "value": "product" }, { "key": "from_date", "value": "2026-04-01" }, { "key": "to_date", "value": "2026-04-30" }] } } },
         { "name": "Show Log Details", "request": { "method": "GET", "url": { "raw": "{{base_url}}/logs/{{log_id}}", "host": ["{{base_url}}"], "path": ["logs", "{{log_id}}"] } } }
       ]
     }

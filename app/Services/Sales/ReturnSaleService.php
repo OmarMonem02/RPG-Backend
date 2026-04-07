@@ -4,7 +4,6 @@ namespace App\Services\Sales;
 
 use App\Models\Payment;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Services\Returns\HandleReturnService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -13,8 +12,7 @@ class ReturnSaleService
 {
     public function __construct(
         private readonly HandleReturnService $handleReturnService,
-    ) {
-    }
+    ) {}
 
     public function execute(Sale $sale): Sale
     {

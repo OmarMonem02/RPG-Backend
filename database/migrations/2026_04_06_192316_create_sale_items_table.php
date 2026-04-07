@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('qty')->default(1);
             $table->decimal('discount', 15, 2)->default(0);
             $table->timestamps();
-            
+
             $table->index(['item_type', 'item_id']);
         });
     }

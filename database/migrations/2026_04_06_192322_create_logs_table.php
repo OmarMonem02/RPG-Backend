@@ -20,7 +20,7 @@ return new class extends Migration
             $table->json('old_data')->nullable();
             $table->json('new_data')->nullable();
             $table->timestamps();
-            
+
             $table->index(['entity_type', 'entity_id']);
             $table->index('user_id');
             $table->index('created_at');

@@ -13,8 +13,7 @@ class UpdateProductService
     public function __construct(
         private readonly CalculateProductPriceService $calculateProductPriceService,
         private readonly AssignProductToBikeService $assignProductToBikeService,
-    ) {
-    }
+    ) {}
 
     public function execute(Product $product, array $data): Product
     {
@@ -65,7 +64,7 @@ class UpdateProductService
                 ]);
             }
 
-            return $product->fresh(['units', 'bikes', 'stockLogs', 'priceHistories']);
+            return $product->fresh(['units', 'bikes', 'category', 'brand', 'stockLogs', 'priceHistories']);
         });
     }
 }

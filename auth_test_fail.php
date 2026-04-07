@@ -1,10 +1,14 @@
 <?php
+
+use App\Services\Auth\LoginService;
+use Illuminate\Contracts\Console\Kernel;
+
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 try {
-    app(App\Services\Auth\LoginService::class)->execute([
+    app(LoginService::class)->execute([
         'email' => 'admin@example.com',
         'password' => 'wrong',
     ]);

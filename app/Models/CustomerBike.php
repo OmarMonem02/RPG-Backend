@@ -16,6 +16,7 @@ class CustomerBike extends Model
         'brand',
         'model',
         'year',
+        'modifications',
         'notes',
     ];
 
