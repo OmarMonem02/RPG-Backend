@@ -11,6 +11,7 @@ use App\Services\Inventory\AssignProductToBikeService;
 use App\Services\Inventory\CalculateProductPriceService;
 use App\Services\Inventory\CreateProductService;
 use App\Services\Inventory\ListCompatibleProductsService;
+use App\Services\Inventory\ListProductsService;
 use App\Services\Inventory\UpdateProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,12 +19,47 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     public function __construct(
+        private readonly ListProductsService $listProductsService,
         private readonly CreateProductService $createProductService,
         private readonly UpdateProductService $updateProductService,
         private readonly AssignProductToBikeService $assignProductToBikeService,
         private readonly CalculateProductPriceService $calculateProductPriceService,
         private readonly ListCompatibleProductsService $listCompatibleProductsService,
     ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $request->validate([
+            'search'       => ['nullable', 'string', 'max:255'],
+            'type'         => ['nullable', 'string', 'in:part,accessory'],
+            'category_id'  => ['nullable', 'integer', 'exists:categories,id'],
+            'brand_id'     => ['nullable', 'integer', 'exists:brands,id'],
+            'is_universal' => ['nullable', 'boolean'],
+            'per_page'     => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $products = $this->listProductsService->execute(
+            search: $request->string('search')->toString() ?: null,
+            type: $request->string('type')->toString() ?: null,
+            categoryId: $request->filled('category_id') ? $request->integer('category_id') : null,
+            brandId: $request->filled('brand_id') ? $request->integer('brand_id') : null,
+            isUniversal: $request->filled('is_universal') ? $request->boolean('is_universal') : null,
+            perPage: $request->integer('per_page', 15),
+        );
+
+        return response()->json([
+            'message' => 'Products retrieved successfully.',
+            'data'    => $products,
+        ]);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Product retrieved successfully.',
+            'data'    => $product->load(['category', 'brand', 'units', 'bikes']),
+        ]);
+    }
 
     public function store(StoreProductRequest $request): JsonResponse
     {

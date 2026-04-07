@@ -19,7 +19,10 @@ class SaleItem extends Model
         'sale_id',
         'item_type',
         'item_id',
+        'item_name',
         'price_snapshot',
+        'selling_price_at_time',
+        'cost_price_at_time',
         'qty',
         'discount',
     ];
@@ -32,6 +35,8 @@ class SaleItem extends Model
     {
         return [
             'price_snapshot' => 'decimal:2',
+            'selling_price_at_time' => 'decimal:2',
+            'cost_price_at_time' => 'decimal:2',
             'discount' => 'decimal:2',
             'qty' => 'integer',
         ];

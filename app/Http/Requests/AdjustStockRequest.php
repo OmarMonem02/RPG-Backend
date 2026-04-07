@@ -8,6 +8,17 @@ use Illuminate\Validation\Rule;
 
 class AdjustStockRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->route('product') !== null && ! $this->filled('product_id')) {
+            $product = $this->route('product');
+
+            $this->merge([
+                'product_id' => is_object($product) ? $product->id : $product,
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;

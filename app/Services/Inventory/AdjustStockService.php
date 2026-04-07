@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductUnit;
 use App\Models\StockLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AdjustStockService
@@ -42,17 +43,31 @@ class AdjustStockService
                 ]);
             }
 
+            $previousQty = (float) $product->qty;
             $product->update(['qty' => $newQty]);
 
             StockLog::query()->create([
                 'product_id' => $product->id,
+                'type' => $this->resolveLogType($referenceType),
                 'change_type' => $changeType,
                 'qty' => $baseQuantity,
+                'qty_before' => $previousQty,
+                'qty_after' => $newQty,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
+                'user_id' => Auth::id(),
             ]);
 
             return $product->fresh(['units', 'bikes', 'stockLogs', 'priceHistories']);
         });
+    }
+
+    private function resolveLogType(string $referenceType): string
+    {
+        return match ($referenceType) {
+            'sale' => 'sale',
+            'return' => 'return',
+            default => 'adjustment',
+        };
     }
 }

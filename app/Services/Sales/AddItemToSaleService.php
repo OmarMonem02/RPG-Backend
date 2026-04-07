@@ -68,8 +68,11 @@ class AddItemToSaleService
             'sale_id' => $sale->id,
             'item_type' => SaleItem::ITEM_TYPE_PRODUCT,
             'item_id' => $product->id,
+            'item_name' => $product->name,
             'qty' => $qty,
             'price_snapshot' => $product->selling_price,
+            'selling_price_at_time' => $product->selling_price,
+            'cost_price_at_time' => $product->cost_price,
             'discount' => $discount,
         ]);
 
@@ -109,8 +112,11 @@ class AddItemToSaleService
             'sale_id' => $sale->id,
             'item_type' => SaleItem::ITEM_TYPE_BIKE,
             'item_id' => $bike->id,
+            'item_name' => trim("{$bike->brand} {$bike->model}"),
             'qty' => 1,
             'price_snapshot' => $bike->selling_price,
+            'selling_price_at_time' => $bike->selling_price,
+            'cost_price_at_time' => $bike->cost_price,
             'discount' => $discount,
         ]);
     }

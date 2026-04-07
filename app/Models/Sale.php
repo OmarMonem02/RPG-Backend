@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Sale extends Model
@@ -38,6 +39,7 @@ class Sale extends Model
         'final_amount',
         'paid_amount',
         'remaining_amount',
+        'seller_commission',
     ];
 
     protected function casts(): array
@@ -55,7 +57,7 @@ class Sale extends Model
 
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class);
+        return $this->belongsTo(Seller::class)->withTrashed();
     }
 
     public function items(): HasMany
@@ -66,6 +68,11 @@ class Sale extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'reference_id')->where('type', Invoice::TYPE_SALE);
     }
 
     public function returns(): HasMany
@@ -94,5 +101,19 @@ class Sale extends Model
     public function getRemainingAmountAttribute(): float
     {
         return max(round($this->final_amount - $this->paid_amount, 2), 0);
+    }
+
+    public function getSellerCommissionAttribute(): float
+    {
+        $seller = $this->relationLoaded('seller') ? $this->seller : $this->seller()->first();
+
+        if ($seller === null) {
+            return 0;
+        }
+
+        // Profit-basis is not stored at sale level yet, so commission falls back to final amount.
+        $baseAmount = (float) $this->final_amount;
+
+        return round($baseAmount * ((float) $seller->commission_value / 100), 2);
     }
 }

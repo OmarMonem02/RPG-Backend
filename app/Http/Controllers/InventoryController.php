@@ -6,6 +6,7 @@ use App\Http\Requests\AdjustStockRequest;
 use App\Http\Requests\BulkUpdateRequest;
 use App\Http\Requests\ImportProductsRequest;
 use App\Http\Requests\UpdateExchangeRateRequest;
+use App\Models\Product;
 use App\Services\Inventory\AdjustStockService;
 use App\Services\Inventory\BulkUpdateProductsService;
 use App\Services\Inventory\ExportProductsService;
@@ -91,5 +92,12 @@ class InventoryController extends Controller
             'message' => 'Stock adjusted successfully.',
             'data' => $product,
         ]);
+    }
+
+    public function adjustProductStock(AdjustStockRequest $request, Product $product): JsonResponse
+    {
+        $request->merge(['product_id' => $product->id]);
+
+        return $this->adjustStock($request);
     }
 }

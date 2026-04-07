@@ -7,6 +7,11 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Project Documentation
+
+- **[API Documentation](file:///e:/Learning%20Projects/Laravel%20Projects/RPG/API_README.md)**: Detailed guide for all API endpoints, request formats, and expected responses.
+- **[API Testing Guide](file:///e:/Learning%20Projects/Laravel%20Projects/RPG/docs/API_TESTING_GUIDE.md)**: Practical examples and setup order for testing with Postman.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

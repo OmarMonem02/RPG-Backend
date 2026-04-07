@@ -10,14 +10,18 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InventoryLogController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\RecoveryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TaskController;
@@ -40,16 +44,36 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::prefix('sales')->group(function (): void {
+        Route::get('/', [SaleController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::get('{sale}', [SaleController::class, 'show'])->middleware('permission:'.Permission::VIEW_SALES);
         Route::post('/', [SaleController::class, 'store'])->middleware('permission:'.Permission::CREATE_SALE);
+        Route::post('calculate', [SaleController::class, 'calculate'])->middleware('permission:'.Permission::CREATE_SALE);
         Route::post('{sale}/items', [SaleController::class, 'addItem'])->middleware('permission:'.Permission::EDIT_SALE);
         Route::post('{sale}/payments', [SaleController::class, 'addPayment'])->middleware('permission:'.Permission::EDIT_SALE);
+        Route::get('{sale}/payments', [PaymentController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
+        Route::get('{sale}/invoice', [SaleController::class, 'invoice'])->middleware('permission:'.Permission::VIEW_SALES);
         Route::post('{sale}/complete', [SaleController::class, 'complete'])->middleware('permission:'.Permission::EDIT_SALE);
         Route::get('{sale}/returns', [ReturnController::class, 'index'])->middleware('permission:'.Permission::VIEW_SALES);
         Route::post('{sale}/returns', [ReturnController::class, 'store'])->middleware('permission:'.Permission::EDIT_SALE);
         Route::post('{sale}/return', [SaleController::class, 'returnSale'])->middleware('permission:'.Permission::EDIT_SALE);
     });
 
+    Route::prefix('sellers')->middleware('permission:'.Permission::MANAGE_USERS)->group(function (): void {
+        Route::get('/', [SellerController::class, 'index']);
+        Route::post('/', [SellerController::class, 'store']);
+        Route::get('{seller}', [SellerController::class, 'show']);
+        Route::put('{seller}', [SellerController::class, 'update']);
+        Route::delete('{seller}', [SellerController::class, 'destroy']);
+        Route::patch('{seller}/status', [SellerController::class, 'updateStatus']);
+        Route::get('{seller}/sales', [SellerController::class, 'sales']);
+    });
+
+    Route::put('payments/{payment}', [PaymentController::class, 'update'])->middleware('permission:'.Permission::EDIT_SALE);
+    Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])->middleware('permission:'.Permission::EDIT_SALE);
+
     Route::prefix('tickets')->group(function (): void {
+        Route::get('/', [TicketController::class, 'index'])->middleware('permission:'.Permission::VIEW_TICKETS);
+        Route::get('{ticket}', [TicketController::class, 'show'])->middleware('permission:'.Permission::VIEW_TICKETS);
         Route::post('/', [TicketController::class, 'store'])->middleware('permission:'.Permission::VIEW_TICKETS);
         Route::post('{ticket}/start', [TicketController::class, 'start'])->middleware('permission:'.Permission::VIEW_TICKETS);
         Route::post('{ticket}/complete', [TicketController::class, 'complete'])->middleware('permission:'.Permission::VIEW_TICKETS);
@@ -64,9 +88,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::prefix('products')->group(function (): void {
+        Route::get('/', [ProductController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
+        Route::get('{product}', [ProductController::class, 'show'])->middleware('permission:'.Permission::VIEW_INVENTORY);
         Route::post('/', [ProductController::class, 'store'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::put('{product}', [ProductController::class, 'update'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::post('{product}/bikes', [ProductController::class, 'assignBikes'])->middleware('permission:'.Permission::EDIT_INVENTORY);
+        Route::post('{product}/adjust-stock', [InventoryController::class, 'adjustProductStock'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::get('compatible', [ProductController::class, 'compatible'])->middleware('permission:'.Permission::VIEW_INVENTORY);
         Route::get('{product}/calculate-price', [ProductController::class, 'calculatePrice'])->middleware('permission:'.Permission::VIEW_INVENTORY);
 
@@ -135,6 +162,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::prefix('inventory')->group(function (): void {
+        Route::get('logs', [InventoryLogController::class, 'index'])->middleware('permission:'.Permission::VIEW_INVENTORY);
         Route::post('bulk-update', [InventoryController::class, 'bulkUpdate'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::post('import', [InventoryController::class, 'import'])->middleware('permission:'.Permission::EDIT_INVENTORY);
         Route::get('export', [InventoryController::class, 'export'])->middleware('permission:'.Permission::VIEW_INVENTORY);
@@ -173,6 +201,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('dashboard')->middleware('permission:'.Permission::VIEW_REPORTS)->group(function (): void {
         Route::get('metrics', [DashboardController::class, 'metrics']);
     });
+
+    Route::get('search', SearchController::class)->middleware('permission:'.Permission::VIEW_SALES);
 
     Route::prefix('recovery')->middleware('permission:'.Permission::MANAGE_USERS)->group(function (): void {
         Route::get('{entity}', [RecoveryController::class, 'index']);
