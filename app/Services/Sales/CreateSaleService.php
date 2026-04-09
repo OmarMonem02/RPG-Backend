@@ -11,6 +11,9 @@ class CreateSaleService
 {
     public function __construct(
         private readonly AssertSaleSellerIsActiveService $assertSaleSellerIsActiveService,
+        private readonly AddItemToSaleService $addItemToSaleService,
+        private readonly AddPaymentService $addPaymentService,
+        private readonly CompleteSaleService $completeSaleService,
     ) {}
 
     public function execute(array $data): Sale
@@ -38,7 +41,19 @@ class CreateSaleService
                 'type' => $data['type'],
             ]);
 
-            return $sale->load(['customer', 'seller', 'items', 'payments']);
+            foreach ($data['items'] ?? [] as $item) {
+                $sale = $this->addItemToSaleService->execute($sale, $item);
+            }
+
+            foreach ($data['payments'] ?? [] as $payment) {
+                $sale = $this->addPaymentService->execute($sale, $payment);
+            }
+
+            if (($data['complete_now'] ?? false) === true) {
+                $sale = $this->completeSaleService->execute($sale);
+            }
+
+            return $sale->load(['customer', 'seller', 'items', 'payments', 'invoice']);
         });
     }
 }

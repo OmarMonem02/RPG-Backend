@@ -35,4 +35,12 @@ class InvoiceController extends Controller
             'data' => $this->listInvoicesService->show($invoice),
         ]);
     }
+
+    public function items(Invoice $invoice): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Invoice items retrieved successfully.',
+            'data' => $this->listInvoicesService->items($invoice),
+        ]);
+    }
 }

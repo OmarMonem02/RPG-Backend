@@ -14,6 +14,8 @@ class Product extends Model
     use HasFactory;
     use SoftDeletes;
 
+    public const LOW_STOCK_THRESHOLD = 5;
+
     public const TYPE_PART = 'part';
 
     public const TYPE_ACCESSORY = 'accessory';

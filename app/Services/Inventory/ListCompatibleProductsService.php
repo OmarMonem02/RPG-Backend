@@ -24,6 +24,7 @@ class ListCompatibleProductsService
 
         return Product::query()
             ->with(['units', 'bikes', 'category', 'brand'])
+            ->withCount('bikes')
             ->when(
                 $brand !== null && $model !== null && $year !== null,
                 fn ($query) => $query->where(function ($query) use ($brand, $model, $year): void {

@@ -40,6 +40,7 @@ class Sale extends Model
         'paid_amount',
         'remaining_amount',
         'seller_commission',
+        'payment_status',
     ];
 
     protected function casts(): array
@@ -115,5 +116,18 @@ class Sale extends Model
         $baseAmount = (float) $this->final_amount;
 
         return round($baseAmount * ((float) $seller->commission_value / 100), 2);
+    }
+
+    public function getPaymentStatusAttribute(): string
+    {
+        if ($this->paid_amount <= 0) {
+            return 'unpaid';
+        }
+
+        if ($this->paid_amount < $this->final_amount) {
+            return 'partial';
+        }
+
+        return 'paid';
     }
 }

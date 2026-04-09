@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AssignProductBikesRequest;
 use App\Http\Requests\FilterProductsRequest;
+use App\Http\Resources\ProductInventoryResource;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
@@ -35,6 +36,11 @@ class ProductController extends Controller
             'category_id'  => ['nullable', 'integer', 'exists:categories,id'],
             'brand_id'     => ['nullable', 'integer', 'exists:brands,id'],
             'is_universal' => ['nullable', 'boolean'],
+            'in_stock'     => ['nullable', 'boolean'],
+            'low_stock'    => ['nullable', 'boolean'],
+            'has_units'    => ['nullable', 'boolean'],
+            'sort_by'      => ['nullable', 'string', 'in:id,name,qty,selling_price,created_at,updated_at'],
+            'sort_direction' => ['nullable', 'string', 'in:asc,desc'],
             'per_page'     => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -44,8 +50,17 @@ class ProductController extends Controller
             categoryId: $request->filled('category_id') ? $request->integer('category_id') : null,
             brandId: $request->filled('brand_id') ? $request->integer('brand_id') : null,
             isUniversal: $request->filled('is_universal') ? $request->boolean('is_universal') : null,
+            inStock: $request->filled('in_stock') ? $request->boolean('in_stock') : null,
+            lowStock: $request->filled('low_stock') ? $request->boolean('low_stock') : null,
+            hasUnits: $request->filled('has_units') ? $request->boolean('has_units') : null,
+            sortBy: $request->string('sort_by')->toString() ?: 'id',
+            sortDirection: $request->string('sort_direction')->toString() ?: 'desc',
             perPage: $request->integer('per_page', 15),
         );
+
+        $products->setCollection(collect(
+            ProductInventoryResource::collection($products->getCollection())->resolve()
+        ));
 
         return response()->json([
             'message' => 'Products retrieved successfully.',
@@ -55,10 +70,10 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        return response()->json([
-            'message' => 'Product retrieved successfully.',
-            'data'    => $product->load(['category', 'brand', 'units', 'bikes']),
-        ]);
+        return $this->successResponse(
+            'Product retrieved successfully.',
+            new ProductInventoryResource($product->load(['category', 'brand', 'units', 'bikes']))
+        );
     }
 
     public function store(StoreProductRequest $request): JsonResponse
@@ -100,6 +115,10 @@ class ProductController extends Controller
             $request->validated('year'),
             $request->validated('per_page', 15)
         );
+
+        $products->setCollection(collect(
+            ProductInventoryResource::collection($products->getCollection())->resolve()
+        ));
 
         return response()->json([
             'message' => 'Compatible products retrieved successfully.',

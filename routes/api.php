@@ -190,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('invoices')->middleware('permission:'.Permission::VIEW_REPORTS)->group(function (): void {
         Route::get('/', [InvoiceController::class, 'index']);
         Route::get('{invoice}', [InvoiceController::class, 'show']);
+        Route::get('{invoice}/items', [InvoiceController::class, 'items']);
     });
 
     Route::prefix('settings')->middleware('permission:'.Permission::MANAGE_USERS)->group(function (): void {
