@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BikeBlueprintSparePartController;
 use App\Http\Controllers\Api\EntityController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
@@ -32,6 +33,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::apiResource('sellers', SellerController::class);
 
+        // Nested resource for bike blueprint spare parts (must be before generic routes)
+        Route::apiResource('bike_blueprints.spare_parts', BikeBlueprintSparePartController::class)
+            ->only(['index', 'store', 'destroy']);
+
+        // Generic entity routes (excludes bike_blueprint_spare_parts because it's handled above)
         $entities = [
             'customers',
             'products',
@@ -43,7 +49,6 @@ Route::middleware('auth:sanctum')->group(function () {
             'maintenance_services',
             'bike_for_sale',
             'customer_bikes',
-            'bike_blueprint_spare_parts',
             'bike_blueprints',
             'customer_sale',
             'sale_items',

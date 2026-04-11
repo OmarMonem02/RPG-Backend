@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
@@ -36,5 +37,10 @@ class SparePart extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function bikeBlueprintConfigurations(): HasMany
+    {
+        return $this->hasMany(BikeBlueprintSparePart::class);
     }
 }

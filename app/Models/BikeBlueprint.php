@@ -27,4 +27,9 @@ class BikeBlueprint extends Model
     {
         return $this->hasMany(CustomerBike::class);
     }
+
+    public function spareParts(): HasMany
+    {
+        return $this->hasMany(BikeBlueprintSparePart::class);
+    }
 }
