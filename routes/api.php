@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BikeBlueprintSparePartController;
+use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\EntityController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
+use App\Http\Controllers\Api\SparePartController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -33,15 +34,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::apiResource('sellers', SellerController::class);
 
-        // Nested resource for bike blueprint spare parts (must be before generic routes)
-        Route::apiResource('bike_blueprints.spare_parts', BikeBlueprintSparePartController::class)
-            ->only(['index', 'store', 'destroy']);
+        // Spare Part Routes
+        Route::apiResource('spare_parts', SparePartController::class);
+        Route::get('/spare_parts/low-stock', [SparePartController::class, 'lowStock']);
+        Route::patch('/spare_parts/{spare_part}/stock', [SparePartController::class, 'updateStock']);
+        Route::post('/spare_parts/bulk/create', [SparePartController::class, 'bulkCreate']);
+        Route::patch('/spare_parts/bulk/update', [SparePartController::class, 'bulkUpdate']);
+        Route::delete('/spare_parts/bulk/delete', [SparePartController::class, 'bulkDelete']);
 
-        // Generic entity routes (excludes bike_blueprint_spare_parts because it's handled above)
+        // Bike Blueprint Routes
+        Route::apiResource('bike_blueprints', BikeBlueprintController::class);
+        Route::get('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'getLinkedSpareParts']);
+        Route::post('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'assignSpareParts']);
+        Route::put('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'replaceSpareParts']);
+        Route::delete('/bike_blueprints/{bike_blueprint}/spare_parts/{spare_part}', [BikeBlueprintController::class, 'removeSparePart']);
+        Route::get('/bike_blueprints/{bike_blueprint}/bikes', [BikeBlueprintController::class, 'getLinkedBikes']);
+        Route::post('/bike_blueprints/bulk/assign-spare-parts', [BikeBlueprintController::class, 'bulkAssignSpareParts']);
+
+        // Generic entity routes
         $entities = [
             'customers',
             'products',
-            'spare_parts',
             'product_categories',
             'spare_part_categories',
             'maintenance_service_sectors',
@@ -49,7 +62,6 @@ Route::middleware('auth:sanctum')->group(function () {
             'maintenance_services',
             'bike_for_sale',
             'customer_bikes',
-            'bike_blueprints',
             'customer_sale',
             'sale_items',
             'payment_methods',

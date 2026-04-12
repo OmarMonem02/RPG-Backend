@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
 {
     use SoftDeletes;
+
+    protected $table = 'spare_parts';
 
     protected $fillable = [
         'name',
@@ -29,18 +29,77 @@ class SparePart extends Model
         'notes',
     ];
 
-    public function category(): BelongsTo
+    protected $casts = [
+        'stock_quantity' => 'integer',
+        'low_stock_alarm' => 'integer',
+        'cost_price' => 'decimal:2',
+        'sale_price' => 'decimal:2',
+        'max_discount_value' => 'decimal:2',
+        'universal' => 'boolean',
+    ];
+
+    // Relationships
+    public function category()
     {
         return $this->belongsTo(SparePartCategory::class, 'spare_parts_category_id');
     }
 
-    public function brand(): BelongsTo
+    public function brand()
     {
         return $this->belongsTo(Brand::class);
     }
 
-    public function bikeBlueprintConfigurations(): HasMany
+    public function bikeBlueprintSpareParts()
     {
         return $this->hasMany(BikeBlueprintSparePart::class);
+    }
+
+    public function bikeBlueprints()
+    {
+        return $this->belongsToMany(BikeBlueprint::class, 'bike_blueprint_spare_parts', 'spare_part_id', 'bike_blueprint_id')
+            ->withTimestamps()
+            ->withTrashed();
+    }
+
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function ticketItems()
+    {
+        return $this->hasMany(TicketItem::class);
+    }
+
+    // Scopes
+    public function scopeLowStock($query)
+    {
+        return $query->where('stock_quantity', '<=', 'low_stock_alarm');
+    }
+
+    public function scopeSearch($query, ?string $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'like', "%{$search}%")
+            ->orWhere('sku', 'like', "%{$search}%")
+            ->orWhere('part_number', 'like', "%{$search}%");
+    }
+
+    public function scopeByBrand($query, ?int $brandId)
+    {
+        return $brandId ? $query->where('brand_id', $brandId) : $query;
+    }
+
+    public function scopeByCategory($query, ?int $categoryId)
+    {
+        return $categoryId ? $query->where('spare_parts_category_id', $categoryId) : $query;
+    }
+
+    public function scopeUniversal($query)
+    {
+        return $query->where('universal', true);
     }
 }

@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EntityRequest;
-use App\Models\BikeBlueprint;
-use App\Models\BikeBlueprintSparePart;
 use App\Models\BikeForSale;
 use App\Models\Brand;
 use App\Models\Customer;
@@ -19,7 +17,6 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SaleItem;
 use App\Models\Seller;
-use App\Models\SparePart;
 use App\Models\SparePartCategory;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
@@ -35,7 +32,6 @@ class EntityController extends Controller
             'sellers' => Seller::class,
             'customers' => Customer::class,
             'products' => Product::class,
-            'spare_parts' => SparePart::class,
             'product_categories' => ProductCategory::class,
             'spare_part_categories' => SparePartCategory::class,
             'maintenance_service_sectors' => MaintenanceServiceSector::class,
@@ -43,8 +39,6 @@ class EntityController extends Controller
             'maintenance_services' => MaintenanceService::class,
             'bike_for_sale' => BikeForSale::class,
             'customer_bikes' => CustomerBike::class,
-            'bike_blueprint_spare_parts' => BikeBlueprintSparePart::class,
-            'bike_blueprints' => BikeBlueprint::class,
             'customer_sale' => CustomerSale::class,
             'sale_items' => SaleItem::class,
             'payment_methods' => PaymentMethod::class,
@@ -65,7 +59,8 @@ class EntityController extends Controller
     public function store(EntityRequest $request, string $entity): JsonResponse
     {
         $model = $this->resolve($entity);
-        $record = $model->newQuery()->create($request->validated() + $request->except(['entity', 'id']));
+        $validated = $request->validated() + $request->except(['entity', 'id']);
+        $record = $model->newQuery()->create($validated);
 
         return response()->json($record, 201);
     }
@@ -96,3 +91,4 @@ class EntityController extends Controller
         return response()->json([], 204);
     }
 }
+

@@ -31,6 +31,8 @@ class EntityRequest extends FormRequest
                 'sku' => ['required', 'string', Rule::unique('spare_parts', 'sku')->ignore($id)],
                 'spare_parts_category_id' => ['required', 'exists:spare_part_categories,id'],
                 'brand_id' => ['required', 'exists:brands,id'],
+                'bike_blueprint_ids' => ['nullable', 'array'],
+                'bike_blueprint_ids.*' => ['exists:bike_blueprints,id'],
             ],
             'product_categories', 'spare_part_categories', 'maintenance_service_sectors', 'payment_methods' => ['name' => ['required', 'string']],
             'brands' => ['name' => ['required', 'string'], 'type' => ['required', Rule::in(['spare_parts', 'products', 'bikes'])]],
