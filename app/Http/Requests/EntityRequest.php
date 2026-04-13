@@ -17,6 +17,10 @@ class EntityRequest extends FormRequest
         $entity = (string) $this->route('entity');
         $id = $this->route('id');
 
+        if ($entity === 'settings' && !is_numeric($id) && $id) {
+            $id = \App\Models\Setting::where('key', $id)->value('id') ?? $id;
+        }
+
         return match ($entity) {
             'sellers' => ['name' => ['required', 'string'], 'phone' => ['required', 'string'], 'commission_rate' => ['required', 'numeric']],
             'customers' => ['name' => ['required', 'string'], 'phone' => ['required', 'string']],
@@ -53,6 +57,7 @@ class EntityRequest extends FormRequest
             'deliveries' => ['sale_id' => ['required', 'exists:sales,id'], 'customer_id' => ['required', 'exists:customers,id'], 'full_address' => ['required', 'string'], 'city' => ['required', 'string']],
             'ticket_tasks' => ['ticket_id' => ['required', 'exists:tickets,id'], 'name' => ['required', 'string'], 'status' => ['required', Rule::in(['pending', 'completed'])]],
             'ticket_items' => ['task_id' => ['required', 'exists:ticket_tasks,id'], 'ticket_id' => ['required', 'exists:tickets,id'], 'price_snapshot' => ['required', 'numeric'], 'qty' => ['required', 'integer', 'min:1']],
+            'settings' => ['key' => ['sometimes', 'string', Rule::unique('settings', 'key')->ignore($id)], 'value' => ['sometimes', 'numeric']],
             default => [],
         };
     }

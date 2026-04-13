@@ -19,6 +19,7 @@ use App\Models\SaleItem;
 use App\Models\Seller;
 use App\Models\SparePartCategory;
 use App\Models\TicketItem;
+use App\Models\Setting;
 use App\Models\TicketTask;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -34,9 +35,9 @@ class EntityController extends Controller
             'products' => Product::class,
             'product_categories' => ProductCategory::class,
             'spare_part_categories' => SparePartCategory::class,
+            'maintenance_services' => MaintenanceService::class,
             'maintenance_service_sectors' => MaintenanceServiceSector::class,
             'brands' => Brand::class,
-            'maintenance_services' => MaintenanceService::class,
             'bike_for_sale' => BikeForSale::class,
             'customer_bikes' => CustomerBike::class,
             'customer_sale' => CustomerSale::class,
@@ -45,6 +46,7 @@ class EntityController extends Controller
             'deliveries' => Delivery::class,
             'ticket_tasks' => TicketTask::class,
             'ticket_items' => TicketItem::class,
+            'settings' => Setting::class,
             default => abort(404, 'Entity not supported'),
         })();
     }
@@ -65,27 +67,50 @@ class EntityController extends Controller
         return response()->json($record, 201);
     }
 
-    public function show(string $entity, int $id): JsonResponse
+    public function show($id, string $entity): JsonResponse
     {
         $model = $this->resolve($entity);
-        $record = $model->newQuery()->findOrFail($id);
+
+        if ($entity === 'settings' && !is_numeric($id)) {
+            $record = $model->newQuery()->where('key', $id)->firstOrFail();
+        } else {
+            $record = $model->newQuery()->findOrFail($id);
+        }
 
         return response()->json($record);
     }
 
-    public function update(EntityRequest $request, string $entity, int $id): JsonResponse
+    public function update(EntityRequest $request, $id, string $entity): JsonResponse
     {
         $model = $this->resolve($entity);
-        $record = $model->newQuery()->findOrFail($id);
-        $record->update($request->validated() + $request->except(['entity', 'id']));
+
+        if ($entity === 'settings' && !is_numeric($id)) {
+            $record = $model->newQuery()->where('key', $id)->firstOrFail();
+        } else {
+            $record = $model->newQuery()->findOrFail($id);
+        }
+
+        $data = $request->validated() ?: $request->except(['entity', 'id']);
+        \Illuminate\Support\Facades\Log::info("Updating {$entity} record", ['id' => $record->id, 'data' => $data]);
+        
+        $record->fill($data);
+        $saved = $record->save();
+        
+        \Illuminate\Support\Facades\Log::info("Save result", ['saved' => $saved, 'changes' => $record->getChanges()]);
 
         return response()->json($record);
     }
 
-    public function destroy(string $entity, int $id): JsonResponse
+    public function destroy($id, string $entity): JsonResponse
     {
         $model = $this->resolve($entity);
-        $record = $model->newQuery()->findOrFail($id);
+
+        if ($entity === 'settings' && !is_numeric($id)) {
+            $record = $model->newQuery()->where('key', $id)->firstOrFail();
+        } else {
+            $record = $model->newQuery()->findOrFail($id);
+        }
+
         $record->delete();
 
         return response()->json([], 204);
