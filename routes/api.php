@@ -2,6 +2,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\EntityController;
+use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
@@ -11,12 +12,15 @@ use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
+// Public routes
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
+// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    // Admin & Staff routes
     Route::middleware('role:admin,staff')->group(function () {
         Route::get('/sales', [SaleController::class, 'index']);
         Route::post('/sales', [SaleController::class, 'store']);
@@ -24,13 +28,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/sales/{sale}', [SaleController::class, 'destroy']);
     });
 
+    // Technician routes
     Route::middleware('role:admin,staff,Technician')->group(function () {
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::post('/tickets', [TicketController::class, 'store']);
         Route::get('/tickets/{ticket}', [TicketController::class, 'show']);
         Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus']);
+        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
     });
 
+    // Admin only routes
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::apiResource('sellers', SellerController::class);
@@ -43,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/spare_parts/bulk/update', [SparePartController::class, 'bulkUpdate']);
         Route::delete('/spare_parts/bulk/delete', [SparePartController::class, 'bulkDelete']);
 
+        // Bike Blueprint Routes
         Route::apiResource('bike_blueprints', BikeBlueprintController::class);
         Route::get('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'getLinkedSpareParts']);
         Route::post('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'assignSpareParts']);
@@ -50,7 +58,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/bike_blueprints/{bike_blueprint}/spare_parts/{spare_part}', [BikeBlueprintController::class, 'removeSparePart']);
         Route::get('/bike_blueprints/{bike_blueprint}/bikes', [BikeBlueprintController::class, 'getLinkedBikes']);
         Route::post('/bike_blueprints/bulk/assign-spare-parts', [BikeBlueprintController::class, 'bulkAssignSpareParts']);
-
 
         // Generic entity routes
         $entities = [
@@ -84,23 +91,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/settings', [SettingController::class, 'index']);
         Route::put('/settings', [SettingController::class, 'update']);
 
-        // ── Import / Export Routes ─────────────────────────────────────────────
-        // List all supported entities
+        // Import / Export Routes
         Route::get('/import-export/entities', [ImportExportController::class, 'entities']);
-
-        // Per-entity endpoints  (entity: products | spare_parts | maintenance_services
-        //                                | bikes | bike_blueprints | brands)
         Route::prefix('import-export/{entity}')->group(function () {
-            // GET  /api/import-export/{entity}/export?format=xlsx|csv
-            Route::get('/export',   [ImportExportController::class, 'export']);
-            // GET  /api/import-export/{entity}/template?format=xlsx|csv
+            Route::get('/export', [ImportExportController::class, 'export']);
             Route::get('/template', [ImportExportController::class, 'template']);
-            // POST /api/import-export/{entity}/import   (multipart: file)
-            Route::post('/import',  [ImportExportController::class, 'import']);
-            // POST /api/import-export/{entity}/parse   (multipart: file)
-            Route::post('/parse',   [ImportExportController::class, 'parse']);
+            Route::post('/import', [ImportExportController::class, 'import']);
+            Route::post('/parse', [ImportExportController::class, 'parse']);
         });
 
-        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
+        Route::get('/history', [HistoryController::class, 'index']);
     });
 });

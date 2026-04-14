@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\LogsHistory;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BikeBlueprint extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsHistory;
 
     protected $table = 'bike_blueprints';
 

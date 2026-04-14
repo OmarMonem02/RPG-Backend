@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Traits\LogsHistory;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TicketTask extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsHistory;
 
     protected $fillable = ['ticket_id', 'name', 'status', 'subtotal'];
 

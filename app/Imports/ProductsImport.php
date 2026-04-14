@@ -8,10 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-
-class ProductsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithBatchInserts, WithChunkReading
+class ProductsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithChunkReading
 {
     use SkipsErrors;
 
@@ -59,10 +56,6 @@ class ProductsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         return $data;
     }
 
-    public function batchSize(): int
-    {
-        return 500;
-    }
 
     public function chunkSize(): int
     {

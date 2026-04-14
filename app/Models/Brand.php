@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Brand extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsHistory;
 
     protected $fillable = ['name', 'type'];
 

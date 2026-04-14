@@ -45,13 +45,22 @@ class SaleService
                 ]);
 
                 if (! empty($itemData['product_id'])) {
-                    Product::whereKey($itemData['product_id'])->decrement('stock_quantity', (int) $itemData['qty']);
+                    $product = Product::find($itemData['product_id']);
+                    if ($product) {
+                        $product->decrement('stock_quantity', (int) $itemData['qty']);
+                    }
                 }
                 if (! empty($itemData['spare_part_id'])) {
-                    SparePart::whereKey($itemData['spare_part_id'])->decrement('stock_quantity', (int) $itemData['qty']);
+                    $sparePart = SparePart::find($itemData['spare_part_id']);
+                    if ($sparePart) {
+                        $sparePart->decrement('stock_quantity', (int) $itemData['qty']);
+                    }
                 }
                 if (! empty($itemData['bike_for_sale_id'])) {
-                    BikeForSale::whereKey($itemData['bike_for_sale_id'])->update(['status' => 'sold']);
+                    $bike = BikeForSale::find($itemData['bike_for_sale_id']);
+                    if ($bike) {
+                        $bike->update(['status' => 'sold']);
+                    }
                 }
             }
 

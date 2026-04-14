@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SparePartRequest extends FormRequest
 {
@@ -14,12 +15,15 @@ class SparePartRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->route('spare_part');
+        if (is_object($id)) {
+            $id = $id->id;
+        }
 
         return [
             'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:255|unique:spare_parts,sku,' . $id,
+            'sku' => ['required', 'string', 'max:255', Rule::unique('spare_parts', 'sku')->ignore($id)],
             'image' => 'nullable|string|url',
-            'part_number' => 'nullable|string|max:255|unique:spare_parts,part_number,' . $id,
+            'part_number' => ['nullable', 'string', 'max:255', Rule::unique('spare_parts', 'part_number')->ignore($id)],
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',
             'spare_parts_category_id' => 'required|integer|exists:spare_part_categories,id',
