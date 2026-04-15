@@ -38,4 +38,43 @@ class Product extends Model
     {
         return $this->belongsTo(Brand::class);
     }
+
+    // Scopes
+    public function scopeSearch($query, ?string $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'like', "%{$search}%")
+            ->orWhere('sku', 'like', "%{$search}%")
+            ->orWhere('part_number', 'like', "%{$search}%");
+    }
+
+    public function scopeByCategory($query, ?int $categoryId)
+    {
+        return $categoryId ? $query->where('products_category_id', $categoryId) : $query;
+    }
+
+    public function scopeByBrand($query, ?int $brandId)
+    {
+        return $brandId ? $query->where('brand_id', $brandId) : $query;
+    }
+
+    public function scopeByPrice($query, ?float $minPrice = null, ?float $maxPrice = null)
+    {
+        if ($minPrice !== null) {
+            $query = $query->where('sale_price', '>=', $minPrice);
+        }
+        if ($maxPrice !== null) {
+            $query = $query->where('sale_price', '<=', $maxPrice);
+        }
+
+        return $query;
+    }
+
+    public function scopeByCurrency($query, ?string $currency)
+    {
+        return $currency ? $query->where('currency_pricing', $currency) : $query;
+    }
 }

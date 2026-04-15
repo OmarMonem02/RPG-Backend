@@ -27,4 +27,14 @@ class Brand extends Model
     {
         return $this->hasMany(BikeBlueprint::class);
     }
+
+    // Scopes
+    public function scopeSearch($query, ?string $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'like', "%{$search}%");
+    }
 }

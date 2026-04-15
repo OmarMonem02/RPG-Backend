@@ -28,4 +28,15 @@ class Customer extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    // Scopes
+    public function scopeSearch($query, ?string $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'like', "%{$search}%")
+            ->orWhere('phone', 'like', "%{$search}%");
+    }
 }

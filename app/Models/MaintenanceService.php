@@ -24,4 +24,36 @@ class MaintenanceService extends Model
     {
         return $this->belongsTo(MaintenanceServiceSector::class, 'maintenance_service_sector_id');
     }
+
+    // Scopes
+    public function scopeSearch($query, ?string $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'like', "%{$search}%");
+    }
+
+    public function scopeBySector($query, ?int $sectorId)
+    {
+        return $sectorId ? $query->where('maintenance_service_sector_id', $sectorId) : $query;
+    }
+
+    public function scopeByPrice($query, ?float $minPrice = null, ?float $maxPrice = null)
+    {
+        if ($minPrice !== null) {
+            $query = $query->where('service_price', '>=', $minPrice);
+        }
+        if ($maxPrice !== null) {
+            $query = $query->where('service_price', '<=', $maxPrice);
+        }
+
+        return $query;
+    }
+
+    public function scopeByCurrency($query, ?string $currency)
+    {
+        return $currency ? $query->where('currency_pricing', $currency) : $query;
+    }
 }
