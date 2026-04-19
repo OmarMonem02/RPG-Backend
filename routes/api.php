@@ -22,8 +22,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin & Staff routes
     Route::middleware('role:admin,staff')->group(function () {
+        Route::get('/sales/catalog-items', [SaleController::class, 'catalog']);
         Route::get('/sales', [SaleController::class, 'index']);
         Route::post('/sales', [SaleController::class, 'store']);
+        Route::patch('/sales/{sale}', [SaleController::class, 'update']);
+        Route::get('/sales/{sale}/adjustments', [SaleController::class, 'adjustments']);
+        Route::post('/sales/{sale}/items', [SaleController::class, 'addItem']);
+        Route::patch('/sales/{sale}/items/{saleItem}', [SaleController::class, 'updateItem']);
+        Route::delete('/sales/{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
+        Route::post('/sales/{sale}/returns', [SaleController::class, 'returns']);
+        Route::post('/sales/{sale}/exchanges', [SaleController::class, 'exchanges']);
         Route::get('/sales/{sale}', [SaleController::class, 'show']);
         Route::delete('/sales/{sale}', [SaleController::class, 'destroy']);
     });

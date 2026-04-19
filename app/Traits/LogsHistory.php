@@ -25,6 +25,11 @@ trait LogsHistory
 
     public function logHistory(string $action)
     {
+        $modelId = $this->getKey();
+        if ($modelId === null) {
+            return;
+        }
+
         $before = null;
         $after = null;
 
@@ -46,7 +51,7 @@ trait LogsHistory
             History::create([
                 'user_id'    => Auth::id(),
                 'model_type' => get_class($this),
-                'model_id'   => $this->id,
+                'model_id'   => $modelId,
                 'action'     => $action,
                 'before'     => $before,
                 'after'      => $after,

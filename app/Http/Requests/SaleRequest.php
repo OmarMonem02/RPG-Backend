@@ -2,11 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesSellablePayload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class SaleRequest extends FormRequest
 {
+    use ValidatesSellablePayload;
+
     public function authorize(): bool
     {
         return true;
@@ -30,8 +34,19 @@ class SaleRequest extends FormRequest
             'items.*.maintenance_service_id' => ['nullable', 'exists:maintenance_services,id'],
             'items.*.bike_for_sale_id' => ['nullable', 'exists:bike_for_sale,id'],
             'items.*.selling_price' => ['required', 'numeric'],
-            'items.*.discount' => ['nullable', 'numeric'],
+            'items.*.discount' => ['nullable', 'numeric', 'min:0'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                foreach ($this->input('items', []) as $index => $item) {
+                    $this->validateSingleSellableReference($validator, $item, "items.{$index}");
+                }
+            },
         ];
     }
 }
