@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\UserPermissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,6 +31,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'permissions_override',
     ];
 
     /**
@@ -40,6 +42,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'permissions_override',
     ];
 
     /**
@@ -51,6 +54,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'permissions_override' => 'array',
         ];
     }
 
@@ -62,5 +66,15 @@ class User extends Authenticatable
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    public function effectivePermissions(): array
+    {
+        return UserPermissions::effectiveMatrixForUser($this);
+    }
+
+    public function hasPermission(string $page, string $action): bool
+    {
+        return UserPermissions::hasPermission($this, $page, $action);
     }
 }
