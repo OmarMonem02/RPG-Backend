@@ -37,6 +37,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->middleware('permission:maintenance,read');
     Route::post('/tickets', [TicketController::class, 'store'])->middleware('permission:maintenance,create');
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/tasks', [TicketController::class, 'addTask'])->middleware('permission:maintenance,update');
+    Route::patch('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'updateTask'])->middleware('permission:maintenance,update');
+    Route::delete('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'deleteTask'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/tasks/{task}/items', [TicketController::class, 'addItem'])->middleware('permission:maintenance,update');
+    Route::patch('/tickets/{ticket}/tasks/{task}/items/{item}', [TicketController::class, 'updateItem'])->middleware('permission:maintenance,update');
+    Route::delete('/tickets/{ticket}/tasks/{task}/items/{item}', [TicketController::class, 'deleteItem'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/end', [TicketController::class, 'end'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->middleware('permission:maintenance,update');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->middleware('permission:maintenance,delete');
 
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users,read');

@@ -50,9 +50,9 @@ class BikeBlueprintController extends Controller
      * Get a single bike blueprint.
      * GET /api/bike_blueprints/{bike_blueprint}
      */
-    public function show(BikeBlueprint $blueprint): JsonResponse
+    public function show(BikeBlueprint $bike_blueprint): JsonResponse
     {
-        return response()->json($blueprint->load(['brand']));
+        return response()->json($bike_blueprint->load(['brand']));
     }
 
     /**
@@ -60,21 +60,21 @@ class BikeBlueprintController extends Controller
      * PUT /api/bike_blueprints/{bike_blueprint}
      * PATCH /api/bike_blueprints/{bike_blueprint}
      */
-    public function update(BikeBlueprintRequest $request, BikeBlueprint $blueprint): JsonResponse
+    public function update(BikeBlueprintRequest $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
-        $blueprint->update($request->validated());
+        $bike_blueprint->update($request->validated());
 
-        return response()->json($blueprint->load('brand'));
+        return response()->json($bike_blueprint->load('brand'));
     }
 
     /**
      * Delete a bike blueprint.
      * DELETE /api/bike_blueprints/{bike_blueprint}
      */
-    public function destroy(BikeBlueprint $blueprint): JsonResponse
+    public function destroy(BikeBlueprint $bike_blueprint): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
-        $blueprint->delete();
-        return response()->json([], 204);
+        $bike_blueprint->delete();
+        return response()->noContent();
     }
 
     /**
@@ -87,9 +87,9 @@ class BikeBlueprintController extends Controller
      * - category_id: Filter by spare part category
      * - per_page: Items per page (default: 15)
      */
-    public function getLinkedSpareParts(Request $request, BikeBlueprint $blueprint): JsonResponse
+    public function getLinkedSpareParts(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
-        $query = $blueprint->spareParts()
+        $query = $bike_blueprint->spareParts()
             ->search($request->query('search'))
             ->byBrand($request->query('brand_id'))
             ->byCategory($request->query('category_id'));
@@ -114,32 +114,32 @@ class BikeBlueprintController extends Controller
      *   "spare_part_ids": [1, 2, 3,...]
      * }
      */
-    public function assignSpareParts(AssignSparePartRequest $request, BikeBlueprint $blueprint): JsonResponse
+    public function assignSpareParts(AssignSparePartRequest $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
         $validated = $request->validated();
 
         // Single assignment
         if (!empty($validated['spare_part_id'])) {
-            $blueprint->spareParts()->syncWithoutDetaching([$validated['spare_part_id']]);
+            $bike_blueprint->spareParts()->syncWithoutDetaching([$validated['spare_part_id']]);
             $sparePart = SparePart::findOrFail($validated['spare_part_id']);
 
             return response()->json([
                 'message' => 'Spare part assigned successfully',
-                'bike_blueprint_id' => $blueprint->id,
+                'bike_blueprint_id' => $bike_blueprint->id,
                 'spare_part' => $sparePart->load(['category', 'brand']),
             ], 201);
         }
 
         // Bulk assignment
         if (!empty($validated['spare_part_ids'])) {
-            $blueprint->spareParts()->syncWithoutDetaching($validated['spare_part_ids']);
+            $bike_blueprint->spareParts()->syncWithoutDetaching($validated['spare_part_ids']);
             $spareParts = SparePart::whereIn('id', $validated['spare_part_ids'])
                 ->with(['category', 'brand'])
                 ->get();
 
             return response()->json([
                 'message' => 'Spare parts assigned successfully',
-                'bike_blueprint_id' => $blueprint->id,
+                'bike_blueprint_id' => $bike_blueprint->id,
                 'spare_parts' => $spareParts,
                 'count' => $spareParts->count(),
             ], 201);
@@ -152,15 +152,15 @@ class BikeBlueprintController extends Controller
      * Remove a spare part from a bike blueprint.
      * DELETE /api/bike_blueprints/{bike_blueprint}/spare_parts/{spare_part}
      */
-    public function removeSparePart(BikeBlueprint $blueprint, SparePart $sparePart): JsonResponse
+    public function removeSparePart(BikeBlueprint $bike_blueprint, SparePart $spare_part): JsonResponse
     {
-        $blueprint->spareParts()->detach($sparePart->id);
+        $bike_blueprint->spareParts()->detach($spare_part->id);
 
         return response()->json([
             'message' => 'Spare part removed successfully',
-            'bike_blueprint_id' => $blueprint->id,
-            'spare_part_id' => $sparePart->id,
-        ], 204);
+            'bike_blueprint_id' => $bike_blueprint->id,
+            'spare_part_id' => $spare_part->id,
+        ]);
     }
 
     /**
@@ -172,19 +172,19 @@ class BikeBlueprintController extends Controller
      *   "spare_part_ids": [1, 2, 3,...]
      * }
      */
-    public function replaceSpareParts(Request $request, BikeBlueprint $blueprint): JsonResponse
+    public function replaceSpareParts(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
         $validated = $request->validate([
             'spare_part_ids' => 'required|array',
             'spare_part_ids.*' => 'integer|exists:spare_parts,id',
         ]);
 
-        $blueprint->spareParts()->sync($validated['spare_part_ids']);
-        $spareParts = $blueprint->spareParts()->with(['category', 'brand'])->get();
+        $bike_blueprint->spareParts()->sync($validated['spare_part_ids']);
+        $spareParts = $bike_blueprint->spareParts()->with(['category', 'brand'])->get();
 
         return response()->json([
             'message' => 'Spare parts updated successfully',
-            'bike_blueprint_id' => $blueprint->id,
+            'bike_blueprint_id' => $bike_blueprint->id,
             'spare_parts' => $spareParts,
             'count' => $spareParts->count(),
         ]);
@@ -198,20 +198,20 @@ class BikeBlueprintController extends Controller
      * - customer_bikes: Get customer bikes
      * - all: Get all bikes (default)
      */
-    public function getLinkedBikes(Request $request, BikeBlueprint $blueprint): JsonResponse
+    public function getLinkedBikes(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
         $type = $request->query('type', 'all');
 
         if ($type === 'for_sale') {
-            $bikes = $blueprint->bikesForSale()->paginate();
+            $bikes = $bike_blueprint->bikesForSale()->paginate();
         } elseif ($type === 'customer') {
-            $bikes = $blueprint->customerBikes()->with(['customer'])->paginate();
+            $bikes = $bike_blueprint->customerBikes()->with(['customer'])->paginate();
         } else {
-            $forSale = $blueprint->bikesForSale()->count();
-            $customerOwned = $blueprint->customerBikes()->count();
+            $forSale = $bike_blueprint->bikesForSale()->count();
+            $customerOwned = $bike_blueprint->customerBikes()->count();
 
             return response()->json([
-                'blueprint_id' => $blueprint->id,
+                'blueprint_id' => $bike_blueprint->id,
                 'bikes_for_sale_count' => $forSale,
                 'customer_bikes_count' => $customerOwned,
                 'total_bikes' => $forSale + $customerOwned,

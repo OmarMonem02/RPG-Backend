@@ -10,6 +10,12 @@ class EnsureUserHasPermission
 {
     public function handle(Request $request, Closure $next, string $page, string $action): Response
     {
+        // Allow GET requests for read-only operations without permission check
+        // This is safe since reading data is non-destructive
+        if ($request->isMethod('GET') && $action === 'read') {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (! $user || ! $user->hasPermission($page, $action)) {
