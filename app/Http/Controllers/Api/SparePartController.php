@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SparePartRequest;
 use App\Models\SparePart;
+use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SparePartController extends Controller
 {
+    private const LIST_TTL_SECONDS = 1800;
+    private const DETAIL_TTL_SECONDS = 3600;
+    private const TAGS = ['spare_parts'];
+
     /**
      * Get all spare parts with filtering and search.
      * GET /api/spare_parts
@@ -23,19 +28,26 @@ class SparePartController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = SparePart::query()
-            ->search($request->query('search'))
-            ->byBrand($request->query('brand_id'))
-            ->byCategory($request->query('category_id'));
+        $cacheKey = ApiCache::listKey('spare_parts', $request);
+        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
 
-        if ($request->boolean('low_stock')) {
-            $query->lowStock();
-        }
+        $spareParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, self::TAGS, function () use ($request) {
+            $query = SparePart::query()
+                ->search($request->query('search'))
+                ->byBrand($request->query('brand_id'))
+                ->byCategory($request->query('category_id'));
 
-        $spareParts = $query->with(['category', 'brand', 'bikeBlueprints'])
-            ->paginate((int) $request->query('per_page', 20));
+            if ($request->boolean('low_stock')) {
+                $query->lowStock();
+            }
 
-        return response()->json($spareParts);
+            return $query->with(['category', 'brand', 'bikeBlueprints'])
+                ->paginate((int) $request->query('per_page', 20));
+        });
+
+        return response()
+            ->json($spareParts)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -54,6 +66,12 @@ class SparePartController extends Controller
             $sparePart->bikeBlueprints()->attach($bikeBlueprintIds);
         }
 
+        $tags = self::TAGS;
+        if (!empty($bikeBlueprintIds)) {
+            $tags[] = 'blueprints';
+        }
+        ApiCache::invalidateTags($tags);
+
         return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints']), 201);
     }
 
@@ -63,7 +81,14 @@ class SparePartController extends Controller
      */
     public function show(SparePart $sparePart): JsonResponse
     {
-        return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints']));
+        $cacheKey = ApiCache::detailKey('spare_parts', $sparePart->id);
+        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
+
+        $payload = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, self::TAGS, fn () => $sparePart->load(['category', 'brand', 'bikeBlueprints']));
+
+        return response()
+            ->json($payload)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -83,6 +108,12 @@ class SparePartController extends Controller
             $sparePart->bikeBlueprints()->sync($bikeBlueprintIds);
         }
 
+        $tags = self::TAGS;
+        if ($bikeBlueprintIds !== null) {
+            $tags[] = 'blueprints';
+        }
+        ApiCache::invalidateTags($tags);
+
         return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints']));
     }
 
@@ -93,6 +124,7 @@ class SparePartController extends Controller
     public function destroy(SparePart $sparePart): JsonResponse
     {
         $sparePart->delete();
+        ApiCache::invalidateTags(self::TAGS);
         return response()->json([], 204);
     }
 
@@ -121,6 +153,8 @@ class SparePartController extends Controller
             $sparePart = SparePart::create($req->validated());
             $created[] = $sparePart;
         }
+
+        ApiCache::invalidateTags(self::TAGS);
 
         return response()->json($created, 201);
     }
@@ -154,6 +188,8 @@ class SparePartController extends Controller
             $updated[] = $sparePart;
         }
 
+        ApiCache::invalidateTags(self::TAGS);
+
         return response()->json($updated);
     }
 
@@ -174,6 +210,7 @@ class SparePartController extends Controller
         ]);
 
         SparePart::whereIn('id', $validated['ids'])->delete();
+        ApiCache::invalidateTags(self::TAGS);
 
         return response()->json([], 204);
     }
@@ -202,6 +239,8 @@ class SparePartController extends Controller
             $sparePart->refresh();
         }
 
+        ApiCache::invalidateTags(self::TAGS);
+
         return response()->json([
             'id' => $sparePart->id,
             'name' => $sparePart->name,
@@ -217,10 +256,15 @@ class SparePartController extends Controller
      */
     public function lowStock(Request $request): JsonResponse
     {
-        $spareParts = SparePart::lowStock()
-            ->with(['category', 'brand'])
-            ->paginate((int) $request->query('per_page', 20));
+        $cacheKey = ApiCache::listKey('spare_parts', $request, 'low_stock');
+        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
 
-        return response()->json($spareParts);
+        $spareParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, self::TAGS, fn () => SparePart::lowStock()
+            ->with(['category', 'brand'])
+            ->paginate((int) $request->query('per_page', 20)));
+
+        return response()
+            ->json($spareParts)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 }

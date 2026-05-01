@@ -21,12 +21,16 @@ use App\Models\SparePartCategory;
 use App\Models\TicketItem;
 use App\Models\Setting;
 use App\Models\TicketTask;
+use App\Support\ApiCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EntityController extends Controller
 {
+    private const LIST_TTL_SECONDS = 1800;
+    private const DETAIL_TTL_SECONDS = 3600;
+
     private function resolve(string $entity): Model
     {
         return new (match ($entity) {
@@ -144,7 +148,24 @@ class EntityController extends Controller
                 break;
         }
 
-        return response()->json($query->paginate((int) $request->query('per_page', 20)));
+        $tag = $this->cacheTagForEntity($entity);
+        if ($tag === null) {
+            return response()->json($query->paginate((int) $request->query('per_page', 20)));
+        }
+
+        $cacheKey = ApiCache::listKey($tag, $request);
+        $tags = [$tag];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $payload = ApiCache::remember(
+            $cacheKey,
+            self::LIST_TTL_SECONDS,
+            $tags,
+            fn () => $query->paginate((int) $request->query('per_page', 20))
+        );
+
+        return response()
+            ->json($payload)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     public function store(EntityRequest $request, string $entity): JsonResponse
@@ -152,6 +173,7 @@ class EntityController extends Controller
         $model = $this->resolve($entity);
         $validated = $request->validated() + $request->except(['entity', 'id']);
         $record = $model->newQuery()->create($validated);
+        $this->invalidateEntityCache($entity);
 
         return response()->json($record, 201);
     }
@@ -159,14 +181,32 @@ class EntityController extends Controller
     public function show($id, string $entity): JsonResponse
     {
         $model = $this->resolve($entity);
+        $tag = $this->cacheTagForEntity($entity);
 
-        if ($entity === 'settings' && !is_numeric($id)) {
-            $record = $model->newQuery()->where('key', $id)->firstOrFail();
-        } else {
-            $record = $model->newQuery()->findOrFail($id);
+        if ($tag === null) {
+            if ($entity === 'settings' && !is_numeric($id)) {
+                $record = $model->newQuery()->where('key', $id)->firstOrFail();
+            } else {
+                $record = $model->newQuery()->findOrFail($id);
+            }
+
+            return response()->json($record);
         }
 
-        return response()->json($record);
+        $cacheKey = ApiCache::detailKey($tag, (string) $id);
+        $tags = [$tag];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $record = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, function () use ($entity, $id, $model) {
+            if ($entity === 'settings' && !is_numeric($id)) {
+                return $model->newQuery()->where('key', $id)->firstOrFail();
+            }
+
+            return $model->newQuery()->findOrFail($id);
+        });
+
+        return response()
+            ->json($record)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     public function update(EntityRequest $request, $id, string $entity): JsonResponse
@@ -186,6 +226,7 @@ class EntityController extends Controller
         $saved = $record->save();
         
         \Illuminate\Support\Facades\Log::info("Save result", ['saved' => $saved, 'changes' => $record->getChanges()]);
+        $this->invalidateEntityCache($entity);
 
         return response()->json($record);
     }
@@ -201,8 +242,28 @@ class EntityController extends Controller
         }
 
         $record->delete();
+        $this->invalidateEntityCache($entity);
 
         return response()->json([], 204);
+    }
+
+    private function invalidateEntityCache(string $entity): void
+    {
+        $tag = $this->cacheTagForEntity($entity);
+        if ($tag !== null) {
+            ApiCache::invalidateTags([$tag]);
+        }
+    }
+
+    private function cacheTagForEntity(string $entity): ?string
+    {
+        return match ($entity) {
+            'products' => 'products',
+            'brands' => 'brands',
+            'maintenance_services' => 'services',
+            'bike_for_sale' => 'bikes',
+            default => null,
+        };
     }
 }
 

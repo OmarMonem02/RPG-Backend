@@ -7,11 +7,16 @@ use App\Http\Requests\BikeBlueprintRequest;
 use App\Http\Requests\AssignSparePartRequest;
 use App\Models\BikeBlueprint;
 use App\Models\SparePart;
+use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BikeBlueprintController extends Controller
 {
+    private const LIST_TTL_SECONDS = 1800;
+    private const DETAIL_TTL_SECONDS = 3600;
+    private const BLUEPRINT_TAG = 'blueprints';
+
     /**
      * Get all bike blueprints with filtering and search.
      * GET /api/bike_blueprints
@@ -24,15 +29,22 @@ class BikeBlueprintController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = BikeBlueprint::query()
-            ->search($request->query('search'))
-            ->byBrand($request->query('brand_id'))
-            ->byYear($request->query('year'));
+        $cacheKey = ApiCache::listKey(self::BLUEPRINT_TAG, $request);
+        $tags = [self::BLUEPRINT_TAG];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $blueprints = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request) {
+            $query = BikeBlueprint::query()
+                ->search($request->query('search'))
+                ->byBrand($request->query('brand_id'))
+                ->byYear($request->query('year'));
 
-        $blueprints = $query->with(['brand'])
-            ->paginate((int) $request->query('per_page', 20));
+            return $query->with(['brand'])
+                ->paginate((int) $request->query('per_page', 20));
+        });
 
-        return response()->json($blueprints);
+        return response()
+            ->json($blueprints)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -42,6 +54,7 @@ class BikeBlueprintController extends Controller
     public function store(BikeBlueprintRequest $request): JsonResponse
     {
         $blueprint = BikeBlueprint::create($request->validated());
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes']);
 
         return response()->json($blueprint->load('brand'), 201);
     }
@@ -52,7 +65,14 @@ class BikeBlueprintController extends Controller
      */
     public function show(BikeBlueprint $bike_blueprint): JsonResponse
     {
-        return response()->json($bike_blueprint->load(['brand']));
+        $cacheKey = ApiCache::detailKey(self::BLUEPRINT_TAG, $bike_blueprint->id);
+        $tags = [self::BLUEPRINT_TAG];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $payload = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, fn () => $bike_blueprint->load(['brand']));
+
+        return response()
+            ->json($payload)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -63,6 +83,7 @@ class BikeBlueprintController extends Controller
     public function update(BikeBlueprintRequest $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
         $bike_blueprint->update($request->validated());
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes']);
 
         return response()->json($bike_blueprint->load('brand'));
     }
@@ -74,6 +95,7 @@ class BikeBlueprintController extends Controller
     public function destroy(BikeBlueprint $bike_blueprint): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
         $bike_blueprint->delete();
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes', 'spare_parts']);
         return response()->noContent();
     }
 
@@ -89,15 +111,27 @@ class BikeBlueprintController extends Controller
      */
     public function getLinkedSpareParts(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
-        $query = $bike_blueprint->spareParts()
-            ->search($request->query('search'))
-            ->byBrand($request->query('brand_id'))
-            ->byCategory($request->query('category_id'));
+        $cacheKey = sprintf(
+            '%s:linked_spare_parts:%s:%s',
+            self::BLUEPRINT_TAG,
+            $bike_blueprint->id,
+            ApiCache::hashQuery($request->query())
+        );
+        $tags = [self::BLUEPRINT_TAG, 'spare_parts'];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $spareParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request, $bike_blueprint) {
+            $query = $bike_blueprint->spareParts()
+                ->search($request->query('search'))
+                ->byBrand($request->query('brand_id'))
+                ->byCategory($request->query('category_id'));
 
-        $spareParts = $query->with(['category', 'brand'])
-            ->paginate((int) $request->query('per_page', 15));
+            return $query->with(['category', 'brand'])
+                ->paginate((int) $request->query('per_page', 15));
+        });
 
-        return response()->json($spareParts);
+        return response()
+            ->json($spareParts)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -122,6 +156,7 @@ class BikeBlueprintController extends Controller
         if (!empty($validated['spare_part_id'])) {
             $bike_blueprint->spareParts()->syncWithoutDetaching([$validated['spare_part_id']]);
             $sparePart = SparePart::findOrFail($validated['spare_part_id']);
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
 
             return response()->json([
                 'message' => 'Spare part assigned successfully',
@@ -136,6 +171,7 @@ class BikeBlueprintController extends Controller
             $spareParts = SparePart::whereIn('id', $validated['spare_part_ids'])
                 ->with(['category', 'brand'])
                 ->get();
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
 
             return response()->json([
                 'message' => 'Spare parts assigned successfully',
@@ -155,6 +191,7 @@ class BikeBlueprintController extends Controller
     public function removeSparePart(BikeBlueprint $bike_blueprint, SparePart $spare_part): JsonResponse
     {
         $bike_blueprint->spareParts()->detach($spare_part->id);
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
 
         return response()->json([
             'message' => 'Spare part removed successfully',
@@ -181,6 +218,7 @@ class BikeBlueprintController extends Controller
 
         $bike_blueprint->spareParts()->sync($validated['spare_part_ids']);
         $spareParts = $bike_blueprint->spareParts()->with(['category', 'brand'])->get();
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
 
         return response()->json([
             'message' => 'Spare parts updated successfully',
@@ -200,25 +238,38 @@ class BikeBlueprintController extends Controller
      */
     public function getLinkedBikes(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
     {
+        $cacheKey = sprintf(
+            '%s:linked_bikes:%s:%s',
+            self::BLUEPRINT_TAG,
+            $bike_blueprint->id,
+            ApiCache::hashQuery($request->query())
+        );
+        $tags = [self::BLUEPRINT_TAG, 'bikes'];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+
+        $payload = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request, $bike_blueprint) {
         $type = $request->query('type', 'all');
 
         if ($type === 'for_sale') {
-            $bikes = $bike_blueprint->bikesForSale()->paginate();
+                return $bike_blueprint->bikesForSale()->paginate();
         } elseif ($type === 'customer') {
-            $bikes = $bike_blueprint->customerBikes()->with(['customer'])->paginate();
-        } else {
+                return $bike_blueprint->customerBikes()->with(['customer'])->paginate();
+            }
+
             $forSale = $bike_blueprint->bikesForSale()->count();
             $customerOwned = $bike_blueprint->customerBikes()->count();
 
-            return response()->json([
+            return [
                 'blueprint_id' => $bike_blueprint->id,
                 'bikes_for_sale_count' => $forSale,
                 'customer_bikes_count' => $customerOwned,
                 'total_bikes' => $forSale + $customerOwned,
-            ]);
-        }
+            ];
+        });
 
-        return response()->json($bikes);
+        return response()
+            ->json($payload)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
     }
 
     /**
@@ -246,6 +297,7 @@ class BikeBlueprintController extends Controller
             $blueprint->spareParts()->syncWithoutDetaching($validated['spare_part_ids']);
             $updated++;
         }
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
 
         return response()->json([
             'message' => 'Spare parts assigned to blueprints successfully',
