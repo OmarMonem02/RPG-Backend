@@ -32,6 +32,7 @@ class UserPermissions
         'spare-part-categories',
         'bike-blueprints',
         'sellers',
+        'reporting',
     ];
 
     public static function pages(): array
@@ -110,6 +111,7 @@ class UserPermissions
         $matrix['spare-part-categories'] = ['create', 'read', 'update', 'delete'];
         $matrix['bike-blueprints'] = ['create', 'read', 'update', 'delete'];
         $matrix['sellers'] = ['create', 'read', 'update', 'delete'];
+        $matrix['reporting'] = ['read', 'create', 'update', 'delete'];
 
         return $matrix;
     }

@@ -10,6 +10,15 @@ class SaleExchangeRequest extends FormRequest
 {
     use ValidatesSellablePayload;
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('replacement') && ! $this->has('replacements')) {
+            $replacement = $this->input('replacement');
+            $normalized = is_array($replacement) ? [$replacement + ['qty' => $replacement['qty'] ?? 1]] : [];
+            $this->merge(['replacements' => $normalized]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;

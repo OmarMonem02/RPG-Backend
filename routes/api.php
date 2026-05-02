@@ -2,8 +2,10 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\EntityController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImportExportController;
+use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\SparePartController;
@@ -112,6 +114,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:admin')->group(function () {
+        Route::get('/reporting/profit-loss', [ReportingController::class, 'profitLoss']);
+        Route::get('/reporting/balance-sheet', [ReportingController::class, 'balanceSheet']);
+        Route::get('/reporting/annual-summary', [ReportingController::class, 'annualSummary']);
+        Route::get('/reporting/expenses', [ReportingController::class, 'expenses']);
+
+        Route::get('/expenses', [ExpenseController::class, 'index']);
+        Route::post('/expenses', [ExpenseController::class, 'store']);
+        Route::patch('/expenses/{expense}', [ExpenseController::class, 'update']);
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update']);
+        Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+
         $entities = [
             'customers',
             'maintenance_service_sectors',
