@@ -128,19 +128,36 @@ class ImportExportController extends Controller
     public function import(Request $request, string $entity): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // max 10 MB
+            'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240', // max 10 MB
         ]);
 
         $config   = $this->resolveConfig($entity);
         $importer = new $config['import']();
 
-        Excel::import($importer, $request->file('file'));
+        try {
+            Excel::import($importer, $request->file('file'));
+        } catch (\ErrorException $exception) {
+            $message = $exception->getMessage();
+
+            $isExcelTempCleanupError = str_contains($message, 'laravel-excel')
+                && str_contains($message, 'Permission denied')
+                && str_contains($message, 'unlink(');
+
+            if (! $isExcelTempCleanupError) {
+                throw $exception;
+            }
+        }
 
         // Collect skipped-row errors (SkipsErrors trait stores them)
         $errors = collect($importer->errors())->map(fn ($e) => $e->getMessage())->values()->all();
 
         return response()->json([
             'message' => "Import completed for {$config['label']}.",
+            'created_count' => method_exists($importer, 'createdCount') ? $importer->createdCount() : 0,
+            'restored_count' => method_exists($importer, 'restoredCount') ? $importer->restoredCount() : 0,
+            'skipped_count' => method_exists($importer, 'skippedCount') ? $importer->skippedCount() : 0,
+            'skipped_duplicates' => method_exists($importer, 'skippedDuplicates') ? $importer->skippedDuplicates() : [],
+            'restored_records' => method_exists($importer, 'restoredRecords') ? $importer->restoredRecords() : [],
             'errors'  => $errors,
         ], 200);
     }
@@ -157,7 +174,7 @@ class ImportExportController extends Controller
     public function parse(Request $request, string $entity): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
         ]);
 
         $this->resolveConfig($entity); // Ensure entity exists
