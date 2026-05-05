@@ -19,6 +19,8 @@ class ExpenseRequest extends FormRequest
 
         return [
             'title' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'image' => ['nullable', 'url'],
+            'image_public_id' => ['nullable', 'string', 'max:255'],
             'category' => [$isUpdate ? 'sometimes' : 'required', Rule::in(Expense::CATEGORIES)],
             'amount' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
             'currency' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['EGP', 'USD'])],

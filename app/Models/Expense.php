@@ -10,14 +10,21 @@ class Expense extends Model
     use SoftDeletes;
 
     public const STATUS_PAID = 'paid';
+
     public const STATUS_UNPAID = 'unpaid';
 
     public const CATEGORY_RENT = 'rent';
+
     public const CATEGORY_SALARIES = 'salaries';
+
     public const CATEGORY_UTILITIES = 'utilities';
+
     public const CATEGORY_MARKETING = 'marketing';
+
     public const CATEGORY_TRANSPORT = 'transport';
+
     public const CATEGORY_MAINTENANCE = 'maintenance';
+
     public const CATEGORY_OTHER = 'other';
 
     public const CATEGORIES = [
@@ -32,6 +39,8 @@ class Expense extends Model
 
     protected $fillable = [
         'title',
+        'image',
+        'image_public_id',
         'category',
         'amount',
         'currency',

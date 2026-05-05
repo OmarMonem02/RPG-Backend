@@ -1,15 +1,17 @@
 <?php
+
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\EntityController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
-use App\Http\Controllers\Api\SparePartController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SparePartController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +23,8 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/upload-image', [ImageController::class, 'upload']);
+    Route::delete('/delete-image', [ImageController::class, 'destroy']);
 
     Route::get('/sales/catalog-items', [SaleController::class, 'catalog'])->middleware('permission:sales,read');
     Route::get('/sales', [SaleController::class, 'index'])->middleware('permission:sales,read');

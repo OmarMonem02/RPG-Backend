@@ -23,6 +23,7 @@ class SparePartRequest extends FormRequest
             'name' => 'required|string|max:255',
             'sku' => ['required', 'string', 'max:255', Rule::unique('spare_parts', 'sku')->ignore($id)],
             'image' => 'nullable|string|url',
+            'image_public_id' => ['nullable', 'string', 'max:255'],
             'part_number' => ['nullable', 'string', 'max:255', Rule::unique('spare_parts', 'part_number')->ignore($id)],
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',

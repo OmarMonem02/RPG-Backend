@@ -3,24 +3,27 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\BikeBlueprintRequest;
 use App\Http\Requests\AssignSparePartRequest;
+use App\Http\Requests\BikeBlueprintRequest;
 use App\Models\BikeBlueprint;
 use App\Models\SparePart;
 use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class BikeBlueprintController extends Controller
 {
     private const LIST_TTL_SECONDS = 1800;
+
     private const DETAIL_TTL_SECONDS = 3600;
+
     private const BLUEPRINT_TAG = 'blueprints';
 
     /**
      * Get all bike blueprints with filtering and search.
      * GET /api/bike_blueprints
-     * 
+     *
      * Query parameters:
      * - search: Search by model
      * - brand_id: Filter by brand
@@ -92,17 +95,18 @@ class BikeBlueprintController extends Controller
      * Delete a bike blueprint.
      * DELETE /api/bike_blueprints/{bike_blueprint}
      */
-    public function destroy(BikeBlueprint $bike_blueprint): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+    public function destroy(BikeBlueprint $bike_blueprint): Response|JsonResponse
     {
         $bike_blueprint->delete();
         ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes', 'spare_parts']);
+
         return response()->noContent();
     }
 
     /**
      * Get all spare parts linked to a bike blueprint.
      * GET /api/bike_blueprints/{bike_blueprint}/spare_parts
-     * 
+     *
      * Query parameters:
      * - search: Search spare parts by name/SKU
      * - brand_id: Filter by spare part brand
@@ -137,12 +141,12 @@ class BikeBlueprintController extends Controller
     /**
      * Assign a spare part to a bike blueprint.
      * POST /api/bike_blueprints/{bike_blueprint}/spare_parts
-     * 
+     *
      * Request body (single):
      * {
      *   "spare_part_id": 1
      * }
-     * 
+     *
      * Request body (bulk):
      * {
      *   "spare_part_ids": [1, 2, 3,...]
@@ -153,7 +157,7 @@ class BikeBlueprintController extends Controller
         $validated = $request->validated();
 
         // Single assignment
-        if (!empty($validated['spare_part_id'])) {
+        if (! empty($validated['spare_part_id'])) {
             $bike_blueprint->spareParts()->syncWithoutDetaching([$validated['spare_part_id']]);
             $sparePart = SparePart::findOrFail($validated['spare_part_id']);
             ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
@@ -161,12 +165,13 @@ class BikeBlueprintController extends Controller
             return response()->json([
                 'message' => 'Spare part assigned successfully',
                 'bike_blueprint_id' => $bike_blueprint->id,
+                'spare_part_id' => $sparePart->id,
                 'spare_part' => $sparePart->load(['category', 'brand']),
             ], 201);
         }
 
         // Bulk assignment
-        if (!empty($validated['spare_part_ids'])) {
+        if (! empty($validated['spare_part_ids'])) {
             $bike_blueprint->spareParts()->syncWithoutDetaching($validated['spare_part_ids']);
             $spareParts = SparePart::whereIn('id', $validated['spare_part_ids'])
                 ->with(['category', 'brand'])
@@ -178,6 +183,20 @@ class BikeBlueprintController extends Controller
                 'bike_blueprint_id' => $bike_blueprint->id,
                 'spare_parts' => $spareParts,
                 'count' => $spareParts->count(),
+            ], 201);
+        }
+
+        if (! empty($validated['spare_part_data'])) {
+            $sparePart = SparePart::create($validated['spare_part_data'] + [
+                'max_discount_value' => 0,
+            ]);
+            $bike_blueprint->spareParts()->syncWithoutDetaching([$sparePart->id]);
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'spare_parts']);
+
+            return response()->json([
+                'message' => 'Spare part created and assigned successfully',
+                'bike_blueprint_id' => $bike_blueprint->id,
+                'spare_part' => $sparePart->load(['category', 'brand']),
             ], 201);
         }
 
@@ -203,7 +222,7 @@ class BikeBlueprintController extends Controller
     /**
      * Replace all spare parts of a bike blueprint.
      * PUT /api/bike_blueprints/{bike_blueprint}/spare_parts
-     * 
+     *
      * Request body:
      * {
      *   "spare_part_ids": [1, 2, 3,...]
@@ -231,7 +250,7 @@ class BikeBlueprintController extends Controller
     /**
      * Get all bikes linked to a bike blueprint.
      * GET /api/bike_blueprints/{bike_blueprint}/bikes
-     * 
+     *
      * - for_sale: Get bikes for sale
      * - customer_bikes: Get customer bikes
      * - all: Get all bikes (default)
@@ -248,11 +267,11 @@ class BikeBlueprintController extends Controller
         $cacheHit = ApiCache::has($cacheKey, $tags);
 
         $payload = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request, $bike_blueprint) {
-        $type = $request->query('type', 'all');
+            $type = $request->query('type', 'all');
 
-        if ($type === 'for_sale') {
+            if ($type === 'for_sale') {
                 return $bike_blueprint->bikesForSale()->paginate();
-        } elseif ($type === 'customer') {
+            } elseif ($type === 'customer') {
                 return $bike_blueprint->customerBikes()->with(['customer'])->paginate();
             }
 
@@ -275,7 +294,7 @@ class BikeBlueprintController extends Controller
     /**
      * Bulk assign spare parts to multiple blueprints.
      * POST /api/bike_blueprints/bulk/assign-spare-parts
-     * 
+     *
      * Request body:
      * {
      *   "blueprint_ids": [1, 2, 3],

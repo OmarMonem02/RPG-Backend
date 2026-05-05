@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use SoftDeletes, LogsHistory;
+    use LogsHistory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'sku',
         'image',
+        'image_public_id',
         'part_number',
         'stock_quantity',
         'low_stock_alarm',
@@ -42,7 +43,7 @@ class Product extends Model
     // Scopes
     public function scopeSearch($query, ?string $search)
     {
-        if (!$search) {
+        if (! $search) {
             return $query;
         }
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
 {
-    use SoftDeletes, LogsHistory;
+    use LogsHistory, SoftDeletes;
 
     protected $table = 'spare_parts';
 
@@ -16,6 +16,7 @@ class SparePart extends Model
         'name',
         'sku',
         'image',
+        'image_public_id',
         'part_number',
         'stock_quantity',
         'low_stock_alarm',
@@ -80,7 +81,7 @@ class SparePart extends Model
 
     public function scopeSearch($query, ?string $search)
     {
-        if (!$search) {
+        if (! $search) {
             return $query;
         }
 

@@ -9,12 +9,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BikeForSale extends Model
 {
-    use SoftDeletes, LogsHistory;
+    use LogsHistory, SoftDeletes;
 
     protected $table = 'bike_for_sale';
 
     protected $fillable = [
         'bike_blueprint_id',
+        'image',
+        'image_public_id',
         'currency_pricing',
         'cost_price',
         'sale_price',
@@ -34,7 +36,7 @@ class BikeForSale extends Model
     // Scopes
     public function scopeSearch($query, ?string $search)
     {
-        if (!$search) {
+        if (! $search) {
             return $query;
         }
 
