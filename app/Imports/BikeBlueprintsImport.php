@@ -25,7 +25,9 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
         if (!empty($row['brand_id'])) {
             // Check if it's a number (ID) or string (name)
             if (is_numeric($row['brand_id'])) {
-                $brandId = (int) $row['brand_id'];
+                // Verify the brand actually exists in this environment
+                $brand = Brand::find((int) $row['brand_id']);
+                $brandId = $brand ? $brand->id : null;
             } else {
                 // Try to find brand by name
                 $brand = Brand::where('name', $row['brand_id'])->first();
@@ -76,7 +78,7 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
     {
         return [
             'brand_id' => 'nullable',
-            'model' => 'required',
+            'model' => 'required|string|max:255',
             'year' => 'required|integer|min:1900|max:2100',
         ];
     }
