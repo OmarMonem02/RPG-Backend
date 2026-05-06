@@ -71,6 +71,7 @@ class EntityController extends Controller
         $blueprintId = $request->query('blueprint_id');
         $year = $request->query('year');
         $lowStock = $request->query('low_stock');
+        $type = $request->query('type');
 
         // Validate and parse price range (format: "min:max")
         $minPrice = null;
@@ -120,6 +121,7 @@ class EntityController extends Controller
 
             case 'brands':
                 if ($search) $query = $query->search($search);
+                if ($type) $query = $query->byType($type);
                 break;
 
             case 'bike_for_sale':

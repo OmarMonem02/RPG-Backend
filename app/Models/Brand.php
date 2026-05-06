@@ -37,4 +37,8 @@ class Brand extends Model
 
         return $query->where('name', 'like', "%{$search}%");
     }
+    public function scopeByType($query, ?string $type)
+    {
+        return $type ? $query->where('type', $type) : $query;
+    }
 }
