@@ -32,10 +32,7 @@ class MaintenanceServicesExport implements FromQuery, WithHeadings, WithMapping,
             'Service Price',
             'Max Discount Type',
             'Max Discount Value',
-            'Sector ID',
             'Sector Name',
-            'Created At',
-            'Updated At',
         ];
     }
 
@@ -48,10 +45,7 @@ class MaintenanceServicesExport implements FromQuery, WithHeadings, WithMapping,
             $service->service_price,
             $service->max_discount_type,
             $service->max_discount_value,
-            $service->maintenance_service_sector_id,
             $service->sector?->name,
-            $service->created_at?->format('Y-m-d H:i:s'),
-            $service->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 

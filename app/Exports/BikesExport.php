@@ -40,8 +40,6 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             'Max Discount Type',
             'Max Discount Value',
             'Notes',
-            'Created At',
-            'Updated At',
         ];
     }
 
@@ -62,8 +60,6 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             $bike->max_discount_type,
             $bike->max_discount_value,
             $bike->notes,
-            $bike->created_at?->format('Y-m-d H:i:s'),
-            $bike->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 

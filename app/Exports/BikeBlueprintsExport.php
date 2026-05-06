@@ -27,12 +27,9 @@ class BikeBlueprintsExport implements FromQuery, WithHeadings, WithMapping, With
     {
         return [
             'ID',
-            'Brand ID',
             'Brand Name',
             'Model',
             'Year',
-            'Created At',
-            'Updated At',
         ];
     }
 
@@ -40,12 +37,9 @@ class BikeBlueprintsExport implements FromQuery, WithHeadings, WithMapping, With
     {
         return [
             $blueprint->id,
-            $blueprint->brand_id,
             $blueprint->brand?->name,
             $blueprint->model,
             $blueprint->year,
-            $blueprint->created_at?->format('Y-m-d H:i:s'),
-            $blueprint->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 

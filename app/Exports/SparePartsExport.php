@@ -32,19 +32,15 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Part Number',
             'Stock Quantity',
             'Low Stock Alarm',
-            'Category ID',
             'Category Name',
             'Currency Pricing',
             'Cost Price',
             'Sale Price',
-            'Brand ID',
             'Brand Name',
             'Max Discount Type',
             'Max Discount Value',
             'Universal',
             'Notes',
-            'Created At',
-            'Updated At',
         ];
     }
 

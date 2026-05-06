@@ -32,19 +32,15 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'Part Number',
             'Stock Quantity',
             'Low Stock Alarm',
-            'Category ID',
             'Category Name',
             'Currency Pricing',
             'Cost Price',
             'Sale Price',
-            'Brand ID',
             'Brand Name',
             'Max Discount Type',
             'Max Discount Value',
             'Universal',
             'Notes',
-            'Created At',
-            'Updated At',
         ];
     }
 
@@ -57,19 +53,15 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             $product->part_number,
             $product->stock_quantity,
             $product->low_stock_alarm,
-            $product->products_category_id,
             $product->category?->name,
             $product->currency_pricing,
             $product->cost_price,
             $product->sale_price,
-            $product->brand_id,
             $product->brand?->name,
             $product->max_discount_type,
             $product->max_discount_value,
             $product->universal ? 'Yes' : 'No',
             $product->notes,
-            $product->created_at?->format('Y-m-d H:i:s'),
-            $product->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 

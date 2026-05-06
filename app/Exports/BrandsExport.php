@@ -28,9 +28,7 @@ class BrandsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
         return [
             'ID',
             'Name',
-            'Type',
-            'Created At',
-            'Updated At',
+            'Type'
         ];
     }
 
@@ -39,9 +37,7 @@ class BrandsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
         return [
             $brand->id,
             $brand->name,
-            $brand->type,
-            $brand->created_at?->format('Y-m-d H:i:s'),
-            $brand->updated_at?->format('Y-m-d H:i:s'),
+            $brand->type
         ];
     }
 
