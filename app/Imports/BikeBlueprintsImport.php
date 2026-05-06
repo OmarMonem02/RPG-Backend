@@ -35,10 +35,14 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
             }
         }
 
+        // Cast explicitly: Excel may read numeric-looking model names as integers
+        $model = isset($row['model']) && $row['model'] !== '' ? (string) $row['model'] : null;
+        $year  = isset($row['year'])  && $row['year']  !== '' ? (int)    $row['year']  : null;
+
         $lookupAttributes = [
             'brand_id' => $brandId,
-            'model' => $row['model'] ?? null,
-            'year' => $row['year'] ?? null,
+            'model'    => $model,
+            'year'     => $year,
         ];
 
         if ($this->restoreMatchingRecord(
@@ -56,7 +60,7 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
             $this->shouldSkipDuplicate(
                 BikeBlueprint::class,
                 $lookupAttributes,
-                [$brandId, $row['model'] ?? null, $row['year'] ?? null],
+                [$brandId, $model, $year],
                 'bike blueprint',
                 $this->getRowNumber(),
                 $lookupAttributes
@@ -69,8 +73,8 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
 
         return new BikeBlueprint([
             'brand_id' => $brandId,
-            'model' => $row['model'] ?? null,
-            'year' => $row['year'] ?? null,
+            'model'    => $model,
+            'year'     => $year,
         ]);
     }
 
@@ -78,8 +82,8 @@ class BikeBlueprintsImport implements ToModel, WithHeadingRow, WithValidation, S
     {
         return [
             'brand_id' => 'nullable',
-            'model' => 'required|string|max:255',
-            'year' => 'required|integer|min:1900|max:2100',
+            'model'    => 'required|max:255',   // cast to string before validation, so no |string rule needed
+            'year'     => 'required|integer|min:1900|max:2100',
         ];
     }
 
