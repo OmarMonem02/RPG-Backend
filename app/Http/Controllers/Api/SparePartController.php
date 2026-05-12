@@ -18,11 +18,16 @@ class SparePartController extends Controller
     /**
      * Get all spare parts with filtering and search.
      * GET /api/spare_parts
-     * 
+     *
      * Query parameters:
      * - search: Search by name, SKU, or part_number
      * - brand_id: Filter by brand
      * - category_id: Filter by category
+     * - bike_brand_id: Filter by compatible bike brand
+     * - bike_model: Filter by compatible bike model
+     * - bike_year: Filter by compatible bike year
+     * - bike_year_from: Filter by compatible bike year from
+     * - bike_year_to: Filter by compatible bike year to
      * - low_stock: Show only low stock items (true/false)
      * - per_page: Items per page (default: 20)
      */
@@ -35,7 +40,17 @@ class SparePartController extends Controller
             $query = SparePart::query()
                 ->search($request->query('search'))
                 ->byBrand($request->query('brand_id'))
-                ->byCategory($request->query('category_id'));
+                ->byCategory($request->query('category_id'))
+                ->byBikeBrand($request->query('bike_brand_id'))
+                ->byBikeModel($request->query('bike_model'))
+                ->byBikeYear($request->query('bike_year'));
+
+            if ($request->query('bike_year_from') || $request->query('bike_year_to')) {
+                $query->byBikeYearRange(
+                    $request->query('bike_year_from') ? (int) $request->query('bike_year_from') : null,
+                    $request->query('bike_year_to') ? (int) $request->query('bike_year_to') : null
+                );
+            }
 
             if ($request->boolean('low_stock')) {
                 $query->lowStock();

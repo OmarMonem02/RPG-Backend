@@ -60,7 +60,23 @@ class SparePart extends Model
     {
         return $this->belongsToMany(BikeBlueprint::class, 'bike_blueprint_spare_parts', 'spare_part_id', 'bike_blueprint_id')
             ->withTimestamps()
-            ->withTrashed();
+            ->withTrashed()
+            ->orderBy('bike_blueprints.model')
+            ->orderBy('bike_blueprints.year');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray()
+    {
+        $array = parent::toArray();
+
+        if ($this->relationLoaded('bikeBlueprints')) {
+            $array['bike_blueprint_ids'] = $this->bikeBlueprints->pluck('id')->values()->all();
+        }
+
+        return $array;
     }
 
     public function saleItems()
@@ -120,5 +136,62 @@ class SparePart extends Model
     public function scopeByCurrency($query, ?string $currency)
     {
         return $currency ? $query->where('currency_pricing', $currency) : $query;
+    }
+
+    public function scopeByBikeBrand($query, ?int $bikeBrandId)
+    {
+        if (! $bikeBrandId) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($bikeBrandId) {
+            $q->whereHas('bikeBlueprints', function ($bp) use ($bikeBrandId) {
+                $bp->where('brand_id', $bikeBrandId);
+            })->orWhere('universal', true);
+        });
+    }
+
+    public function scopeByBikeModel($query, ?string $bikeModel)
+    {
+        if (! $bikeModel) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($bikeModel) {
+            $q->whereHas('bikeBlueprints', function ($bp) use ($bikeModel) {
+                $bp->where('model', 'like', "%{$bikeModel}%");
+            })->orWhere('universal', true);
+        });
+    }
+
+    public function scopeByBikeYear($query, ?int $bikeYear)
+    {
+        if (! $bikeYear) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($bikeYear) {
+            $q->whereHas('bikeBlueprints', function ($bp) use ($bikeYear) {
+                $bp->where('year', $bikeYear);
+            })->orWhere('universal', true);
+        });
+    }
+
+    public function scopeByBikeYearRange($query, ?int $yearFrom, ?int $yearTo)
+    {
+        if ($yearFrom === null && $yearTo === null) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($yearFrom, $yearTo) {
+            $q->whereHas('bikeBlueprints', function ($bp) use ($yearFrom, $yearTo) {
+                if ($yearFrom !== null) {
+                    $bp->where('year', '>=', $yearFrom);
+                }
+                if ($yearTo !== null) {
+                    $bp->where('year', '<=', $yearTo);
+                }
+            })->orWhere('universal', true);
+        });
     }
 }

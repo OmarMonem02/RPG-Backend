@@ -324,4 +324,48 @@ class BikeBlueprintController extends Controller
             'spare_parts_assigned' => count($validated['spare_part_ids']),
         ], 201);
     }
+
+    /**
+     * Get models by brand for cascading filter.
+     * GET /api/bike_blueprints/filter/models?brand_id={brandId}
+     */
+    public function getModelsByBrand(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'brand_id' => 'required|integer|exists:brands,id',
+        ]);
+
+        $models = BikeBlueprint::where('brand_id', $validated['brand_id'])
+            ->select('model')
+            ->distinct()
+            ->orderBy('model')
+            ->pluck('model')
+            ->map(fn($model) => ['value' => $model, 'label' => $model]);
+
+        return response()->json($models);
+    }
+
+    /**
+     * Get years by brand and model for cascading filter.
+     * GET /api/bike_blueprints/filter/years?brand_id={brandId}&model={model}
+     */
+    public function getYearsByBrandAndModel(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'brand_id' => 'required|integer|exists:brands,id',
+            'model' => 'required|string',
+        ]);
+
+        $model = trim($validated['model']);
+
+        $years = BikeBlueprint::where('brand_id', $validated['brand_id'])
+            ->where('model', $model)
+            ->select('year')
+            ->distinct()
+            ->orderBy('year')
+            ->pluck('year')
+            ->map(fn($year) => ['value' => $year, 'label' => (string) $year]);
+
+        return response()->json($years);
+    }
 }

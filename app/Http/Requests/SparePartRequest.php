@@ -50,4 +50,21 @@ class SparePartRequest extends FormRequest
             'brand_id.exists' => 'Selected brand does not exist.',
         ];
     }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $validator): void {
+            // Only enforce when client explicitly disables Universal Part
+            if (! $this->has('universal') || $this->boolean('universal')) {
+                return;
+            }
+            $ids = $this->input('bike_blueprint_ids');
+            if (! is_array($ids) || count(array_filter($ids)) < 1) {
+                $validator->errors()->add(
+                    'bike_blueprint_ids',
+                    'Select at least one compatible bike blueprint when Universal Part is disabled.'
+                );
+            }
+        });
+    }
 }
