@@ -301,19 +301,34 @@ class SaleService
         return $this->presenter->serializeSale($sale);
     }
 
-    public function delete(Sale $sale): void
+    public function delete(Sale $sale, int $userId): void
     {
-        DB::transaction(function () use ($sale) {
+        DB::transaction(function () use ($sale, $userId) {
             $sale = $sale->loadMissing('items');
+            $before = $this->presenter->serializeSaleForAudit($sale);
+            $beforeTotal = (float) $sale->total;
+            $restoredItems = 0;
 
             foreach ($sale->items as $item) {
                 $remainingQty = $item->remainingQty();
                 if ($remainingQty > 0) {
                     $this->inventory->restoreInventoryForSaleItem($item, $remainingQty);
+                    $restoredItems++;
                 }
 
                 $item->delete();
             }
+
+            $this->logAdjustment(
+                sale: $sale,
+                userId: $userId,
+                actionType: 'sale_deleted',
+                summary: $this->formatUserSummary($userId, "deleted sale #{$sale->id}"),
+                before: $before,
+                after: null,
+                amountDelta: -$beforeTotal,
+                meta: ['restored_items_count' => $restoredItems],
+            );
 
             $sale->delete();
         });

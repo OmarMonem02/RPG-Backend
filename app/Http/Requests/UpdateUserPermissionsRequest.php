@@ -51,13 +51,36 @@ class UpdateUserPermissionsRequest extends FormRequest
                         continue;
                     }
 
+                    $allowedActions = UserPermissions::allowedActionsForPage((string) $page);
+                    $hasOperationalAction = false;
+
                     foreach ($actions as $index => $action) {
                         if (! in_array($action, UserPermissions::actions(), true)) {
                             $validator->errors()->add(
                                 "permissions.{$page}.{$index}",
                                 'This action is not supported.'
                             );
+
+                            continue;
                         }
+
+                        if (! in_array($action, $allowedActions, true)) {
+                            $validator->errors()->add(
+                                "permissions.{$page}.{$index}",
+                                'This action is not available for this page.'
+                            );
+                        }
+
+                        if ($action !== 'read') {
+                            $hasOperationalAction = true;
+                        }
+                    }
+
+                    if ($hasOperationalAction && ! in_array('read', $actions, true)) {
+                        $validator->errors()->add(
+                            "permissions.{$page}",
+                            'Read permission is required before granting operational actions.'
+                        );
                     }
                 }
             },

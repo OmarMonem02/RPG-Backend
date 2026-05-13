@@ -50,6 +50,22 @@ class UserPermissionsTest extends TestCase
             ->assertStatus(403);
     }
 
+    public function test_permission_metadata_returns_groups_pages_actions_and_role_presets(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->getJson('/api/permissions/meta')
+            ->assertOk()
+            ->assertJsonPath('actions.0', 'create')
+            ->assertJsonPath('groups.0.key', 'overview')
+            ->assertJsonPath('pages.1.key', 'sales')
+            ->assertJsonPath('pages.1.label', 'Sales')
+            ->assertJsonPath('pages.1.actions', ['create', 'read', 'update', 'delete', 'export'])
+            ->assertJsonPath('role_presets.0.key', User::ROLE_ADMIN)
+            ->assertJsonPath('role_presets.0.permissions.users', ['create', 'read', 'update', 'delete']);
+    }
+
     public function test_permissions_update_rejects_unknown_missing_and_invalid_actions(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -69,6 +85,24 @@ class UserPermissionsTest extends TestCase
             ]);
     }
 
+    public function test_permissions_update_rejects_unsupported_page_actions_and_requires_read_dependency(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $target = User::factory()->create(['role' => User::ROLE_STAFF]);
+        $payload = $this->permissionPayload([
+            'sales' => ['update'],
+        ]);
+        $payload['permissions']['dashboard'] = ['read', 'delete'];
+
+        $this->actingAs($admin)
+            ->putJson("/api/users/{$target->id}/permissions", $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'permissions.dashboard.1',
+                'permissions.sales',
+            ]);
+    }
+
     public function test_admin_cannot_remove_their_own_users_management_access(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -80,6 +114,25 @@ class UserPermissionsTest extends TestCase
             ->putJson("/api/users/{$admin->id}/permissions", $payload)
             ->assertStatus(422)
             ->assertJsonValidationErrors(['permissions.users']);
+    }
+
+    public function test_permission_updater_can_save_when_granted_users_update(): void
+    {
+        $manager = User::factory()->create([
+            'role' => User::ROLE_TECHNICIAN,
+            'permissions_override' => $this->permissionMatrix([
+                'users' => ['read', 'update'],
+            ]),
+        ]);
+        $target = User::factory()->create(['role' => User::ROLE_STAFF]);
+
+        $this->actingAs($manager)
+            ->putJson("/api/users/{$target->id}/permissions", $this->permissionPayload([
+                'sales' => ['read'],
+            ]))
+            ->assertOk()
+            ->assertJsonPath('user.permission_source', 'custom')
+            ->assertJsonPath('user.permissions.sales', ['read']);
     }
 
     public function test_login_me_and_user_show_return_effective_permissions(): void
@@ -115,7 +168,8 @@ class UserPermissionsTest extends TestCase
         $this->actingAs($admin)
             ->getJson("/api/users/{$admin->id}")
             ->assertOk()
-            ->assertJsonPath('user.permissions.users', ['read', 'update']);
+            ->assertJsonPath('user.permission_source', 'custom')
+            ->assertJsonPath('user.role_permissions.users', ['create', 'read', 'update', 'delete']);
     }
 
     public function test_default_role_behavior_still_works_without_override(): void
@@ -193,6 +247,35 @@ class UserPermissionsTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/import-export/products/export')
             ->assertStatus(403);
+    }
+
+    public function test_reporting_and_expense_routes_use_reporting_permissions(): void
+    {
+        $reportReader = User::factory()->create([
+            'role' => User::ROLE_TECHNICIAN,
+            'permissions_override' => $this->permissionMatrix([
+                'reporting' => ['read'],
+            ]),
+        ]);
+
+        $expenseManager = User::factory()->create([
+            'role' => User::ROLE_TECHNICIAN,
+            'permissions_override' => $this->permissionMatrix([
+                'reporting' => ['create', 'read', 'update', 'delete'],
+            ]),
+        ]);
+
+        $this->actingAs($reportReader)
+            ->getJson('/api/reporting/profit-loss')
+            ->assertOk();
+
+        $this->actingAs($reportReader)
+            ->postJson('/api/expenses', [])
+            ->assertStatus(403);
+
+        $this->actingAs($expenseManager)
+            ->postJson('/api/expenses', [])
+            ->assertStatus(422);
     }
 
     private function permissionPayload(array $overrides = []): array

@@ -33,6 +33,12 @@ class SaleItemStoreRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $this->validateSingleSellableReference($validator, $this->all());
+
+                $sellingPrice = $this->input('selling_price');
+                $discount = $this->input('discount', 0);
+                if (is_numeric($sellingPrice) && is_numeric($discount) && (float) $discount > (float) $sellingPrice) {
+                    $validator->errors()->add('discount', 'Item discount cannot exceed the selling price.');
+                }
             },
         ];
     }

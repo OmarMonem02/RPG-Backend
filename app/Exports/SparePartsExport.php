@@ -2,7 +2,9 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\SparePart;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -11,8 +13,10 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle
+class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
+    use StylesProfessionalSheets;
+
     public function title(): string
     {
         return 'Spare Parts';
@@ -32,15 +36,19 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Part Number',
             'Stock Quantity',
             'Low Stock Alarm',
+            'Category ID',
             'Category Name',
             'Currency Pricing',
             'Cost Price',
             'Sale Price',
+            'Brand ID',
             'Brand Name',
             'Max Discount Type',
             'Max Discount Value',
             'Universal',
             'Notes',
+            'Created At',
+            'Updated At',
         ];
     }
 
@@ -69,10 +77,4 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         ];
     }
 
-    public function styles(Worksheet $sheet): array
-    {
-        return [
-            1 => ['font' => ['bold' => true]],
-        ];
-    }
 }

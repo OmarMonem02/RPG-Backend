@@ -48,6 +48,12 @@ class SaleExchangeRequest extends FormRequest
                 $replacements = $this->input('replacements', []);
                 foreach ($replacements as $index => $replacement) {
                     $this->validateSingleSellableReference($validator, $replacement, "replacements.{$index}");
+
+                    $sellingPrice = $replacement['selling_price'] ?? null;
+                    $discount = $replacement['discount'] ?? 0;
+                    if (is_numeric($sellingPrice) && is_numeric($discount) && (float) $discount > (float) $sellingPrice) {
+                        $validator->errors()->add("replacements.{$index}.discount", 'Item discount cannot exceed the selling price.');
+                    }
                 }
             },
         ];

@@ -252,6 +252,87 @@ class SalesApiTest extends TestCase
             ->assertJsonPath('data.0.action_type', 'created');
     }
 
+    public function test_sales_list_supports_customer_seller_search_and_global_sort(): void
+    {
+        $secondarySeller = Seller::create([
+            'name' => 'Night Shift Seller',
+            'phone' => '01222222222',
+            'commission_rate' => 7,
+        ]);
+
+        $lowSale = $this->createSaleThroughApi([
+            'shipping_fee' => 0,
+            'discount' => 0,
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'selling_price' => 100,
+                    'discount' => 0,
+                    'qty' => 1,
+                ],
+            ],
+        ]);
+        $highSale = $this->createSaleThroughApi([
+            'customer_id' => $this->otherCustomer->id,
+            'seller_id' => $secondarySeller->id,
+            'shipping_fee' => 0,
+            'discount' => 0,
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'selling_price' => 500,
+                    'discount' => 0,
+                    'qty' => 2,
+                ],
+            ],
+        ]);
+
+        $customerFilterResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'customer_id' => $this->otherCustomer->id,
+        ]));
+        $customerFilterResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $highSale['id']);
+
+        $sellerSearchResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'search' => 'Night Shift',
+        ]));
+        $sellerSearchResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $highSale['id']);
+
+        $highestResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'sort' => 'highest',
+        ]));
+        $highestResponse->assertOk()
+            ->assertJsonPath('data.0.id', $highSale['id']);
+
+        $lowestResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'sort' => 'lowest',
+        ]));
+        $lowestResponse->assertOk()
+            ->assertJsonPath('data.0.id', $lowSale['id']);
+    }
+
+    public function test_rejects_invalid_sale_money_delivery_and_discount_values(): void
+    {
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['shipping_fee'] = -1;
+        $payload['delivery_status'] = 'lost';
+        $payload['discount'] = 0;
+        $payload['items'][0]['selling_price'] = 100;
+        $payload['items'][0]['discount'] = 125;
+
+        $response = $this->actingAs($this->admin)->postJson('/api/sales', $payload);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'shipping_fee',
+                'delivery_status',
+                'items.0.discount',
+            ]);
+    }
+
     public function test_catalog_items_support_filters_and_spare_part_compatibility(): void
     {
         $response = $this->actingAs($this->admin)->getJson('/api/sales/catalog-items?' . http_build_query([
@@ -446,6 +527,37 @@ class SalesApiTest extends TestCase
             'sale_id' => $saleId,
             'action_type' => 'item_exchanged',
             'refund_amount' => 50,
+        ]);
+    }
+
+    public function test_deleting_sale_logs_adjustment_and_restores_inventory(): void
+    {
+        $sale = $this->createSaleThroughApi([
+            'shipping_fee' => 0,
+            'discount' => 0,
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'selling_price' => 200,
+                    'discount' => 0,
+                    'qty' => 1,
+                ],
+            ],
+        ]);
+
+        $response = $this->actingAs($this->admin)->deleteJson("/api/sales/{$sale['id']}");
+
+        $response->assertNoContent();
+
+        $this->assertSoftDeleted('sales', ['id' => $sale['id']]);
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'stock_quantity' => 10,
+        ]);
+        $this->assertDatabaseHas('sale_adjustments', [
+            'sale_id' => $sale['id'],
+            'action_type' => 'sale_deleted',
+            'amount_delta' => -200,
         ]);
     }
 

@@ -25,11 +25,14 @@ class SaleQueryService
     public function paginate(array $filters): LengthAwarePaginator
     {
         $query = Sale::query()
-            ->with(SalePresenterService::SALE_RELATIONS)
-            ->latest();
+            ->with(SalePresenterService::SALE_RELATIONS);
 
         if (! empty($filters['sale_id'])) {
             $query->whereKey($filters['sale_id']);
+        }
+
+        if (! empty($filters['customer_id'])) {
+            $query->where('customer_id', $filters['customer_id']);
         }
 
         if (! empty($filters['customer_name'])) {
@@ -89,6 +92,9 @@ class SaleQueryService
                     ->{$relationMethod}('customer', fn (Builder $customer) => $customer
                         ->where('name', 'like', '%' . $search . '%')
                         ->orWhere('phone', 'like', '%' . $search . '%'))
+                    ->orWhereHas('seller', fn (Builder $seller) => $seller
+                        ->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('phone', 'like', '%' . $search . '%'))
                     ->orWhereHas('items.product', fn (Builder $product) => $product
                         ->where('name', 'like', '%' . $search . '%')
                         ->orWhere('sku', 'like', '%' . $search . '%')
@@ -104,8 +110,20 @@ class SaleQueryService
             });
         }
 
+        $this->applySort($query, $filters['sort'] ?? 'newest');
+
         return $query
             ->paginate((int) ($filters['per_page'] ?? 20))
             ->through(fn (Sale $sale) => $this->presenter->serializeSale($sale));
+    }
+
+    private function applySort(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at')->orderBy('id'),
+            'highest' => $query->orderByDesc('total')->orderByDesc('id'),
+            'lowest' => $query->orderBy('total')->orderBy('id'),
+            default => $query->orderByDesc('created_at')->orderByDesc('id'),
+        };
     }
 }

@@ -94,9 +94,9 @@ class SaleController extends Controller
         );
     }
 
-    public function destroy(Sale $sale): JsonResponse
+    public function destroy(Request $request, Sale $sale): JsonResponse
     {
-        $this->saleService->delete($sale);
+        $this->saleService->delete($sale, (int) $request->user()->id);
 
         return response()->json([], 204);
     }

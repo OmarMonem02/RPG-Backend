@@ -7,6 +7,13 @@ use Illuminate\Validation\Rule;
 
 class SaleUpdateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('sale_discount') && ! $this->has('discount')) {
+            $this->merge(['discount' => $this->input('sale_discount')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -20,7 +27,7 @@ class SaleUpdateRequest extends FormRequest
             'payment_method_id' => ['sometimes', 'integer', 'exists:payment_methods,id'],
             'type' => ['sometimes', Rule::in(['site', 'online', 'delivery'])],
             'status' => ['sometimes', Rule::in(['completed', 'partial', 'pending'])],
-            'delivery_status' => ['nullable', 'string'],
+            'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'shipping_fee' => ['sometimes', 'numeric', 'min:0'],
             'discount' => ['sometimes', 'numeric', 'min:0'],
         ];

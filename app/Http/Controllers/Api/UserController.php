@@ -15,7 +15,7 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(User::paginate(20));
+        return response()->json(UserResource::collection(User::paginate(20))->response()->getData(true));
     }
 
     public function store(UserRequest $request): JsonResponse
@@ -25,7 +25,7 @@ class UserController extends Controller
 
         $user = User::create($data);
 
-        return response()->json($user, 201);
+        return response()->json(['user' => new UserResource($user)], 201);
     }
 
     public function show(User $user): JsonResponse
@@ -45,7 +45,7 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return response()->json($user);
+        return response()->json(['user' => new UserResource($user)]);
     }
 
     public function destroy(User $user): JsonResponse

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ImportExportController;
+use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
@@ -23,6 +24,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/permissions/meta', [PermissionController::class, 'meta']);
     Route::post('/upload-image', [ImageController::class, 'upload']);
     Route::delete('/delete-image', [ImageController::class, 'destroy']);
 
@@ -59,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('permission:users,read');
     Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update'])->middleware('permission:users,update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users,delete');
-    Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->middleware('role:admin');
+    Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->middleware('permission:users,update');
 
     Route::get('/sellers', [SellerController::class, 'index'])->middleware('permission:sellers,read');
     Route::post('/sellers', [SellerController::class, 'store'])->middleware('permission:sellers,create');
@@ -120,17 +122,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/parse', [ImportExportController::class, 'parse'])->middleware('permission:import-export,import');
     });
 
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/reporting/profit-loss', [ReportingController::class, 'profitLoss']);
-        Route::get('/reporting/balance-sheet', [ReportingController::class, 'balanceSheet']);
-        Route::get('/reporting/annual-summary', [ReportingController::class, 'annualSummary']);
-        Route::get('/reporting/expenses', [ReportingController::class, 'expenses']);
+    Route::get('/reporting/profit-loss', [ReportingController::class, 'profitLoss'])->middleware('permission:reporting,read');
+    Route::get('/reporting/balance-sheet', [ReportingController::class, 'balanceSheet'])->middleware('permission:reporting,read');
+    Route::get('/reporting/annual-summary', [ReportingController::class, 'annualSummary'])->middleware('permission:reporting,read');
+    Route::get('/reporting/expenses', [ReportingController::class, 'expenses'])->middleware('permission:reporting,read');
 
-        Route::get('/expenses', [ExpenseController::class, 'index']);
-        Route::post('/expenses', [ExpenseController::class, 'store']);
-        Route::patch('/expenses/{expense}', [ExpenseController::class, 'update']);
-        Route::put('/expenses/{expense}', [ExpenseController::class, 'update']);
-        Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+    Route::get('/expenses', [ExpenseController::class, 'index'])->middleware('permission:reporting,read');
+    Route::post('/expenses', [ExpenseController::class, 'store'])->middleware('permission:reporting,create');
+    Route::patch('/expenses/{expense}', [ExpenseController::class, 'update'])->middleware('permission:reporting,update');
+    Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->middleware('permission:reporting,update');
+    Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->middleware('permission:reporting,delete');
+
+    Route::middleware('role:admin')->group(function () {
 
         $entities = [
             'customers',
