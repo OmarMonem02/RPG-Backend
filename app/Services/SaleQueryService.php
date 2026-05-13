@@ -18,6 +18,22 @@ class SaleQueryService
         'bike' => 'bike_for_sale_id',
     ];
 
+    /**
+     * Eager loads for spreadsheet export (lighter than full list serialization).
+     *
+     * @var array<int, string>
+     */
+    private const EXPORT_RELATIONS = [
+        'customer',
+        'seller',
+        'paymentMethod',
+        'user',
+        'items.product',
+        'items.sparePart',
+        'items.maintenanceService',
+        'items.bikeForSale.bikeBlueprint.brand',
+    ];
+
     public function __construct(private readonly SalePresenterService $presenter)
     {
     }
@@ -27,6 +43,39 @@ class SaleQueryService
         $query = Sale::query()
             ->with(SalePresenterService::SALE_RELATIONS);
 
+        $this->applyFilters($query, $filters);
+        $this->applySort($query, $filters['sort'] ?? 'newest');
+
+        $perPage = (int) ($filters['per_page'] ?? 20);
+        $page = array_key_exists('page', $filters) && $filters['page'] !== null
+            ? max(1, (int) $filters['page'])
+            : null;
+
+        $paginator = $page !== null
+            ? $query->paginate($perPage, ['*'], 'page', $page)
+            : $query->paginate($perPage);
+
+        return $paginator->through(fn (Sale $sale) => $this->presenter->serializeSale($sale));
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function exportQuery(array $filters): Builder
+    {
+        $query = Sale::query()->with(self::EXPORT_RELATIONS);
+
+        $this->applyFilters($query, $filters);
+        $this->applySort($query, $filters['sort'] ?? 'newest');
+
+        return $query;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyFilters(Builder $query, array $filters): void
+    {
         if (! empty($filters['sale_id'])) {
             $query->whereKey($filters['sale_id']);
         }
@@ -109,12 +158,6 @@ class SaleQueryService
                         ->orWhereHas('bikeBlueprint', fn (Builder $blueprint) => $blueprint->where('model', 'like', '%' . $search . '%')));
             });
         }
-
-        $this->applySort($query, $filters['sort'] ?? 'newest');
-
-        return $query
-            ->paginate((int) ($filters['per_page'] ?? 20))
-            ->through(fn (Sale $sale) => $this->presenter->serializeSale($sale));
     }
 
     private function applySort(Builder $query, string $sort): void

@@ -33,6 +33,7 @@ class SaleFilterRequest extends FormRequest
             'item_type' => ['nullable', Rule::in(['product', 'spare_part', 'maintenance_service', 'bike'])],
             'search' => ['nullable', 'string'],
             'sort' => ['nullable', Rule::in(['newest', 'oldest', 'highest', 'lowest'])],
+            'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

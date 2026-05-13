@@ -22,7 +22,7 @@ class TicketController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json(Ticket::with(['tasks', 'items', 'customer', 'customerBike', 'user'])->paginate(20));
+        return response()->json(Ticket::with(['tasks', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user'])->paginate(20));
     }
 
     public function store(TicketRequest $request): JsonResponse
@@ -34,7 +34,7 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket): JsonResponse
     {
-        return response()->json($ticket->load(['tasks.items', 'items', 'customer', 'customerBike', 'user']));
+        return response()->json($ticket->load(['tasks.items', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user']));
     }
 
     public function updateStatus(Ticket $ticket, Request $request): JsonResponse

@@ -11,11 +11,16 @@ use App\Http\Requests\SaleItemUpdateRequest;
 use App\Http\Requests\SaleRequest;
 use App\Http\Requests\SaleReturnRequest;
 use App\Http\Requests\SaleUpdateRequest;
+use App\Exports\SalesListExport;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Services\SaleInventoryService;
 use App\Services\SaleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelFormat;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SaleController extends Controller
 {
@@ -26,6 +31,36 @@ class SaleController extends Controller
     public function index(SaleFilterRequest $request): JsonResponse
     {
         return response()->json($this->saleService->paginateSales($request->validated()));
+    }
+
+    public function export(SaleFilterRequest $request, SaleInventoryService $inventory): BinaryFileResponse|JsonResponse
+    {
+        $filters = $request->validated();
+        unset($filters['page'], $filters['per_page']);
+
+        $query = $this->saleService->exportSalesQuery($filters);
+        $count = (clone $query)->count();
+
+        if ($count > 50_000) {
+            return response()->json([
+                'message' => 'Too many sales match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
+                'matched_count' => $count,
+            ], 422);
+        }
+
+        $format = match (strtolower((string) $request->query('format', 'xlsx'))) {
+            'csv' => ExcelFormat::CSV,
+            default => ExcelFormat::XLSX,
+        };
+
+        $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
+        $filename = 'sales_export_' . now()->format('Ymd_His') . $suffix;
+
+        return Excel::download(
+            new SalesListExport($query, $inventory),
+            $filename,
+            $format,
+        );
     }
 
     public function store(SaleRequest $request): JsonResponse

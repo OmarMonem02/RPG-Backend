@@ -8,6 +8,7 @@ use App\Models\SaleAdjustment;
 use App\Models\SaleItem;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,14 @@ class SaleService
     public function paginateSales(array $filters): LengthAwarePaginator
     {
         return $this->queryService->paginate($filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function exportSalesQuery(array $filters): Builder
+    {
+        return $this->queryService->exportQuery($filters);
     }
 
     public function getSaleDetails(Sale $sale): array

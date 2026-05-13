@@ -561,6 +561,72 @@ class SalesApiTest extends TestCase
         ]);
     }
 
+    public function test_sales_export_returns_xlsx_for_admin(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get('/api/sales/export?format=xlsx');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->assertStringContainsString(
+            'attachment',
+            (string) $response->headers->get('content-disposition'),
+        );
+        $this->assertStringContainsString('sales_export_', (string) $response->headers->get('content-disposition'));
+        $this->assertGreaterThan(100, strlen($response->streamedContent()));
+    }
+
+    public function test_sales_export_returns_csv_when_requested(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get('/api/sales/export?format=csv');
+
+        $response->assertOk();
+        $contentType = strtolower((string) $response->headers->get('content-type'));
+        $this->assertTrue(
+            str_contains($contentType, 'csv') || str_contains($contentType, 'text/plain'),
+            'Expected CSV-related content type, got: ' . $contentType,
+        );
+        $this->assertStringContainsString('Sale ID', $response->streamedContent());
+    }
+
+    public function test_sales_export_forbidden_without_export_permission(): void
+    {
+        $staff = User::create([
+            'name' => 'Staff User',
+            'email' => 'staff-export@example.com',
+            'password' => bcrypt('password'),
+            'role' => User::ROLE_STAFF,
+        ]);
+
+        $this->actingAs($staff)
+            ->getJson('/api/sales/export')
+            ->assertStatus(403);
+    }
+
+    public function test_sales_export_respects_customer_filter(): void
+    {
+        $this->createSaleThroughApi(['customer_id' => $this->customer->id]);
+        $this->createSaleThroughApi(['customer_id' => $this->otherCustomer->id]);
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query(['customer_id' => $this->customer->id, 'format' => 'xlsx'])
+        );
+
+        $response->assertOk();
+
+        $path = tempnam(sys_get_temp_dir(), 'sales_export_') . '.xlsx';
+        file_put_contents($path, $response->streamedContent());
+
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet();
+        @unlink($path);
+
+        $this->assertSame(2, (int) $sheet->getHighestDataRow());
+        $this->assertSame('Ahmed Saleh', (string) $sheet->getCell('C2')->getValue());
+    }
+
     private function createSaleThroughApi(?array $override = null): array
     {
         $payload = $this->mixedSalePayload(

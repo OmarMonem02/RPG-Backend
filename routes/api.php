@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
+use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\EntityController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/delete-image', [ImageController::class, 'destroy']);
 
     Route::get('/sales/catalog-items', [SaleController::class, 'catalog'])->middleware('permission:sales,read');
+    Route::get('/sales/export', [SaleController::class, 'export'])->middleware('permission:sales,export');
     Route::get('/sales', [SaleController::class, 'index'])->middleware('permission:sales,read');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->middleware('permission:sales,read');
     Route::get('/sales/{sale}/adjustments', [SaleController::class, 'adjustments'])->middleware('permission:sales,read');
@@ -55,6 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->middleware('permission:maintenance,update');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->middleware('permission:maintenance,delete');
+
+    Route::get('/customers', [CustomerController::class, 'index'])->middleware('any_permission:sales,read,maintenance,read');
+    Route::get('/customers/{customer}/workspace', [CustomerController::class, 'workspace'])->middleware('any_permission:sales,read,maintenance,read');
 
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users,read');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users,create');
@@ -136,7 +141,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
 
         $entities = [
-            'customers',
             'maintenance_service_sectors',
             'customer_bikes',
             'customer_sale',
@@ -155,6 +159,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch("/{$entity}/{id}", [EntityController::class, 'update'])->defaults('entity', $entity);
             Route::delete("/{$entity}/{id}", [EntityController::class, 'destroy'])->defaults('entity', $entity);
         }
+
+        Route::post('/customers', [EntityController::class, 'store'])->defaults('entity', 'customers');
+        Route::put('/customers/{id}', [EntityController::class, 'update'])->defaults('entity', 'customers');
+        Route::patch('/customers/{id}', [EntityController::class, 'update'])->defaults('entity', 'customers');
+        Route::delete('/customers/{id}', [EntityController::class, 'destroy'])->defaults('entity', 'customers');
 
         Route::get('/settings', [SettingController::class, 'index']);
         Route::put('/settings', [SettingController::class, 'update']);

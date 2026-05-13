@@ -69,7 +69,7 @@ class TicketService
 
             $ticket->update(['total' => $ticketTotal]);
 
-            return $ticket->load(['tasks.items', 'items', 'customer', 'customerBike', 'user']);
+            return $ticket->load(['tasks.items', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user']);
         });
     }
     public function addTask(Ticket $ticket, array $data): Ticket
@@ -81,7 +81,7 @@ class TicketService
                 'subtotal' => 0,
             ]);
 
-            return $ticket->load(['tasks.items', 'items', 'customer', 'customerBike', 'user']);
+            return $ticket->load(['tasks.items', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user']);
         });
     }
 

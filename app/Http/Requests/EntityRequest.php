@@ -32,8 +32,11 @@ class EntityRequest extends FormRequest
                 'commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
             ],
             'customers' => [
-                'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
-                'phone' => [$isUpdate ? 'nullable' : 'required', 'string'],
+                'name' => [$isUpdate ? 'nullable' : 'required', 'string', 'max:255'],
+                'phone' => [$isUpdate ? 'nullable' : 'required', 'string', 'max:255'],
+                'address' => ['nullable', 'string', 'max:500'],
+                'how_did_you_know_us' => ['nullable', 'string', 'max:255'],
+                'notes' => ['nullable', 'string', 'max:10000'],
             ],
             'products' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
