@@ -12,12 +12,13 @@ class SettingController extends Controller
     private function formatSettingsPayload(): array
     {
         $settings = Setting::query()
-            ->whereIn('key', ['tax_rate', 'exchange_rate'])
+            ->whereIn('key', ['tax_rate', 'exchange_rate', 'exchange_rate_eur'])
             ->pluck('value', 'key');
 
         return [
             'tax_rate' => $settings->has('tax_rate') ? (float) $settings->get('tax_rate') : null,
             'exchange_rate' => $settings->has('exchange_rate') ? (float) $settings->get('exchange_rate') : null,
+            'exchange_rate_eur' => $settings->has('exchange_rate_eur') ? (float) $settings->get('exchange_rate_eur') : null,
         ];
     }
 

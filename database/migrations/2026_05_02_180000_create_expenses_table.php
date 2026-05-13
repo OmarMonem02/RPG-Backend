@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('category');
-            $table->enum('currency', ['EGP', 'USD']);
+            $table->enum('currency', ['EGP', 'USD', 'EUR']);
             $table->decimal('amount', 14, 2);
             $table->enum('payment_status', ['paid', 'unpaid'])->default('unpaid');
             $table->date('incurred_on');

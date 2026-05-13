@@ -23,6 +23,8 @@ class EntityRequest extends FormRequest
             $id = Setting::where('key', $id)->value('id') ?? $id;
         }
 
+        $currencyIn = [Rule::in(config('currencies.supported'))];
+
         // For updates, make fields optional (nullable)
         // For creates, keep them required
         return match ($entity) {
@@ -47,7 +49,7 @@ class EntityRequest extends FormRequest
                 'brand_id' => [$isUpdate ? 'nullable' : 'required', 'exists:brands,id'],
                 'stock_quantity' => ['nullable', 'numeric'],
                 'low_stock_alarm' => ['nullable', 'numeric'],
-                'currency_pricing' => ['nullable', 'string', Rule::in(['EGP', 'USD'])],
+                'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
@@ -65,7 +67,7 @@ class EntityRequest extends FormRequest
                 'part_number' => ['nullable', 'string'],
                 'stock_quantity' => ['nullable', 'numeric'],
                 'low_stock_alarm' => ['nullable', 'numeric'],
-                'currency_pricing' => ['nullable', 'string', Rule::in(['EGP', 'USD'])],
+                'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
@@ -75,8 +77,16 @@ class EntityRequest extends FormRequest
                 'bike_blueprint_ids' => ['nullable', 'array'],
                 'bike_blueprint_ids.*' => ['exists:bike_blueprints,id'],
             ],
-            'product_categories', 'spare_part_categories', 'maintenance_service_sectors', 'payment_methods' => [
+            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
+            ],
+            'payment_methods' => [
+                'name' => [
+                    $isUpdate ? 'nullable' : 'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('payment_methods', 'name')->whereNull('deleted_at')->ignore($id),
+                ],
             ],
             'brands' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
@@ -84,7 +94,7 @@ class EntityRequest extends FormRequest
             ],
             'maintenance_services' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
-                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', Rule::in(['EGP', 'USD'])],
+                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
                 'service_price' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
                 'max_discount_type' => [$isUpdate ? 'nullable' : 'required', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
@@ -99,7 +109,7 @@ class EntityRequest extends FormRequest
                 'bike_blueprint_id' => [$isUpdate ? 'nullable' : 'required', 'exists:bike_blueprints,id'],
                 'image' => ['nullable', 'url'],
                 'image_public_id' => ['nullable', 'string', 'max:255'],
-                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', Rule::in(['EGP', 'USD'])],
+                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
                 'cost_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
                 'sale_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
                 'status' => [$isUpdate ? 'nullable' : 'required', 'string'],

@@ -16,7 +16,7 @@ class ExpenseController extends Controller
         $validated = $request->validate([
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
-            'currency' => ['nullable', Rule::in(['EGP', 'USD'])],
+            'currency' => ['nullable', Rule::in(config('currencies.supported'))],
             'payment_status' => ['nullable', Rule::in([Expense::STATUS_PAID, Expense::STATUS_UNPAID])],
             'category' => ['nullable', Rule::in(Expense::CATEGORIES)],
             'search' => ['nullable', 'string'],

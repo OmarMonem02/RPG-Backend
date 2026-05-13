@@ -17,6 +17,7 @@ class SettingRequest extends FormRequest
         return [
             'tax_rate' => ['sometimes', 'numeric', 'min:0'],
             'exchange_rate' => ['sometimes', 'numeric', 'gt:0'],
+            'exchange_rate_eur' => ['sometimes', 'numeric', 'gt:0'],
         ];
     }
 
@@ -34,7 +35,7 @@ class SettingRequest extends FormRequest
     private function validatedKeys(): array
     {
         return array_filter(
-            ['tax_rate', 'exchange_rate'],
+            ['tax_rate', 'exchange_rate', 'exchange_rate_eur'],
             fn(string $key): bool => $this->has($key)
         );
     }

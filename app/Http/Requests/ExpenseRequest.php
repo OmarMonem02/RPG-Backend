@@ -23,7 +23,7 @@ class ExpenseRequest extends FormRequest
             'image_public_id' => ['nullable', 'string', 'max:255'],
             'category' => [$isUpdate ? 'sometimes' : 'required', Rule::in(Expense::CATEGORIES)],
             'amount' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
-            'currency' => [$isUpdate ? 'sometimes' : 'required', Rule::in(['EGP', 'USD'])],
+            'currency' => [$isUpdate ? 'sometimes' : 'required', Rule::in(config('currencies.supported'))],
             'payment_status' => [$isUpdate ? 'sometimes' : 'required', Rule::in([Expense::STATUS_PAID, Expense::STATUS_UNPAID])],
             'incurred_on' => [$isUpdate ? 'sometimes' : 'required', 'date'],
             'due_date' => ['nullable', 'date'],

@@ -78,7 +78,7 @@ return new class extends Migration
         Schema::create('maintenance_services', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('currency_pricing', ['EGP', 'USD']);
+            $table->enum('currency_pricing', ['EGP', 'USD', 'EUR']);
             $table->decimal('service_price', 14, 2);
             $table->enum('max_discount_type', ['fixed', 'percentage']);
             $table->decimal('max_discount_value', 14, 2)->default(0);
@@ -97,7 +97,7 @@ return new class extends Migration
             $table->integer('stock_quantity')->default(0);
             $table->integer('low_stock_alarm')->default(0);
             $table->foreignId('products_category_id')->constrained('product_categories');
-            $table->enum('currency_pricing', ['EGP', 'USD']);
+            $table->enum('currency_pricing', ['EGP', 'USD', 'EUR']);
             $table->decimal('cost_price', 14, 2);
             $table->decimal('sale_price', 14, 2);
             $table->foreignId('brand_id')->constrained('brands');
@@ -120,7 +120,7 @@ return new class extends Migration
             $table->integer('stock_quantity')->default(0);
             $table->integer('low_stock_alarm')->default(0);
             $table->foreignId('spare_parts_category_id')->constrained('spare_part_categories');
-            $table->enum('currency_pricing', ['EGP', 'USD']);
+            $table->enum('currency_pricing', ['EGP', 'USD', 'EUR']);
             $table->decimal('cost_price', 14, 2);
             $table->decimal('sale_price', 14, 2);
             $table->foreignId('brand_id')->constrained('brands');
@@ -137,7 +137,7 @@ return new class extends Migration
         Schema::create('bike_for_sale', function (Blueprint $table) {
             $table->id();
             $table->foreignId('bike_blueprint_id')->constrained('bike_blueprints');
-            $table->enum('currency_pricing', ['EGP', 'USD']);
+            $table->enum('currency_pricing', ['EGP', 'USD', 'EUR']);
             $table->decimal('cost_price', 14, 2);
             $table->decimal('sale_price', 14, 2);
             $table->string('status');

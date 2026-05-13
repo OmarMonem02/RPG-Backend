@@ -94,9 +94,11 @@ class EntityController extends Controller
         }
 
         // Validate currency if provided
-        $validCurrencies = ['EGP', 'USD'];
-        if ($currency && !in_array(strtoupper($currency), $validCurrencies)) {
-            return response()->json(['error' => 'Invalid currency. Supported: EGP, USD'], 422);
+        $validCurrencies = config('currencies.supported', ['EGP', 'USD', 'EUR']);
+        if ($currency && ! in_array(strtoupper($currency), $validCurrencies, true)) {
+            return response()->json([
+                'error' => 'Invalid currency. Supported: '.implode(', ', $validCurrencies),
+            ], 422);
         }
 
         // Apply filters based on entity type
@@ -147,6 +149,13 @@ class EntityController extends Controller
 
             case 'customers':
                 if ($search) $query = $query->search($search);
+                break;
+
+            case 'payment_methods':
+                if ($search) {
+                    $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $search)).'%';
+                    $query = $query->where('name', 'like', $term);
+                }
                 break;
         }
 
@@ -241,6 +250,12 @@ class EntityController extends Controller
             $record = $model->newQuery()->where('key', $id)->firstOrFail();
         } else {
             $record = $model->newQuery()->findOrFail($id);
+        }
+
+        if ($entity === 'payment_methods' && method_exists($record, 'sales') && $record->sales()->exists()) {
+            return response()->json([
+                'message' => 'This payment method is linked to existing sales and cannot be deleted.',
+            ], 409);
         }
 
         $record->delete();

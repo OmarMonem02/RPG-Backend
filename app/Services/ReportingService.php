@@ -148,10 +148,10 @@ class ReportingService
         $expenseSummary = $this->expenseBuckets($validated);
         $year = (int) $validated['year'];
 
-        $currencies = [
-            'EGP' => $this->emptyAnnualCurrencySummary(),
-            'USD' => $this->emptyAnnualCurrencySummary(),
-        ];
+        $currencies = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $currencies[$code] = $this->emptyAnnualCurrencySummary();
+        }
 
         foreach ($sales as $sale) {
             if ($sale->status !== Sale::STATUS_COMPLETED) {
@@ -249,18 +249,17 @@ class ReportingService
         $paginator = $query->paginate((int) ($validated['per_page'] ?? 20));
         $summary = $this->expenseBuckets($validated);
 
+        $summaryPayload = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $summaryPayload[$code] = [
+                'total' => round($summary[$code]['total'], 2),
+                'categories' => $this->roundMap($summary[$code]['categories']),
+            ];
+        }
+
         return [
             'filters' => $this->normalizedFiltersPayload($validated),
-            'summary' => [
-                'EGP' => [
-                    'total' => round($summary['EGP']['total'], 2),
-                    'categories' => $this->roundMap($summary['EGP']['categories']),
-                ],
-                'USD' => [
-                    'total' => round($summary['USD']['total'], 2),
-                    'categories' => $this->roundMap($summary['USD']['categories']),
-                ],
-            ],
+            'summary' => $summaryPayload,
             'data' => $paginator->items(),
             'current_page' => $paginator->currentPage(),
             'last_page' => $paginator->lastPage(),
@@ -277,7 +276,7 @@ class ReportingService
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'year' => [$yearRequired ? 'required' : 'nullable', 'integer', 'min:2000', 'max:2100'],
-            'currency' => ['nullable', Rule::in(['EGP', 'USD'])],
+            'currency' => ['nullable', Rule::in(config('currencies.supported'))],
             'payment_status' => ['nullable', Rule::in([Expense::STATUS_PAID, Expense::STATUS_UNPAID])],
             'category' => ['nullable', Rule::in(Expense::CATEGORIES)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -327,7 +326,7 @@ class ReportingService
 
     /**
      * @param array<string, mixed> $validated
-     * @return array{EGP: array{total: float, categories: array<string, float>, monthly: array<string, float>}, USD: array{total: float, categories: array<string, float>, monthly: array<string, float>}}
+     * @return array<string, array{total: float, categories: array<string, float>, monthly: array<string, float>}>
      */
     private function expenseBuckets(array $validated): array
     {
@@ -353,13 +352,16 @@ class ReportingService
             $query->where('category', $validated['category']);
         }
 
-        $summary = [
-            'EGP' => ['total' => 0.0, 'categories' => [], 'monthly' => []],
-            'USD' => ['total' => 0.0, 'categories' => [], 'monthly' => []],
-        ];
+        $summary = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $summary[$code] = ['total' => 0.0, 'categories' => [], 'monthly' => []];
+        }
 
         foreach ($query->get() as $expense) {
             $currency = $expense->currency;
+            if (! isset($summary[$currency])) {
+                continue;
+            }
             $amount = (float) $expense->amount;
             $monthKey = Carbon::parse($expense->incurred_on)->format('Y-m');
 
@@ -373,42 +375,59 @@ class ReportingService
 
     /**
      * @param array<string, mixed> $validated
-     * @return array{EGP: array{total: float, categories: array<string, float>}, USD: array{total: float, categories: array<string, float>}}
+     * @return array<string, array{total: float, categories: array<string, float>}>
      */
     private function unpaidExpenseBuckets(array $validated): array
     {
         $validated['payment_status'] = Expense::STATUS_UNPAID;
         $summary = $this->expenseBuckets($validated);
 
-        return [
-            'EGP' => ['total' => $summary['EGP']['total'], 'categories' => $summary['EGP']['categories']],
-            'USD' => ['total' => $summary['USD']['total'], 'categories' => $summary['USD']['categories']],
-        ];
+        $out = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $out[$code] = [
+                'total' => $summary[$code]['total'],
+                'categories' => $summary[$code]['categories'],
+            ];
+        }
+
+        return $out;
     }
 
     /**
-     * @return array{EGP: array<string, mixed>, USD: array<string, mixed>}
+     * @return array<string, array<string, mixed>>
      */
     private function inventoryBuckets(): array
     {
-        $inventory = [
-            'EGP' => ['products' => 0.0, 'spare_parts' => 0.0, 'bikes' => 0.0, 'total' => 0.0],
-            'USD' => ['products' => 0.0, 'spare_parts' => 0.0, 'bikes' => 0.0, 'total' => 0.0],
-        ];
+        $inventory = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $inventory[$code] = ['products' => 0.0, 'spare_parts' => 0.0, 'bikes' => 0.0, 'total' => 0.0];
+        }
 
         foreach (Product::query()->get() as $product) {
+            $currency = $product->currency_pricing;
+            if (! isset($inventory[$currency])) {
+                continue;
+            }
             $value = (float) $product->cost_price * (int) $product->stock_quantity;
-            $inventory[$product->currency_pricing]['products'] += $value;
+            $inventory[$currency]['products'] += $value;
         }
 
         foreach (SparePart::query()->get() as $sparePart) {
+            $currency = $sparePart->currency_pricing;
+            if (! isset($inventory[$currency])) {
+                continue;
+            }
             $value = (float) $sparePart->cost_price * (int) $sparePart->stock_quantity;
-            $inventory[$sparePart->currency_pricing]['spare_parts'] += $value;
+            $inventory[$currency]['spare_parts'] += $value;
         }
 
         foreach (BikeForSale::query()->where('status', '!=', 'sold')->get() as $bike) {
+            $currency = $bike->currency_pricing;
+            if (! isset($inventory[$currency])) {
+                continue;
+            }
             $value = (float) $bike->cost_price;
-            $inventory[$bike->currency_pricing]['bikes'] += $value;
+            $inventory[$currency]['bikes'] += $value;
         }
 
         foreach (array_keys($inventory) as $currency) {
@@ -425,12 +444,13 @@ class ReportingService
     }
 
     /**
-     * @return array{EGP: array<string, mixed>, USD: array<string, mixed>}
+     * @return array<string, array<string, mixed>>
      */
     private function emptyCurrencyBuckets(): array
     {
-        return [
-            'EGP' => [
+        $buckets = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $buckets[$code] = [
                 'revenue' => 0.0,
                 'cogs' => 0.0,
                 'gross_profit' => 0.0,
@@ -446,25 +466,10 @@ class ReportingService
                     'non_maintenance' => 0.0,
                 ],
                 'expense_categories' => [],
-            ],
-            'USD' => [
-                'revenue' => 0.0,
-                'cogs' => 0.0,
-                'gross_profit' => 0.0,
-                'operating_expenses' => 0.0,
-                'net_profit' => 0.0,
-                'revenue_by_type' => [
-                    Sale::TYPE_SITE => 0.0,
-                    Sale::TYPE_ONLINE => 0.0,
-                    Sale::TYPE_DELIVERY => 0.0,
-                ],
-                'revenue_by_channel' => [
-                    'maintenance' => 0.0,
-                    'non_maintenance' => 0.0,
-                ],
-                'expense_categories' => [],
-            ],
-        ];
+            ];
+        }
+
+        return $buckets;
     }
 
     /**
@@ -510,15 +515,15 @@ class ReportingService
      */
     private function saleCurrencyAllocations(Sale $sale): array
     {
-        $buckets = [
-            'EGP' => ['gross_revenue' => 0.0, 'net_revenue' => 0.0, 'cogs' => 0.0],
-            'USD' => ['gross_revenue' => 0.0, 'net_revenue' => 0.0, 'cogs' => 0.0],
-        ];
+        $buckets = [];
+        foreach ($this->supportedCurrencies() as $code) {
+            $buckets[$code] = ['gross_revenue' => 0.0, 'net_revenue' => 0.0, 'cogs' => 0.0];
+        }
 
         /** @var SaleItem $item */
         foreach ($sale->items as $item) {
             $currency = $this->resolveItemCurrency($item);
-            if ($currency === null) {
+            if ($currency === null || ! isset($buckets[$currency])) {
                 continue;
             }
 
@@ -530,7 +535,10 @@ class ReportingService
             $buckets[$currency]['cogs'] += $cogs;
         }
 
-        $grossTotal = $buckets['EGP']['gross_revenue'] + $buckets['USD']['gross_revenue'];
+        $grossTotal = 0.0;
+        foreach ($buckets as $row) {
+            $grossTotal += $row['gross_revenue'];
+        }
 
         foreach (array_keys($buckets) as $currency) {
             if ($grossTotal <= 0) {
@@ -617,5 +625,13 @@ class ReportingService
             'payment_status' => $validated['payment_status'] ?? null,
             'category' => $validated['category'] ?? null,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function supportedCurrencies(): array
+    {
+        return config('currencies.supported', ['EGP', 'USD', 'EUR']);
     }
 }

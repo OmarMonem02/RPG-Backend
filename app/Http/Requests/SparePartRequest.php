@@ -28,7 +28,7 @@ class SparePartRequest extends FormRequest
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',
             'spare_parts_category_id' => 'required|integer|exists:spare_part_categories,id',
-            'currency_pricing' => 'required|in:EGP,USD',
+            'currency_pricing' => ['required', Rule::in(config('currencies.supported'))],
             'cost_price' => 'required|numeric|min:0',
             'sale_price' => 'required|numeric|min:0',
             'brand_id' => 'required|integer|exists:brands,id',

@@ -33,7 +33,10 @@ class SaleCatalogRequest extends FormRequest
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'category_id' => ['nullable', 'integer'],
             'sector_id' => ['nullable', 'integer', 'exists:maintenance_service_sectors,id'],
-            'currency' => ['nullable', Rule::in(['EGP', 'USD', 'egp', 'usd'])],
+            'currency' => ['nullable', Rule::in(array_merge(
+                config('currencies.supported'),
+                array_map('strtolower', config('currencies.supported'))
+            ))],
             'price_min' => ['nullable', 'numeric'],
             'price_max' => ['nullable', 'numeric', 'gte:price_min'],
             'status' => ['nullable', 'string'],

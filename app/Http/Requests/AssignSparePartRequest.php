@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AssignSparePartRequest extends FormRequest
 {
@@ -27,7 +28,7 @@ class AssignSparePartRequest extends FormRequest
             'spare_part_data.low_stock_alarm' => 'nullable|integer|min:0',
             'spare_part_data.spare_parts_category_id' => 'required_with:spare_part_data|integer|exists:spare_part_categories,id',
             'spare_part_data.brand_id' => 'required_with:spare_part_data|integer|exists:brands,id',
-            'spare_part_data.currency_pricing' => 'required_with:spare_part_data|in:EGP,USD',
+            'spare_part_data.currency_pricing' => ['required_with:spare_part_data', Rule::in(config('currencies.supported'))],
             'spare_part_data.cost_price' => 'required_with:spare_part_data|numeric|min:0',
             'spare_part_data.sale_price' => 'required_with:spare_part_data|numeric|min:0',
             'spare_part_data.max_discount_type' => 'required_with:spare_part_data|in:fixed,percentage',
