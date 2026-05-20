@@ -152,6 +152,7 @@ class EntityController extends Controller
                 break;
 
             case 'customer_bikes':
+                $query = $query->with(['bikeBlueprint.brand']);
                 $customerId = $request->query('customer_id');
                 if ($customerId) {
                     $query = $query->where('customer_id', (int) $customerId);
@@ -191,6 +192,9 @@ class EntityController extends Controller
         $model = $this->resolve($entity);
         $validated = $request->validated() + $request->except(['entity', 'id']);
         $record = $model->newQuery()->create($validated);
+        if ($entity === 'customer_bikes') {
+            $record->load(['bikeBlueprint.brand']);
+        }
         $this->invalidateEntityCache($entity);
 
         return response()->json($record, 201);
@@ -201,11 +205,13 @@ class EntityController extends Controller
         $model = $this->resolve($entity);
         $tag = $this->cacheTagForEntity($entity);
 
+        $customerBikeIncludes = $entity === 'customer_bikes' ? ['bikeBlueprint.brand'] : [];
+
         if ($tag === null) {
             if ($entity === 'settings' && !is_numeric($id)) {
                 $record = $model->newQuery()->where('key', $id)->firstOrFail();
             } else {
-                $record = $model->newQuery()->findOrFail($id);
+                $record = $model->newQuery()->with($customerBikeIncludes)->findOrFail($id);
             }
 
             return response()->json($record);
@@ -214,12 +220,12 @@ class EntityController extends Controller
         $cacheKey = ApiCache::detailKey($tag, (string) $id);
         $tags = [$tag];
         $cacheHit = ApiCache::has($cacheKey, $tags);
-        $record = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, function () use ($entity, $id, $model) {
+        $record = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, function () use ($entity, $id, $model, $customerBikeIncludes) {
             if ($entity === 'settings' && !is_numeric($id)) {
                 return $model->newQuery()->where('key', $id)->firstOrFail();
             }
 
-            return $model->newQuery()->findOrFail($id);
+            return $model->newQuery()->with($customerBikeIncludes)->findOrFail($id);
         });
 
         return response()
