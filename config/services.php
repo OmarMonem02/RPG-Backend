@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'tracking_template_name' => env('WHATSAPP_TRACKING_TEMPLATE_NAME', 'hello_world'),
+        // Must match Meta exactly, e.g. en_US not en — run: php artisan whatsapp:list-templates
+        'template_language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'en_US'),
+    ],
+
+    'frontend' => [
+        'public_url' => env('FRONTEND_PUBLIC_URL', 'http://localhost:3000'),
+    ],
+
 ];

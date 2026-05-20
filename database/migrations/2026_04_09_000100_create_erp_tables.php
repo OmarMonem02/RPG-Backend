@@ -232,7 +232,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('customer_id')->constrained('customers');
             $table->foreignId('customer_bike_id')->constrained('customer_bikes');
-            $table->enum('status', ['pending', 'in_progress', 'completed']);
+            $table->enum('status', ['pending', 'in_progress', 'completed', 'closed']);
             $table->text('notes')->nullable();
             $table->text('customer_notes')->nullable();
             $table->decimal('total', 14, 2)->default(0);

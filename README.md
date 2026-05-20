@@ -54,6 +54,40 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
+## Customer maintenance ticket tracking (WhatsApp)
+
+Staff can send customers a WhatsApp message with a link to `/track/{token}` on the Next.js app. Customers verify their phone number, then view ticket progress, parts, services, and total.
+
+### Environment
+
+Copy from `.env.example`:
+
+- `FRONTEND_PUBLIC_URL` — base URL of the Next.js app (e.g. `https://rpg-erp-system.vercel.app`)
+- `WHATSAPP_PHONE_NUMBER_ID` — from Meta Business Manager → WhatsApp → API setup
+- `WHATSAPP_ACCESS_TOKEN` — permanent system user token with `whatsapp_business_messaging`
+- `WHATSAPP_TRACKING_TEMPLATE_NAME` — approved template name (default: `maintenance_ticket_tracking`)
+- `WHATSAPP_TEMPLATE_LANGUAGE` — template language code (default: `en`)
+
+### Meta message template
+
+Create and approve a **utility** template in Meta Business Manager, for example:
+
+> Hello {{1}}, your maintenance ticket #{{2}} is ready. Track progress here: {{3}}
+
+Body parameters: customer name, zero-padded ticket number, full tracking URL.
+
+### API
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `POST /api/tickets/{id}/send-tracking-link` | Staff (`maintenance,update`) | Send WhatsApp + ensure token |
+| `POST /api/tickets/{id}/regenerate-tracking-token` | Staff | Invalidate old links |
+| `GET /api/public/tickets/{token}/meta` | Public | Preview (no prices) |
+| `POST /api/public/tickets/{token}/verify` | Public | Phone verification → session |
+| `GET /api/public/tickets/{token}` | Public + `X-Tracking-Session` | Full tracking payload |
+
+Run migrations: `php artisan migrate`
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

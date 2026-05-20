@@ -14,12 +14,23 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SparePartController;
+use App\Http\Controllers\Api\PublicTicketTrackingController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\TicketTrackingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+Route::prefix('public/tickets')->group(function () {
+    Route::get('{token}/meta', [PublicTicketTrackingController::class, 'meta'])
+        ->middleware('throttle:30,1');
+    Route::post('{token}/verify', [PublicTicketTrackingController::class, 'verify'])
+        ->middleware('throttle:5,1');
+    Route::get('{token}', [PublicTicketTrackingController::class, 'show'])
+        ->middleware('throttle:60,1');
+});
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -56,6 +67,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets/{ticket}/end', [TicketController::class, 'end'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/send-tracking-link', [TicketTrackingController::class, 'sendTrackingLink'])
+        ->middleware(['permission:maintenance,update', 'throttle:3,1']);
+    Route::post('/tickets/{ticket}/regenerate-tracking-token', [TicketTrackingController::class, 'regenerateTrackingToken'])
+        ->middleware('permission:maintenance,update');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->middleware('permission:maintenance,delete');
 
     Route::get('/customers', [CustomerController::class, 'index'])->middleware('any_permission:sales,read,maintenance,read');

@@ -14,12 +14,14 @@ class TicketItemRequest extends FormRequest
 
     public function rules(): array
     {
+        $qtyRule = $this->isMethod('POST') ? 'required' : 'sometimes';
+
         return [
             'spare_part_id' => ['nullable', 'exists:spare_parts,id'],
             'maintenance_service_id' => ['nullable', 'exists:maintenance_services,id'],
             'price_snapshot' => ['nullable', 'numeric'],
-            'discount' => ['nullable', 'numeric'],
-            'qty' => ['required', 'integer', 'min:1'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'qty' => [$qtyRule, 'integer', 'min:1'],
         ];
     }
 }

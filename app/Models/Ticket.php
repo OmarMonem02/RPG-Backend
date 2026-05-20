@@ -20,7 +20,30 @@ class Ticket extends Model
         'notes',
         'customer_notes',
         'total',
+        'payment_method',
+        'amount_paid',
+        'closed_at',
+        'public_token',
+        'tracking_link_sent_at',
+        'tracking_link_send_count',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'amount_paid' => 'decimal:2',
+            'total' => 'decimal:2',
+            'closed_at' => 'datetime',
+            'tracking_link_sent_at' => 'datetime',
+            'tracking_link_send_count' => 'integer',
+        ];
+    }
+
+    public function isClosedAndFullyPaid(): bool
+    {
+        return $this->status === 'closed'
+            && (float) $this->amount_paid >= (float) $this->total;
+    }
 
     public function user(): BelongsTo
     {
@@ -45,5 +68,21 @@ class Ticket extends Model
     public function items(): HasMany
     {
         return $this->hasMany(TicketItem::class);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function detailRelations(): array
+    {
+        return [
+            'tasks.items.sparePart',
+            'tasks.items.maintenanceService',
+            'items.sparePart',
+            'items.maintenanceService',
+            'customer',
+            'customerBike.bikeBlueprint.brand',
+            'user',
+        ];
     }
 }

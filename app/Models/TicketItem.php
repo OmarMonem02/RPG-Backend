@@ -12,6 +12,8 @@ class TicketItem extends Model
 {
     use SoftDeletes, LogsHistory;
 
+    protected $appends = ['item_name'];
+
     protected $fillable = [
         'task_id',
         'ticket_id',
@@ -41,5 +43,14 @@ class TicketItem extends Model
     public function maintenanceService(): BelongsTo
     {
         return $this->belongsTo(MaintenanceService::class);
+    }
+
+    public function getItemNameAttribute(): string
+    {
+        if ($this->spare_part_id !== null) {
+            return $this->sparePart?->name ?? 'Spare Part';
+        }
+
+        return $this->maintenanceService?->name ?? 'Service';
     }
 }

@@ -22,7 +22,7 @@ class TicketController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json(Ticket::with(['tasks', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user'])->paginate(20));
+        return response()->json(Ticket::with(Ticket::detailRelations())->paginate(20));
     }
 
     public function store(TicketRequest $request): JsonResponse
@@ -34,7 +34,7 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket): JsonResponse
     {
-        return response()->json($ticket->load(['tasks.items', 'items', 'customer', 'customerBike.bikeBlueprint.brand', 'user']));
+        return response()->json($ticket->load(Ticket::detailRelations()));
     }
 
     public function updateStatus(Ticket $ticket, Request $request): JsonResponse
@@ -67,13 +67,13 @@ class TicketController extends Controller
 
     public function addItem(Ticket $ticket, TicketTask $task, TicketItemRequest $request): JsonResponse
     {
-        $item = $this->ticketService->addItem($task, $request->validated());
+        $item = $this->ticketService->addItem($task, $request->validated(), $request->user());
         return response()->json($item, 201);
     }
 
     public function updateItem(Ticket $ticket, TicketTask $task, TicketItem $item, TicketItemRequest $request): JsonResponse
     {
-        $item = $this->ticketService->updateItem($item, $request->validated());
+        $item = $this->ticketService->updateItem($item, $request->validated(), $request->user());
         return response()->json($item);
     }
 
@@ -89,17 +89,39 @@ class TicketController extends Controller
         return response()->json(['message' => 'Ticket ended successfully', 'status' => 'completed']);
     }
 
-    public function reopen(Ticket $ticket): JsonResponse
+    public function reopen(Ticket $ticket, Request $request): JsonResponse
     {
-        $ticket->update(['status' => 'in_progress']);
-        return response()->json(['message' => 'Ticket reopened', 'status' => 'in_progress']);
+        $data = $request->validate([
+            'admin_password' => ['nullable', 'string'],
+        ]);
+
+        $ticket = $this->ticketService->reopen(
+            $ticket,
+            $request->user(),
+            $data['admin_password'] ?? null,
+        );
+
+        return response()->json([
+            'message' => 'Ticket reopened',
+            'status' => $ticket->status,
+            'ticket' => $ticket->load(Ticket::detailRelations()),
+        ]);
     }
 
     public function close(Ticket $ticket, Request $request): JsonResponse
     {
-        // Here you could handle payment recording if needed
-        $ticket->update(['status' => 'completed']); // Or 'closed' if you have that status
-        return response()->json(['message' => 'Ticket closed', 'status' => 'completed']);
+        $data = $request->validate([
+            'payment_method' => ['required', 'string', 'max:64'],
+            'amount_paid' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $ticket = $this->ticketService->close($ticket, $data);
+
+        return response()->json([
+            'message' => 'Ticket closed',
+            'status' => $ticket->status,
+            'ticket' => $ticket->load(Ticket::detailRelations()),
+        ]);
     }
 
     public function destroy(Ticket $ticket): JsonResponse
