@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TicketItemRequest;
 use App\Http\Requests\TicketRequest;
 use App\Http\Requests\TicketTaskRequest;
+use App\Http\Requests\UpdateTicketNotesRequest;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
@@ -45,6 +46,19 @@ class TicketController extends Controller
         $ticket->update(['status' => $data['status']]);
 
         return response()->json($ticket);
+    }
+
+    public function updateNotes(Ticket $ticket, UpdateTicketNotesRequest $request): JsonResponse
+    {
+        if ($ticket->status === 'closed') {
+            return response()->json([
+                'message' => 'Cannot edit notes on a closed ticket.',
+            ], 422);
+        }
+
+        $ticket->update($request->validated());
+
+        return response()->json($ticket->load(Ticket::detailRelations()));
     }
 
     public function addTask(Ticket $ticket, TicketTaskRequest $request): JsonResponse

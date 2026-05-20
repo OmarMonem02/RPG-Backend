@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkInventoryEditRequest;
 use App\Http\Requests\SparePartRequest;
 use App\Models\SparePart;
+use App\Services\InventoryBulkEditService;
 use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +16,10 @@ class SparePartController extends Controller
     private const LIST_TTL_SECONDS = 1800;
     private const DETAIL_TTL_SECONDS = 3600;
     private const TAGS = ['spare_parts'];
+
+    public function __construct(
+        private readonly InventoryBulkEditService $bulkEditService,
+    ) {}
 
     /**
      * Get all spare parts with filtering and search.
@@ -41,6 +47,7 @@ class SparePartController extends Controller
                 ->search($request->query('search'))
                 ->byBrand($request->query('brand_id'))
                 ->byCategory($request->query('category_id'))
+                ->byCurrency($request->query('currency') ? strtoupper((string) $request->query('currency')) : null)
                 ->byBikeBrand($request->query('bike_brand_id'))
                 ->byBikeModel($request->query('bike_model'))
                 ->byBikeYear($request->query('bike_year'));
@@ -175,37 +182,71 @@ class SparePartController extends Controller
     }
 
     /**
+     * Preview bulk inventory edits for spare parts.
+     * POST /api/spare_parts/bulk/preview
+     */
+    public function bulkPreview(BulkInventoryEditRequest $request): JsonResponse
+    {
+        $ids = $this->resolveBulkIds($request);
+
+        return response()->json(
+            $this->bulkEditService->preview(SparePart::class, $ids, $request->normalizedChanges())
+        );
+    }
+
+    /**
+     * Apply bulk inventory edits for spare parts.
+     * PATCH /api/spare_parts/bulk/apply
+     */
+    public function bulkApply(BulkInventoryEditRequest $request): JsonResponse
+    {
+        $ids = $this->resolveBulkIds($request);
+        $result = $this->bulkEditService->apply(SparePart::class, $ids, $request->normalizedChanges());
+        ApiCache::invalidateTags(self::TAGS);
+
+        return response()->json($result);
+    }
+
+    /**
      * Bulk update spare parts.
      * PATCH /api/spare_parts/bulk/update
-     * 
-     * Request body:
-     * {
-     *   "updates": [
-     *     { "id": 1, "name": "new name", ...fields... },
-     *     ...
-     *   ]
-     * }
+     *
+     * New shape: { "changes": { ... }, "ids": [...], "filters": {...} }
+     * Legacy: { "updates": [ { "id": 1, ...fields }, ... ] }
      */
     public function bulkUpdate(Request $request): JsonResponse
     {
+        if ($request->has('changes')) {
+            $bulkRequest = BulkInventoryEditRequest::createFrom($request);
+            $bulkRequest->setContainer(app())->setRedirector(app('redirect'));
+            $bulkRequest->validateResolved();
+
+            return $this->bulkApply($bulkRequest);
+        }
+
         $validated = $request->validate([
             'updates' => 'required|array|min:1',
             'updates.*.id' => 'required|integer|exists:spare_parts,id',
         ]);
 
-        $updated = [];
-        foreach ($validated['updates'] as $update) {
-            $id = $update['id'];
-            unset($update['id']);
-
-            $sparePart = SparePart::findOrFail($id);
-            $sparePart->update($update);
-            $updated[] = $sparePart;
-        }
-
+        $updated = $this->bulkEditService->applyLegacyUpdates(SparePart::class, $validated['updates']);
         ApiCache::invalidateTags(self::TAGS);
 
         return response()->json($updated);
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function resolveBulkIds(BulkInventoryEditRequest $request): array
+    {
+        $validated = $request->validated();
+
+        return $this->bulkEditService->resolveIds(
+            SparePart::class,
+            $validated['ids'] ?? null,
+            $validated['filters'] ?? null,
+        );
     }
 
     /**

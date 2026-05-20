@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\ProductBulkController;
 use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
@@ -58,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->middleware('permission:maintenance,read');
     Route::post('/tickets', [TicketController::class, 'store'])->middleware('permission:maintenance,create');
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->middleware('permission:maintenance,update');
+    Route::patch('/tickets/{ticket}/notes', [TicketController::class, 'updateNotes'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/tasks', [TicketController::class, 'addTask'])->middleware('permission:maintenance,update');
     Route::patch('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'updateTask'])->middleware('permission:maintenance,update');
     Route::delete('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'deleteTask'])->middleware('permission:maintenance,update');
@@ -95,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/spare_parts', [SparePartController::class, 'index'])->middleware('permission:spare-parts,read');
     Route::post('/spare_parts', [SparePartController::class, 'store'])->middleware('permission:spare-parts,create');
     Route::patch('/spare_parts/{spare_part}/stock', [SparePartController::class, 'updateStock'])->middleware('permission:spare-parts,update');
+    Route::post('/spare_parts/bulk/preview', [SparePartController::class, 'bulkPreview'])->middleware('permission:spare-parts,update');
+    Route::patch('/spare_parts/bulk/apply', [SparePartController::class, 'bulkApply'])->middleware('permission:spare-parts,update');
     Route::post('/spare_parts/bulk/create', [SparePartController::class, 'bulkCreate'])->middleware('permission:spare-parts,create');
     Route::patch('/spare_parts/bulk/update', [SparePartController::class, 'bulkUpdate'])->middleware('permission:spare-parts,update');
     Route::delete('/spare_parts/bulk/delete', [SparePartController::class, 'bulkDelete'])->middleware('permission:spare-parts,delete');
@@ -116,6 +120,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bike_blueprints/{bike_blueprint}', [BikeBlueprintController::class, 'show'])->middleware('permission:bike-blueprints,read');
     Route::match(['put', 'patch'], '/bike_blueprints/{bike_blueprint}', [BikeBlueprintController::class, 'update'])->middleware('permission:bike-blueprints,update');
     Route::delete('/bike_blueprints/{bike_blueprint}', [BikeBlueprintController::class, 'destroy'])->middleware('permission:bike-blueprints,delete');
+
+    Route::post('/products/bulk/preview', [ProductBulkController::class, 'preview'])->middleware('permission:products,update');
+    Route::patch('/products/bulk/apply', [ProductBulkController::class, 'apply'])->middleware('permission:products,update');
 
     $permissionEntities = [
         'brands' => 'brands',
