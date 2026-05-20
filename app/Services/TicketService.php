@@ -260,7 +260,13 @@ class TicketService
                 ]);
             }
 
-            if (! $password || ! Hash::check($password, $user->password)) {
+            if (! $password) {
+                throw ValidationException::withMessages([
+                    'admin_password' => ['Administrator password is required to reopen this ticket.'],
+                ]);
+            }
+
+            if (! Hash::check($password, $user->password)) {
                 throw ValidationException::withMessages([
                     'admin_password' => ['Invalid administrator password.'],
                 ]);
