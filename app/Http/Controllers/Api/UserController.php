@@ -63,11 +63,12 @@ class UserController extends Controller
             $request->user()?->is($user)
             && (
                 ! in_array('read', $permissions['users'], true)
+                || ! in_array('display', $permissions['users'], true)
                 || ! in_array('update', $permissions['users'], true)
             )
         ) {
             throw ValidationException::withMessages([
-                'permissions.users' => 'Admins must keep users.read and users.update when editing their own permissions.',
+                'permissions.users' => 'Admins must keep users.read, users.display, and users.update when editing their own permissions.',
             ]);
         }
 

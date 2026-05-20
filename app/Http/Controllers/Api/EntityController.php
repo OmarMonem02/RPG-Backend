@@ -151,6 +151,13 @@ class EntityController extends Controller
                 if ($search) $query = $query->search($search);
                 break;
 
+            case 'customer_bikes':
+                $customerId = $request->query('customer_id');
+                if ($customerId) {
+                    $query = $query->where('customer_id', (int) $customerId);
+                }
+                break;
+
             case 'payment_methods':
                 if ($search) {
                     $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $search)).'%';

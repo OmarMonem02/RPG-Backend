@@ -75,6 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/customers', [CustomerController::class, 'index'])->middleware('any_permission:sales,read,maintenance,read');
     Route::get('/customers/{customer}/workspace', [CustomerController::class, 'workspace'])->middleware('any_permission:sales,read,maintenance,read');
+    Route::post('/customers/{customer}/bikes', [CustomerController::class, 'storeBike'])
+        ->middleware('any_permission:maintenance,create,sales,create');
 
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users,read');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users,create');

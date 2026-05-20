@@ -61,9 +61,10 @@ class UserPermissionsTest extends TestCase
             ->assertJsonPath('groups.0.key', 'overview')
             ->assertJsonPath('pages.1.key', 'sales')
             ->assertJsonPath('pages.1.label', 'Sales')
-            ->assertJsonPath('pages.1.actions', ['create', 'read', 'update', 'delete', 'export'])
+            ->assertJsonPath('pages.1.actions', ['create', 'read', 'display', 'update', 'delete', 'export'])
+            ->assertJsonFragment(['actions' => UserPermissions::ACTIONS])
             ->assertJsonPath('role_presets.0.key', User::ROLE_ADMIN)
-            ->assertJsonPath('role_presets.0.permissions.users', ['create', 'read', 'update', 'delete']);
+            ->assertJsonPath('role_presets.0.permissions.users', ['create', 'read', 'display', 'update', 'delete']);
     }
 
     public function test_permissions_update_rejects_unknown_missing_and_invalid_actions(): void
@@ -107,7 +108,7 @@ class UserPermissionsTest extends TestCase
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $payload = $this->permissionPayload([
-            'users' => ['read'],
+            'users' => ['read', 'update'],
         ]);
 
         $this->actingAs($admin)
@@ -169,7 +170,7 @@ class UserPermissionsTest extends TestCase
             ->getJson("/api/users/{$admin->id}")
             ->assertOk()
             ->assertJsonPath('user.permission_source', 'custom')
-            ->assertJsonPath('user.role_permissions.users', ['create', 'read', 'update', 'delete']);
+            ->assertJsonPath('user.role_permissions.users', ['create', 'read', 'display', 'update', 'delete']);
     }
 
     public function test_default_role_behavior_still_works_without_override(): void
@@ -247,6 +248,32 @@ class UserPermissionsTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/import-export/products/export')
             ->assertStatus(403);
+    }
+
+    public function test_read_without_display_saves_and_allows_api_but_not_page_access(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $staff = User::factory()->create(['role' => User::ROLE_STAFF]);
+
+        $payload = $this->permissionPayload([
+            'products' => ['read'],
+        ]);
+
+        $this->actingAs($admin)
+            ->putJson("/api/users/{$staff->id}/permissions", $payload)
+            ->assertOk()
+            ->assertJsonPath('user.permissions.products', ['read']);
+
+        $this->assertSame(['read'], $staff->fresh()->permissions_override['products']);
+
+        $staff = $staff->fresh();
+
+        $this->actingAs($staff)
+            ->getJson('/api/products')
+            ->assertOk();
+
+        $this->assertFalse(UserPermissions::hasPermission($staff, 'products', 'display'));
+        $this->assertTrue(UserPermissions::hasPermission($staff, 'products', 'read'));
     }
 
     public function test_reporting_and_expense_routes_use_reporting_permissions(): void

@@ -15,10 +15,16 @@ class UserPermissions
     public const ACTIONS = [
         'create',
         'read',
+        'display',
         'update',
         'delete',
         'export',
         'import',
+    ];
+
+    public const NON_OPERATIONAL_ACTIONS = [
+        'read',
+        'display',
     ];
 
     public const PAGES = [
@@ -56,104 +62,104 @@ class UserPermissions
         'dashboard' => [
             'label' => 'Dashboard',
             'group' => 'overview',
-            'description' => 'View the operational home screen and quick links.',
-            'actions' => ['read'],
+            'description' => 'Open the operational home screen and quick links.',
+            'actions' => ['read', 'display'],
         ],
         'sales' => [
             'label' => 'Sales',
             'group' => 'sales',
             'description' => 'Create, manage, delete, and export sales records.',
-            'actions' => ['create', 'read', 'update', 'delete', 'export'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete', 'export'],
         ],
         'maintenance' => [
             'label' => 'Maintenance',
             'group' => 'maintenance',
             'description' => 'Operate tickets, service tasks, and workshop activity.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'inventory' => [
             'label' => 'Inventory',
             'group' => 'inventory',
             'description' => 'Access inventory workspace navigation and summaries.',
-            'actions' => ['read'],
+            'actions' => ['read', 'display'],
         ],
         'brands' => [
             'label' => 'Brands',
             'group' => 'master-data',
             'description' => 'Maintain brand records used by products and bikes.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'products' => [
             'label' => 'Products',
             'group' => 'inventory',
             'description' => 'Manage products, pricing, stock, and catalog data.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'bikes' => [
             'label' => 'Bikes',
             'group' => 'inventory',
             'description' => 'Manage bikes for sale and bike inventory records.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'spare-parts' => [
             'label' => 'Spare Parts',
             'group' => 'inventory',
             'description' => 'Manage spare parts, compatibility links, and stock.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'maintenance-services' => [
             'label' => 'Maintenance Services',
             'group' => 'maintenance',
             'description' => 'Maintain service catalog items and pricing.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'users' => [
             'label' => 'Users & Access',
             'group' => 'admin',
             'description' => 'Create users and manage account-level permissions.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'import-export' => [
             'label' => 'Import / Export',
             'group' => 'data',
             'description' => 'Access templates, exports, and spreadsheet imports.',
-            'actions' => ['read', 'export', 'import'],
+            'actions' => ['read', 'display', 'export', 'import'],
         ],
         'payment-methods' => [
             'label' => 'Payment Methods',
             'group' => 'admin',
             'description' => 'Maintain payment methods and payment settings.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'product-categories' => [
             'label' => 'Product Categories',
             'group' => 'master-data',
             'description' => 'Maintain product classification data.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'spare-part-categories' => [
             'label' => 'Spare Part Categories',
             'group' => 'master-data',
             'description' => 'Maintain spare part classification data.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'bike-blueprints' => [
             'label' => 'Bike Blueprints',
             'group' => 'master-data',
             'description' => 'Maintain bike blueprint data and spare part links.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'sellers' => [
             'label' => 'Sellers',
             'group' => 'admin',
             'description' => 'Manage seller records and commission rates.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'reporting' => [
             'label' => 'Reporting & Expenses',
             'group' => 'reporting',
             'description' => 'View reports and manage the expense ledger.',
-            'actions' => ['create', 'read', 'update', 'delete'],
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
     ];
 
@@ -272,41 +278,50 @@ class UserPermissions
         return in_array($action, self::effectiveMatrixForUser($user)[$page] ?? [], true);
     }
 
+    private static function grant(array &$matrix, string $page, array $actions): void
+    {
+        $allowed = self::allowedActionsForPage($page);
+        $matrix[$page] = array_values(array_filter(
+            $allowed,
+            fn (string $action): bool => in_array($action, $actions, true)
+        ));
+    }
+
     private static function adminDefaults(array $matrix): array
     {
-        $matrix['dashboard'] = ['read'];
-        $matrix['sales'] = ['create', 'read', 'update', 'delete', 'export'];
-        $matrix['maintenance'] = ['create', 'read', 'update', 'delete'];
-        $matrix['inventory'] = ['read'];
-        $matrix['brands'] = ['create', 'read', 'update', 'delete'];
-        $matrix['products'] = ['create', 'read', 'update', 'delete'];
-        $matrix['bikes'] = ['create', 'read', 'update', 'delete'];
-        $matrix['spare-parts'] = ['create', 'read', 'update', 'delete'];
-        $matrix['maintenance-services'] = ['create', 'read', 'update', 'delete'];
-        $matrix['users'] = ['create', 'read', 'update', 'delete'];
-        $matrix['import-export'] = ['read', 'export', 'import'];
-        $matrix['payment-methods'] = ['create', 'read', 'update', 'delete'];
-        $matrix['product-categories'] = ['create', 'read', 'update', 'delete'];
-        $matrix['spare-part-categories'] = ['create', 'read', 'update', 'delete'];
-        $matrix['bike-blueprints'] = ['create', 'read', 'update', 'delete'];
-        $matrix['sellers'] = ['create', 'read', 'update', 'delete'];
-        $matrix['reporting'] = ['create', 'read', 'update', 'delete'];
+        self::grant($matrix, 'dashboard', ['read', 'display']);
+        self::grant($matrix, 'sales', ['create', 'read', 'display', 'update', 'delete', 'export']);
+        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'inventory', ['read', 'display']);
+        self::grant($matrix, 'brands', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'products', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'bikes', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'spare-parts', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'maintenance-services', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'users', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'import-export', ['read', 'display', 'export', 'import']);
+        self::grant($matrix, 'payment-methods', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'product-categories', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'spare-part-categories', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'bike-blueprints', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'sellers', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'reporting', ['create', 'read', 'display', 'update', 'delete']);
 
         return $matrix;
     }
 
     private static function staffDefaults(array $matrix): array
     {
-        $matrix['sales'] = ['create', 'read', 'update', 'delete'];
-        $matrix['maintenance'] = ['create', 'read', 'update', 'delete'];
-        $matrix['inventory'] = ['read'];
+        self::grant($matrix, 'sales', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'inventory', ['read', 'display']);
 
         return $matrix;
     }
 
     private static function technicianDefaults(array $matrix): array
     {
-        $matrix['maintenance'] = ['create', 'read', 'update', 'delete'];
+        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update', 'delete']);
 
         return $matrix;
     }

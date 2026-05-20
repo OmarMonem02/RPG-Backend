@@ -71,7 +71,7 @@ class UpdateUserPermissionsRequest extends FormRequest
                             );
                         }
 
-                        if ($action !== 'read') {
+                        if (! in_array($action, UserPermissions::NON_OPERATIONAL_ACTIONS, true)) {
                             $hasOperationalAction = true;
                         }
                     }
