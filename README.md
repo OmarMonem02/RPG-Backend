@@ -1,93 +1,164 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# RPG Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API for the Real Performance Garage ERP system. The backend manages inventory, sales, maintenance tickets, customer records, reporting, users, permissions, image uploads, import/export workflows, and public customer ticket tracking.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2
+- Laravel 12
+- Laravel Sanctum for API authentication
+- MySQL-compatible database
+- Laravel queue jobs for asynchronous work
+- Maatwebsite Excel for spreadsheet import/export
+- Cloudinary Laravel for image uploads
+- Meta WhatsApp Cloud API for customer tracking messages
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Core Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Token-based login, logout, and current-user APIs
+- Role and permission protected ERP endpoints
+- Inventory management for bikes, products, spare parts, brands, categories, and compatibility blueprints
+- Sales workflows with line items, returns, exchanges, adjustments, and exports
+- Maintenance tickets with tasks, parts, close/reopen flow, and customer-facing tracking links
+- Customer workspace endpoints for linked bikes, sales, and tickets
+- Reporting APIs for profit/loss, balance sheet, annual summary, and expenses
+- Import/export templates, parsing, validation, and professional spreadsheet exports
+- Audit history for operational changes
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 or newer
+- Composer
+- Node.js and npm
+- MySQL or another database supported by Laravel
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Getting Started
 
-## Laravel Sponsors
+Install PHP dependencies:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer install
+```
 
-### Premium Partners
+Install frontend build tooling used by Laravel/Vite assets:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+npm install
+```
 
-## Contributing
+Create and configure the environment file:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Code of Conduct
+Update `.env` with the local database connection, then run migrations:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan migrate
+```
 
-## Security Vulnerabilities
+Seed default roles and users when needed:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan db:seed
+```
 
-## Customer maintenance ticket tracking (WhatsApp)
+Start the API server:
 
-Staff can send customers a WhatsApp message with a link to `/track/{token}` on the Next.js app. Customers verify their phone number, then view ticket progress, parts, services, and total.
+```bash
+php artisan serve
+```
 
-### Environment
+By default, the frontend expects the API at `http://127.0.0.1:8000/api`.
 
-Copy from `.env.example`:
+## Development Commands
 
-- `FRONTEND_PUBLIC_URL` — base URL of the Next.js app (e.g. `https://rpg-erp-system.vercel.app`)
-- `WHATSAPP_PHONE_NUMBER_ID` — from Meta Business Manager → WhatsApp → API setup
-- `WHATSAPP_ACCESS_TOKEN` — permanent system user token with `whatsapp_business_messaging`
-- `WHATSAPP_TRACKING_TEMPLATE_NAME` — approved template name (default: `maintenance_ticket_tracking`)
-- `WHATSAPP_TEMPLATE_LANGUAGE` — template language code (default: `en`)
+```bash
+composer run dev
+```
 
-### Meta message template
+Runs the Laravel server, queue listener, log tailing, and Vite development process together.
 
-Create and approve a **utility** template in Meta Business Manager, for example:
+```bash
+composer test
+```
 
-> Hello {{1}}, your maintenance ticket #{{2}} is ready. Track progress here: {{3}}
+Clears cached configuration and runs the Laravel test suite.
 
-Body parameters: customer name, zero-padded ticket number, full tracking URL.
+```bash
+php artisan queue:listen --tries=1 --timeout=0
+```
 
-### API
+Runs queued jobs locally, including WhatsApp tracking message dispatch.
+
+```bash
+php artisan whatsapp:list-templates
+```
+
+Lists available WhatsApp templates for the configured Meta Business account.
+
+## Environment Variables
+
+Important project-specific variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `FRONTEND_PUBLIC_URL` | Public URL of the Next.js frontend, used when generating customer tracking links. |
+| `SHOP_NAME` | Brand name displayed in customer tracking experiences. |
+| `SHOP_TAGLINE` | Supporting brand text for the tracking page. |
+| `SHOP_LOGO_URL` | Logo path or absolute URL used by the frontend. |
+| `SHOP_TRACKING_AUTO_REFRESH_MINUTES` | Customer tracking refresh interval; use `0` for manual refresh only. |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta WhatsApp phone number ID. |
+| `WHATSAPP_ACCESS_TOKEN` | Meta system user token with `whatsapp_business_messaging`. |
+| `WHATSAPP_API_VERSION` | Meta Graph API version, for example `v21.0`. |
+| `WHATSAPP_TRACKING_TEMPLATE_NAME` | Approved WhatsApp utility template name. |
+| `WHATSAPP_TEMPLATE_LANGUAGE` | Template language code exactly as configured in Meta. |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | WhatsApp Business Account ID for template lookup. |
+
+## Customer Ticket Tracking
+
+Staff can send customers a WhatsApp message with a secure link to `/track/{token}` on the frontend. Customers verify their phone number before viewing ticket progress, tasks, parts, services, and totals.
+
+Recommended Meta utility template body:
+
+```text
+Hello {{1}}, your maintenance ticket #{{2}} is ready. Track progress here: {{3}}
+```
+
+Template parameters:
+
+1. Customer name
+2. Zero-padded ticket number
+3. Full tracking URL
+
+Relevant endpoints:
 
 | Endpoint | Auth | Purpose |
-|----------|------|---------|
-| `POST /api/tickets/{id}/send-tracking-link` | Staff (`maintenance,update`) | Send WhatsApp + ensure token |
-| `POST /api/tickets/{id}/regenerate-tracking-token` | Staff | Invalidate old links |
-| `GET /api/public/tickets/{token}/meta` | Public | Preview (no prices) |
-| `POST /api/public/tickets/{token}/verify` | Public | Phone verification → session |
-| `GET /api/public/tickets/{token}` | Public + `X-Tracking-Session` | Full tracking payload |
+| --- | --- | --- |
+| `POST /api/tickets/{id}/send-tracking-link` | Staff with `maintenance:update` | Send WhatsApp message and ensure a tracking token exists. |
+| `POST /api/tickets/{id}/regenerate-tracking-token` | Staff with `maintenance:update` | Invalidate old public tracking links. |
+| `GET /api/public/tickets/{token}/meta` | Public | Return ticket preview metadata without pricing. |
+| `POST /api/public/tickets/{token}/verify` | Public | Verify phone number and issue a tracking session. |
+| `GET /api/public/tickets/{token}` | Public with `X-Tracking-Session` | Return the full customer tracking payload. |
 
-Run migrations: `php artisan migrate`
+## API Structure
 
-## License
+Routes are defined in `routes/api.php`. Public endpoints include login and ticket tracking. ERP endpoints are protected by Sanctum and permission middleware, with admin-only routes grouped separately.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Controllers live under `app/Http/Controllers/Api`, request validation under `app/Http/Requests`, and business logic under `app/Services`, `app/Support`, and `app/Actions`.
+
+## Testing
+
+Run the full backend suite:
+
+```bash
+composer test
+```
+
+Feature tests cover permissions, settings, reporting, sales, tickets, import/export, spare-part compatibility, customer workspace behavior, and public ticket tracking.
+
+## Related Project
+
+The matching Next.js client is located at `../rpg_frontend`.
