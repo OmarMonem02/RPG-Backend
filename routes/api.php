@@ -15,8 +15,10 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SparePartController;
+use App\Http\Controllers\Api\PublicTicketMessageController;
 use App\Http\Controllers\Api\PublicTicketTrackingController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\TicketMessageController;
 use App\Http\Controllers\Api\TicketTrackingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -28,7 +30,11 @@ Route::prefix('public/tickets')->group(function () {
     Route::get('{token}/meta', [PublicTicketTrackingController::class, 'meta'])
         ->middleware('throttle:30,1');
     Route::post('{token}/verify', [PublicTicketTrackingController::class, 'verify'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:ticket-verify');
+    Route::get('{token}/messages', [PublicTicketMessageController::class, 'index'])
+        ->middleware('throttle:60,1');
+    Route::post('{token}/messages', [PublicTicketMessageController::class, 'store'])
+        ->middleware('throttle:10,1');
     Route::get('{token}', [PublicTicketTrackingController::class, 'show'])
         ->middleware('throttle:60,1');
 });
@@ -37,6 +43,7 @@ Route::prefix('public/tickets')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/auth/verify-admin-password', [AuthController::class, 'verifyAdminPassword']);
     Route::get('/permissions/meta', [PermissionController::class, 'meta']);
     Route::post('/upload-image', [ImageController::class, 'upload']);
     Route::delete('/delete-image', [ImageController::class, 'destroy']);
@@ -60,6 +67,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets', [TicketController::class, 'store'])->middleware('permission:maintenance,create');
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->middleware('permission:maintenance,update');
     Route::patch('/tickets/{ticket}/notes', [TicketController::class, 'updateNotes'])->middleware('permission:maintenance,update');
+    Route::get('/tickets/{ticket}/messages', [TicketMessageController::class, 'index'])->middleware('permission:maintenance,read');
+    Route::post('/tickets/{ticket}/messages', [TicketMessageController::class, 'store'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/tasks', [TicketController::class, 'addTask'])->middleware('permission:maintenance,update');
     Route::patch('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'updateTask'])->middleware('permission:maintenance,update');
     Route::delete('/tickets/{ticket}/tasks/{task}', [TicketController::class, 'deleteTask'])->middleware('permission:maintenance,update');
@@ -69,6 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets/{ticket}/end', [TicketController::class, 'end'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/ensure-tracking-link', [TicketTrackingController::class, 'ensureTrackingLink'])
+        ->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/send-tracking-link', [TicketTrackingController::class, 'sendTrackingLink'])
         ->middleware(['permission:maintenance,update', 'throttle:3,1']);
     Route::post('/tickets/{ticket}/regenerate-tracking-token', [TicketTrackingController::class, 'regenerateTrackingToken'])

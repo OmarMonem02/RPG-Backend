@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesSaleDiscountAdminPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class SaleUpdateRequest extends FormRequest
 {
+    use ValidatesSaleDiscountAdminPassword;
     protected function prepareForValidation(): void
     {
         if ($this->has('sale_discount') && ! $this->has('discount')) {
@@ -30,6 +33,16 @@ class SaleUpdateRequest extends FormRequest
             'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'shipping_fee' => ['sometimes', 'numeric', 'min:0'],
             'discount' => ['sometimes', 'numeric', 'min:0'],
+            'admin_password' => ['nullable', 'string'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $this->validateSaleDiscountAdminPassword($validator);
+            },
         ];
     }
 }

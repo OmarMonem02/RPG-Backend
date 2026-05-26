@@ -17,6 +17,16 @@ class TicketTrackingController extends Controller
     ) {
     }
 
+    public function ensureTrackingLink(Ticket $ticket): JsonResponse
+    {
+        $ticket = $this->trackingService->ensurePublicToken($ticket);
+
+        return response()->json([
+            'public_token' => $ticket->public_token,
+            'tracking_url' => $this->trackingService->buildTrackingUrl($ticket),
+        ]);
+    }
+
     public function sendTrackingLink(Ticket $ticket): JsonResponse
     {
         try {

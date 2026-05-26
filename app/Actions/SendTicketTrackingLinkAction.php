@@ -30,7 +30,7 @@ class SendTicketTrackingLinkAction
         $ticket = $this->trackingService->ensurePublicToken($ticket);
         $trackingUrl = $this->trackingService->buildTrackingUrl($ticket);
 
-        SendTicketTrackingWhatsAppJob::dispatchSync(
+        SendTicketTrackingWhatsAppJob::dispatch(
             $ticket,
             PhoneNormalizer::forWhatsApp($customerPhone),
             $trackingUrl
@@ -38,10 +38,12 @@ class SendTicketTrackingLinkAction
 
         $this->trackingService->recordLinkSent($ticket->fresh());
 
+        $freshTicket = $ticket->fresh();
+
         return [
-            'sent_at' => $ticket->fresh()->tracking_link_sent_at?->toIso8601String() ?? now()->toIso8601String(),
+            'sent_at' => $freshTicket->tracking_link_sent_at?->toIso8601String() ?? now()->toIso8601String(),
             'tracking_url' => $trackingUrl,
-            'public_token' => (string) $ticket->public_token,
+            'public_token' => (string) $freshTicket->public_token,
         ];
     }
 }

@@ -159,6 +159,22 @@ class TicketPublicTrackingTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_ensure_tracking_link_creates_token_without_sending_whatsapp(): void
+    {
+        $this->ticket->update(['public_token' => null]);
+
+        config(['services.frontend.public_url' => 'https://example.com']);
+
+        $this->actingAs($this->technician)
+            ->postJson("/api/tickets/{$this->ticket->id}/ensure-tracking-link")
+            ->assertOk()
+            ->assertJsonStructure(['public_token', 'tracking_url']);
+
+        $this->ticket->refresh();
+        $this->assertNotNull($this->ticket->public_token);
+        $this->assertNull($this->ticket->tracking_link_sent_at);
+    }
+
     public function test_send_tracking_link_dispatches_whatsapp_and_records_sent_at(): void
     {
         $mock = Mockery::mock(WhatsAppCloudClient::class);

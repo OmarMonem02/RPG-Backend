@@ -70,6 +70,11 @@ class Ticket extends Model
         return $this->hasMany(TicketItem::class);
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(TicketMessage::class)->orderBy('created_at');
+    }
+
     /**
      * @return list<string>
      */

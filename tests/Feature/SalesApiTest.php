@@ -314,6 +314,40 @@ class SalesApiTest extends TestCase
             ->assertJsonPath('data.0.id', $lowSale['id']);
     }
 
+    public function test_overall_sale_discount_requires_admin_password(): void
+    {
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        unset($payload['admin_password']);
+
+        $staff = User::create([
+            'name' => 'Staff User',
+            'email' => 'staff@example.com',
+            'password' => bcrypt('password'),
+            'role' => User::ROLE_STAFF,
+        ]);
+
+        $this->actingAs($staff)
+            ->postJson('/api/sales', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['admin_password']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['admin_password']);
+
+        $payload['admin_password'] = 'wrong-password';
+        $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['admin_password']);
+
+        $payload['admin_password'] = 'password';
+        $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertCreated();
+    }
+
     public function test_rejects_invalid_sale_money_delivery_and_discount_values(): void
     {
         $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
@@ -660,6 +694,7 @@ class SalesApiTest extends TestCase
             'status' => 'completed',
             'shipping_fee' => 50,
             'discount' => 20,
+            'admin_password' => 'password',
             'is_maintenance' => false,
             'items' => [
                 [

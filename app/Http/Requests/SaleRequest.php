@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesSaleDiscountAdminPassword;
 use App\Http\Requests\Concerns\ValidatesSellablePayload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -9,6 +10,7 @@ use Illuminate\Validation\Validator;
 
 class SaleRequest extends FormRequest
 {
+    use ValidatesSaleDiscountAdminPassword;
     use ValidatesSellablePayload;
 
     protected function prepareForValidation(): void
@@ -34,6 +36,7 @@ class SaleRequest extends FormRequest
             'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
+            'admin_password' => ['nullable', 'string'],
             'is_maintenance' => ['nullable', 'boolean'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['nullable', 'exists:products,id'],
@@ -70,6 +73,8 @@ class SaleRequest extends FormRequest
                 if (is_numeric($saleDiscount) && (float) $saleDiscount > $subtotal) {
                     $validator->errors()->add('discount', 'Sale discount cannot exceed the items subtotal.');
                 }
+
+                $this->validateSaleDiscountAdminPassword($validator);
             },
         ];
     }
