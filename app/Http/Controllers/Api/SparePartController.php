@@ -13,8 +13,6 @@ use Illuminate\Http\Request;
 
 class SparePartController extends Controller
 {
-    private const LIST_TTL_SECONDS = 1800;
-    private const DETAIL_TTL_SECONDS = 3600;
     private const TAGS = ['spare_parts'];
 
     public function __construct(
@@ -39,37 +37,13 @@ class SparePartController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $cacheKey = ApiCache::listKey('spare_parts', $request);
-        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
-
-        $spareParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, self::TAGS, function () use ($request) {
-            $query = SparePart::query()
-                ->search($request->query('search'))
-                ->byBrand($request->query('brand_id'))
-                ->byCategory($request->query('category_id'))
-                ->byCurrency($request->query('currency') ? strtoupper((string) $request->query('currency')) : null)
-                ->byBikeBrand($request->query('bike_brand_id'))
-                ->byBikeModel($request->query('bike_model'))
-                ->byBikeYear($request->query('bike_year'));
-
-            if ($request->query('bike_year_from') || $request->query('bike_year_to')) {
-                $query->byBikeYearRange(
-                    $request->query('bike_year_from') ? (int) $request->query('bike_year_from') : null,
-                    $request->query('bike_year_to') ? (int) $request->query('bike_year_to') : null
-                );
-            }
-
-            if ($request->boolean('low_stock')) {
-                $query->lowStock();
-            }
-
-            return $query->with(['category', 'brand', 'bikeBlueprints'])
-                ->paginate((int) $request->query('per_page', 20));
-        });
+        $spareParts = $this->buildSparePartsQuery($request)
+            ->with(['category', 'brand', 'bikeBlueprints'])
+            ->paginate((int) $request->query('per_page', 20));
 
         return response()
             ->json($spareParts)
-            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
+            ->header('X-Cache-Hit', 'false');
     }
 
     /**
@@ -103,14 +77,9 @@ class SparePartController extends Controller
      */
     public function show(SparePart $sparePart): JsonResponse
     {
-        $cacheKey = ApiCache::detailKey('spare_parts', $sparePart->id);
-        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
-
-        $payload = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, self::TAGS, fn () => $sparePart->load(['category', 'brand', 'bikeBlueprints']));
-
         return response()
-            ->json($payload)
-            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
+            ->json($sparePart->load(['category', 'brand', 'bikeBlueprints']))
+            ->header('X-Cache-Hit', 'false');
     }
 
     /**
@@ -312,15 +281,37 @@ class SparePartController extends Controller
      */
     public function lowStock(Request $request): JsonResponse
     {
-        $cacheKey = ApiCache::listKey('spare_parts', $request, 'low_stock');
-        $cacheHit = ApiCache::has($cacheKey, self::TAGS);
-
-        $spareParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, self::TAGS, fn () => SparePart::lowStock()
+        $spareParts = SparePart::lowStock()
             ->with(['category', 'brand'])
-            ->paginate((int) $request->query('per_page', 20)));
+            ->paginate((int) $request->query('per_page', 20));
 
         return response()
             ->json($spareParts)
-            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
+            ->header('X-Cache-Hit', 'false');
+    }
+
+    private function buildSparePartsQuery(Request $request)
+    {
+        $query = SparePart::query()
+            ->search($request->query('search'))
+            ->byBrand($request->query('brand_id'))
+            ->byCategory($request->query('category_id'))
+            ->byCurrency($request->query('currency') ? strtoupper((string) $request->query('currency')) : null)
+            ->byBikeBrand($request->query('bike_brand_id'))
+            ->byBikeModel($request->query('bike_model'))
+            ->byBikeYear($request->query('bike_year'));
+
+        if ($request->query('bike_year_from') || $request->query('bike_year_to')) {
+            $query->byBikeYearRange(
+                $request->query('bike_year_from') ? (int) $request->query('bike_year_from') : null,
+                $request->query('bike_year_to') ? (int) $request->query('bike_year_to') : null
+            );
+        }
+
+        if ($request->boolean('low_stock')) {
+            $query->lowStock();
+        }
+
+        return $query;
     }
 }

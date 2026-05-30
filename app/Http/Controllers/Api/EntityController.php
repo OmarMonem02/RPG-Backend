@@ -288,10 +288,8 @@ class EntityController extends Controller
     private function cacheTagForEntity(string $entity): ?string
     {
         return match ($entity) {
-            'products' => 'products',
             'brands' => 'brands',
             'maintenance_services' => 'services',
-            'bike_for_sale' => 'bikes',
             default => null,
         };
     }

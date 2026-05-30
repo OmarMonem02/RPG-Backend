@@ -8,11 +8,19 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SparePart;
+use App\Support\ApiCache;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SaleInventoryService
 {
+    /**
+     * @var array<string, bool>
+     */
+    private array $pendingCacheTags = [];
+
+    private bool $cacheInvalidationScheduled = false;
     /**
      * @var array<string, class-string<Model>>
      */
@@ -85,6 +93,8 @@ class SaleInventoryService
             'bike' => $this->markBikeAsAvailable($model, $qty),
             default => null,
         };
+
+        $this->invalidateCacheForType($type);
     }
 
     public function syncInventoryForQtyChange(SaleItem $saleItem, int $deltaQty): void
@@ -102,6 +112,8 @@ class SaleInventoryService
                 default => null,
             };
 
+            $this->invalidateCacheForType($type);
+
             return;
         }
 
@@ -111,6 +123,8 @@ class SaleInventoryService
             'bike' => $this->markBikeAsAvailable($model, $restoreQty),
             default => null,
         };
+
+        $this->invalidateCacheForType($type);
     }
 
     public function describeSaleItem(SaleItem $saleItem): string
@@ -174,6 +188,8 @@ class SaleInventoryService
             'bike' => $this->markBikeAsSold($model, $qty),
             default => null,
         };
+
+        $this->invalidateCacheForType($type);
     }
 
     /**
@@ -230,5 +246,40 @@ class SaleInventoryService
         }
 
         $model->update(['status' => 'available']);
+    }
+
+    private function invalidateCacheForType(string $type): void
+    {
+        $tag = match ($type) {
+            'product' => 'products',
+            'spare_part' => 'spare_parts',
+            'bike' => 'bikes',
+            default => null,
+        };
+
+        if ($tag === null) {
+            return;
+        }
+
+        if (DB::transactionLevel() > 0) {
+            $this->pendingCacheTags[$tag] = true;
+
+            if (! $this->cacheInvalidationScheduled) {
+                $this->cacheInvalidationScheduled = true;
+                DB::afterCommit(function (): void {
+                    $tags = array_keys($this->pendingCacheTags);
+                    $this->pendingCacheTags = [];
+                    $this->cacheInvalidationScheduled = false;
+
+                    if ($tags !== []) {
+                        ApiCache::invalidateTags($tags);
+                    }
+                });
+            }
+
+            return;
+        }
+
+        ApiCache::invalidateTags([$tag]);
     }
 }

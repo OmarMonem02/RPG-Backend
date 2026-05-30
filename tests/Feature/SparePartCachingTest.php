@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Brand;
+use App\Models\Customer;
+use App\Models\PaymentMethod;
+use App\Models\Seller;
 use App\Models\SparePart;
 use App\Models\SparePartCategory;
 use App\Models\User;
@@ -20,7 +23,7 @@ class SparePartCachingTest extends TestCase
         Cache::flush();
     }
 
-    public function test_spare_parts_index_sets_cache_hit_header_transition(): void
+    public function test_spare_parts_index_is_not_cached(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         [$brand, $category] = $this->createDependencies();
@@ -33,11 +36,11 @@ class SparePartCachingTest extends TestCase
 
         $second = $this->actingAs($admin)->getJson('/api/spare_parts?per_page=20');
         $second->assertOk()
-            ->assertHeader('X-Cache-Hit', 'true')
+            ->assertHeader('X-Cache-Hit', 'false')
             ->assertJsonStructure(['data', 'current_page', 'per_page', 'total']);
     }
 
-    public function test_spare_part_mutation_invalidates_cached_detail(): void
+    public function test_spare_part_detail_is_not_cached(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         [$brand, $category] = $this->createDependencies();
@@ -48,20 +51,66 @@ class SparePartCachingTest extends TestCase
             ->assertHeader('X-Cache-Hit', 'false')
             ->assertJsonPath('stock_quantity', 5);
 
-        $secondShow = $this->actingAs($admin)->getJson("/api/spare_parts/{$sparePart->id}");
-        $secondShow->assertOk()
-            ->assertHeader('X-Cache-Hit', 'true')
-            ->assertJsonPath('stock_quantity', 5);
-
         $this->actingAs($admin)
             ->patchJson("/api/spare_parts/{$sparePart->id}/stock", ['quantity' => 9])
             ->assertOk()
             ->assertJsonPath('stock_quantity', 9);
 
-        $thirdShow = $this->actingAs($admin)->getJson("/api/spare_parts/{$sparePart->id}");
-        $thirdShow->assertOk()
+        $secondShow = $this->actingAs($admin)->getJson("/api/spare_parts/{$sparePart->id}");
+        $secondShow->assertOk()
             ->assertHeader('X-Cache-Hit', 'false')
             ->assertJsonPath('stock_quantity', 9);
+    }
+
+    public function test_spare_part_list_reflects_stock_after_sale(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        [$brand, $category] = $this->createDependencies();
+        $sparePart = $this->createSparePart($brand->id, $category->id, 'SP-SALE', 6);
+
+        $customer = Customer::query()->create([
+            'name' => 'Sale Customer',
+            'phone' => '01099998888',
+        ]);
+        $seller = Seller::query()->create([
+            'name' => 'Sale Seller',
+            'phone' => '01199998888',
+            'commission_rate' => 5,
+        ]);
+        $paymentMethod = PaymentMethod::query()->create(['name' => 'Cash']);
+
+        $this->actingAs($admin)->postJson('/api/sales', [
+            'customer_id' => $customer->id,
+            'seller_id' => $seller->id,
+            'payment_method_id' => $paymentMethod->id,
+            'type' => 'site',
+            'status' => 'completed',
+            'shipping_fee' => 0,
+            'discount' => 0,
+            'admin_password' => 'password',
+            'items' => [
+                [
+                    'spare_part_id' => $sparePart->id,
+                    'selling_price' => 120,
+                    'discount' => 0,
+                    'qty' => 6,
+                ],
+            ],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('spare_parts', [
+            'id' => $sparePart->id,
+            'stock_quantity' => 0,
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/spare_parts?per_page=20');
+        $response->assertOk()
+            ->assertHeader('X-Cache-Hit', 'false');
+
+        $items = collect($response->json('data'));
+        $listedPart = $items->firstWhere('id', $sparePart->id);
+        $this->assertNotNull($listedPart);
+        $this->assertSame(0, (int) $listedPart['stock_quantity']);
     }
 
     /**

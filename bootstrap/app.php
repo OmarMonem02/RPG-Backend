@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureUserHasAnyPermission;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\PreventApiBrowserCaching;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(append: [
+            PreventApiBrowserCaching::class,
+        ]);
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
             'any_permission' => EnsureUserHasAnyPermission::class,
