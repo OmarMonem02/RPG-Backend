@@ -78,4 +78,9 @@ class Product extends Model
     {
         return $currency ? $query->where('currency_pricing', $currency) : $query;
     }
+
+    public function scopeLowStock($query)
+    {
+        return $query->whereColumn('stock_quantity', '<=', 'low_stock_alarm');
+    }
 }

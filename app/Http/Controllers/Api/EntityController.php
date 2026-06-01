@@ -109,6 +109,7 @@ class EntityController extends Controller
                 if ($brandId) $query = $query->byBrand($brandId);
                 if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
+                if ($lowStock) $query = $query->lowStock();
                 break;
 
             case 'spare_part_categories':
