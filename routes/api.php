@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/sellers', [SellerController::class, 'index'])->middleware('permission:sellers,read');
     Route::post('/sellers', [SellerController::class, 'store'])->middleware('permission:sellers,create');
+    Route::get('/sellers/{seller}/monthly-history', [SellerController::class, 'monthlyHistory'])->middleware('permission:sellers,read');
     Route::get('/sellers/{seller}', [SellerController::class, 'show'])->middleware('permission:sellers,read');
     Route::match(['put', 'patch'], '/sellers/{seller}', [SellerController::class, 'update'])->middleware('permission:sellers,update');
     Route::delete('/sellers/{seller}', [SellerController::class, 'destroy'])->middleware('permission:sellers,delete');
