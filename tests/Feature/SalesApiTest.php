@@ -314,7 +314,7 @@ class SalesApiTest extends TestCase
             ->assertJsonPath('data.0.id', $lowSale['id']);
     }
 
-    public function test_overall_sale_discount_requires_admin_password(): void
+    public function test_overall_sale_discount_requires_admin_role(): void
     {
         $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
         unset($payload['admin_password']);
@@ -329,22 +329,20 @@ class SalesApiTest extends TestCase
         $this->actingAs($staff)
             ->postJson('/api/sales', $payload)
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['admin_password']);
+            ->assertJsonValidationErrors(['discount_approval_request_id']);
 
         $this->actingAs($this->admin)
             ->postJson('/api/sales', $payload)
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['admin_password']);
+            ->assertCreated();
 
-        $payload['admin_password'] = 'wrong-password';
-        $this->actingAs($this->admin)
-            ->postJson('/api/sales', $payload)
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['admin_password']);
+        $payloadWithWrongPassword = $this->mixedSalePayload(
+            bikeId: $this->createAvailableBike()->id,
+        );
+        unset($payloadWithWrongPassword['admin_password']);
+        $payloadWithWrongPassword['admin_password'] = 'wrong-password';
 
-        $payload['admin_password'] = 'password';
         $this->actingAs($this->admin)
-            ->postJson('/api/sales', $payload)
+            ->postJson('/api/sales', $payloadWithWrongPassword)
             ->assertCreated();
     }
 

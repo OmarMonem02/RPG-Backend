@@ -36,6 +36,7 @@ class SaleRequest extends FormRequest
             'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
+            'discount_approval_request_id' => ['nullable', 'integer', 'exists:approval_requests,id'],
             'admin_password' => ['nullable', 'string'],
             'is_maintenance' => ['nullable', 'boolean'],
             'items' => ['required', 'array', 'min:1'],

@@ -57,6 +57,10 @@ class SaleService
     public function create(array $data, int $userId): array
     {
         $sale = DB::transaction(function () use ($data, $userId) {
+            $discountApprovalRequestId = isset($data['discount_approval_request_id'])
+                ? (int) $data['discount_approval_request_id']
+                : null;
+
             $sale = Sale::create([
                 'customer_id' => $data['customer_id'],
                 'user_id' => $userId,
@@ -92,6 +96,15 @@ class SaleService
                 amountDelta: (float) $sale->total,
                 meta: ['items_count' => $sale->items->count()],
             );
+
+            if ($discountApprovalRequestId && (float) ($data['discount'] ?? 0) > 0) {
+                app(ApprovalRequestService::class)->consumeApprovedRequest(
+                    $discountApprovalRequestId,
+                    $userId,
+                    (float) ($data['discount'] ?? 0),
+                    (int) $sale->id,
+                );
+            }
 
             return $sale;
         });

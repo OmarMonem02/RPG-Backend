@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Models\ApprovalRequest;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Validator;
 
 trait ValidatesSaleDiscountAdminPassword
@@ -20,29 +20,70 @@ trait ValidatesSaleDiscountAdminPassword
         }
 
         $user = $this->user();
-        if (! $user || $user->role !== User::ROLE_ADMIN) {
+        if (! $user) {
             $validator->errors()->add(
-                'admin_password',
+                'discount',
+                'Authentication is required to apply an overall sale discount.',
+            );
+
+            return;
+        }
+
+        if ($user->role === User::ROLE_ADMIN) {
+            return;
+        }
+
+        if ($user->role !== User::ROLE_STAFF) {
+            $validator->errors()->add(
+                'discount',
                 'Only administrators can apply an overall sale discount.',
             );
 
             return;
         }
 
-        $password = $this->input('admin_password');
-        if (! is_string($password) || trim($password) === '') {
+        $requestId = $this->input('discount_approval_request_id');
+        if (! is_numeric($requestId)) {
             $validator->errors()->add(
-                'admin_password',
-                'Administrator password is required to apply an overall sale discount.',
+                'discount_approval_request_id',
+                'An approved discount request is required to apply an overall sale discount.',
             );
 
             return;
         }
 
-        if (! Hash::check($password, $user->password)) {
+        $approvalRequest = ApprovalRequest::query()->find((int) $requestId);
+        if (! $approvalRequest) {
             $validator->errors()->add(
-                'admin_password',
-                'Invalid administrator password.',
+                'discount_approval_request_id',
+                'Discount approval request was not found.',
+            );
+
+            return;
+        }
+
+        if ((int) $approvalRequest->requested_by !== (int) $user->id) {
+            $validator->errors()->add(
+                'discount_approval_request_id',
+                'This discount approval request does not belong to you.',
+            );
+
+            return;
+        }
+
+        if (! $approvalRequest->isConsumable()) {
+            $validator->errors()->add(
+                'discount_approval_request_id',
+                'This discount approval request is not approved or has already been used.',
+            );
+
+            return;
+        }
+
+        if (round((float) $approvalRequest->approved_discount_amount, 2) !== round($saleDiscount, 2)) {
+            $validator->errors()->add(
+                'discount',
+                'Sale discount must match the approved discount amount.',
             );
         }
     }

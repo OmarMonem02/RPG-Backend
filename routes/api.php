@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApprovalRequestController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\CustomerController;
@@ -61,6 +62,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sales/{sale}/exchanges', [SaleController::class, 'exchanges'])->middleware('permission:sales,update');
     Route::delete('/sales/{sale}/items/{saleItem}', [SaleController::class, 'removeItem'])->middleware('permission:sales,delete');
     Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->middleware('permission:sales,delete');
+
+    Route::get('/approval-requests/pending-count', [ApprovalRequestController::class, 'pendingCount']);
+    Route::get('/approval-requests', [ApprovalRequestController::class, 'index']);
+    Route::post('/approval-requests', [ApprovalRequestController::class, 'store'])->middleware('permission:sales,create');
+    Route::get('/approval-requests/{approvalRequest}', [ApprovalRequestController::class, 'show']);
+    Route::post('/approval-requests/{approvalRequest}/approve', [ApprovalRequestController::class, 'approve']);
+    Route::post('/approval-requests/{approvalRequest}/reject', [ApprovalRequestController::class, 'reject']);
+    Route::delete('/approval-requests/{approvalRequest}', [ApprovalRequestController::class, 'destroy']);
 
     Route::get('/tickets', [TicketController::class, 'index'])->middleware('permission:maintenance,read');
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->middleware('permission:maintenance,read');
