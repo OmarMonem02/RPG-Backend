@@ -57,7 +57,7 @@ class SaleCatalogService
 
     private function productItems(array $filters): Collection
     {
-        $query = Product::query()->with(['brand', 'category']);
+        $query = Product::query()->with(['brand', 'category', 'bikeBlueprints.brand']);
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
@@ -93,21 +93,44 @@ class SaleCatalogService
             $query->where('stock_quantity', '>', 0);
         }
 
-        return $query->get()->map(fn (Product $product) => [
-            'item_type' => 'product',
-            'id' => $product->id,
-            'display_name' => $product->name,
-            'sku_or_vin' => $product->sku,
-            'sale_price' => (float) $product->sale_price,
-            'currency_pricing' => $product->currency_pricing,
-            'stock_quantity' => (int) $product->stock_quantity,
-            'is_available' => (int) $product->stock_quantity > 0,
-            'brand' => $product->brand ? ['id' => $product->brand->id, 'name' => $product->brand->name] : null,
-            'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name] : null,
-            'sector' => null,
-            'bike_blueprint' => null,
-            'compatibility' => null,
-        ]);
+        if (! empty($filters['compatible_with_blueprint_id'])) {
+            $blueprintId = (int) $filters['compatible_with_blueprint_id'];
+            $query->where(function (Builder $product) use ($blueprintId): void {
+                $product
+                    ->where('universal', true)
+                    ->orWhereHas('bikeBlueprints', fn (Builder $blueprints) => $blueprints->where('bike_blueprints.id', $blueprintId));
+            });
+        }
+
+        if (! empty($filters['bike_blueprint_id'])) {
+            $query->whereHas('bikeBlueprints', fn (Builder $blueprints) => $blueprints->where('bike_blueprints.id', $filters['bike_blueprint_id']));
+        }
+
+        return $query->get()->map(function (Product $product): array {
+            return [
+                'item_type' => 'product',
+                'id' => $product->id,
+                'display_name' => $product->name,
+                'sku_or_vin' => $product->sku,
+                'sale_price' => (float) $product->sale_price,
+                'currency_pricing' => $product->currency_pricing,
+                'stock_quantity' => (int) $product->stock_quantity,
+                'is_available' => (int) $product->stock_quantity > 0,
+                'brand' => $product->brand ? ['id' => $product->brand->id, 'name' => $product->brand->name] : null,
+                'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name] : null,
+                'sector' => null,
+                'bike_blueprint' => null,
+                'compatibility' => [
+                    'universal' => (bool) $product->universal,
+                    'bike_blueprints' => $product->bikeBlueprints->map(fn ($blueprint) => [
+                        'id' => $blueprint->id,
+                        'model' => $blueprint->model,
+                        'year' => $blueprint->year,
+                        'brand' => $blueprint->brand ? $blueprint->brand->name : null,
+                    ])->values(),
+                ],
+            ];
+        });
     }
 
     private function sparePartItems(array $filters): Collection

@@ -45,6 +45,7 @@ class EntityRequest extends FormRequest
                 'sku' => [$isUpdate ? 'nullable' : 'required', 'string', Rule::unique('products', 'sku')->ignore($id)],
                 'image' => ['nullable', 'url'],
                 'image_public_id' => ['nullable', 'string', 'max:255'],
+                'part_number' => ['nullable', 'string'],
                 'products_category_id' => [$isUpdate ? 'nullable' : 'required', 'exists:product_categories,id'],
                 'brand_id' => [$isUpdate ? 'nullable' : 'required', 'exists:brands,id'],
                 'stock_quantity' => ['nullable', 'numeric'],
@@ -56,6 +57,8 @@ class EntityRequest extends FormRequest
                 'max_discount_value' => ['nullable', 'numeric'],
                 'universal' => ['nullable', 'boolean'],
                 'notes' => ['nullable', 'string'],
+                'bike_blueprint_ids' => ['nullable', 'array'],
+                'bike_blueprint_ids.*' => ['exists:bike_blueprints,id'],
             ],
             'spare_parts' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
@@ -164,5 +167,27 @@ class EntityRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    public function withValidator($validator): void
+    {
+        $entity = (string) $this->route('entity');
+
+        if ($entity !== 'products') {
+            return;
+        }
+
+        $validator->after(function (\Illuminate\Validation\Validator $validator): void {
+            if (! $this->has('universal') || $this->boolean('universal')) {
+                return;
+            }
+            $ids = $this->input('bike_blueprint_ids');
+            if (! is_array($ids) || count(array_filter($ids)) < 1) {
+                $validator->errors()->add(
+                    'bike_blueprint_ids',
+                    'Select at least one compatible bike blueprint when Universal Product is disabled.'
+                );
+            }
+        });
     }
 }

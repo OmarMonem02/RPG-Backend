@@ -177,7 +177,7 @@ class ImportRowProcessor
             $resolved['bike_blueprint_id'] = $this->resolveBlueprint($resolved['brand_id'], $row['model'] ?? null, $row['year'] ?? null, $rowNumber, $issues);
         }
 
-        if ($entity === 'spare_parts' && ($row['bike_blueprints'] ?? null)) {
+        if (in_array($entity, ['products', 'spare_parts'], true) && ($row['bike_blueprints'] ?? null)) {
             $related['bike_blueprint_ids'] = $this->resolveBlueprintList($row['bike_blueprints'], $rowNumber, $issues);
         }
 
@@ -353,7 +353,7 @@ class ImportRowProcessor
 
     private function syncRelated(string $entity, Model $model, array $related): void
     {
-        if ($entity === 'spare_parts' && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
+        if (in_array($entity, ['products', 'spare_parts'], true) && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
             $model->bikeBlueprints()->sync($related['bike_blueprint_ids']);
         }
     }

@@ -41,6 +41,18 @@ class BikeBlueprint extends Model
             ->withTrashed();
     }
 
+    public function bikeBlueprintProducts()
+    {
+        return $this->hasMany(BikeBlueprintProduct::class);
+    }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'bike_blueprint_products', 'bike_blueprint_id', 'product_id')
+            ->withTimestamps()
+            ->withTrashed();
+    }
+
     public function bikesForSale()
     {
         return $this->hasMany(BikeForSale::class);

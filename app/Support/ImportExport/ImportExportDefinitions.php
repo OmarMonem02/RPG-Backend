@@ -41,6 +41,7 @@ class ImportExportDefinitions
                     $this->column('max_discount_value', 'Max Discount Value', false, 'decimal', 'Maximum discount amount or percentage.'),
                     $this->column('universal', 'Universal', false, 'boolean', 'Yes/No, true/false, or 1/0.'),
                     $this->column('notes', 'Notes', false, 'text', 'Internal notes.'),
+                    $this->column('bike_blueprints', 'Compatible Bike Blueprints', false, 'reference_list', 'Optional list: Brand | Model | Year; Brand | Model | Year.', reference: 'bike_blueprints.brand_model_year'),
                 ],
             ],
             'spare_parts' => [

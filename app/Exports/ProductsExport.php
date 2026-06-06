@@ -24,7 +24,7 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
 
     public function query()
     {
-        return Product::query()->with(['category', 'brand']);
+        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand']);
     }
 
     public function headings(): array
@@ -45,11 +45,21 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'Max Discount Value',
             'Universal',
             'Notes',
+            'Compatible Bike Blueprints',
         ];
     }
 
     public function map($product): array
     {
+        $blueprints = $product->bikeBlueprints
+            ->map(fn ($bp) => trim(implode(' | ', array_filter([
+                $bp->brand?->name,
+                $bp->model,
+                $bp->year,
+            ]))))
+            ->filter()
+            ->implode('; ');
+
         return [
             $product->id,
             $product->name,
@@ -66,6 +76,7 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             $product->max_discount_value,
             $product->universal ? 'Yes' : 'No',
             $product->notes,
+            $blueprints,
         ];
     }
 

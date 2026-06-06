@@ -72,6 +72,11 @@ class EntityController extends Controller
         $year = $request->query('year');
         $lowStock = $request->query('low_stock');
         $type = $request->query('type');
+        $bikeBrandId = $request->query('bike_brand_id');
+        $bikeModel = $request->query('bike_model');
+        $bikeYear = $request->query('bike_year');
+        $bikeYearFrom = $request->query('bike_year_from');
+        $bikeYearTo = $request->query('bike_year_to');
 
         // Validate and parse price range (format: "min:max")
         $minPrice = null;
@@ -110,6 +115,16 @@ class EntityController extends Controller
                 if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
                 if ($lowStock) $query = $query->lowStock();
+                if ($bikeBrandId) $query = $query->byBikeBrand((int) $bikeBrandId);
+                if ($bikeModel) $query = $query->byBikeModel((string) $bikeModel);
+                if ($bikeYear) $query = $query->byBikeYear((int) $bikeYear);
+                if ($bikeYearFrom || $bikeYearTo) {
+                    $query = $query->byBikeYearRange(
+                        $bikeYearFrom ? (int) $bikeYearFrom : null,
+                        $bikeYearTo ? (int) $bikeYearTo : null
+                    );
+                }
+                $query = $query->with(['category', 'brand', 'bikeBlueprints']);
                 break;
 
             case 'spare_part_categories':
@@ -192,10 +207,22 @@ class EntityController extends Controller
     {
         $model = $this->resolve($entity);
         $validated = $request->validated() + $request->except(['entity', 'id']);
+
+        $bikeBlueprintIds = null;
+        if ($entity === 'products') {
+            $bikeBlueprintIds = $validated['bike_blueprint_ids'] ?? [];
+            unset($validated['bike_blueprint_ids']);
+        }
+
         $record = $model->newQuery()->create($validated);
-        if ($entity === 'customer_bikes') {
+
+        if ($entity === 'products' && ! empty($bikeBlueprintIds)) {
+            $record->bikeBlueprints()->attach($bikeBlueprintIds);
+            $record->load(['category', 'brand', 'bikeBlueprints']);
+        } elseif ($entity === 'customer_bikes') {
             $record->load(['bikeBlueprint.brand']);
         }
+
         $this->invalidateEntityCache($entity);
 
         return response()->json($record, 201);
@@ -206,13 +233,17 @@ class EntityController extends Controller
         $model = $this->resolve($entity);
         $tag = $this->cacheTagForEntity($entity);
 
-        $customerBikeIncludes = $entity === 'customer_bikes' ? ['bikeBlueprint.brand'] : [];
+        $includes = match ($entity) {
+            'customer_bikes' => ['bikeBlueprint.brand'],
+            'products' => ['category', 'brand', 'bikeBlueprints'],
+            default => [],
+        };
 
         if ($tag === null) {
             if ($entity === 'settings' && !is_numeric($id)) {
                 $record = $model->newQuery()->where('key', $id)->firstOrFail();
             } else {
-                $record = $model->newQuery()->with($customerBikeIncludes)->findOrFail($id);
+                $record = $model->newQuery()->with($includes)->findOrFail($id);
             }
 
             return response()->json($record);
@@ -221,12 +252,12 @@ class EntityController extends Controller
         $cacheKey = ApiCache::detailKey($tag, (string) $id);
         $tags = [$tag];
         $cacheHit = ApiCache::has($cacheKey, $tags);
-        $record = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, function () use ($entity, $id, $model, $customerBikeIncludes) {
+        $record = ApiCache::remember($cacheKey, self::DETAIL_TTL_SECONDS, $tags, function () use ($entity, $id, $model, $includes) {
             if ($entity === 'settings' && !is_numeric($id)) {
                 return $model->newQuery()->where('key', $id)->firstOrFail();
             }
 
-            return $model->newQuery()->with($customerBikeIncludes)->findOrFail($id);
+            return $model->newQuery()->with($includes)->findOrFail($id);
         });
 
         return response()
@@ -245,11 +276,23 @@ class EntityController extends Controller
         }
 
         $data = $request->validated() ?: $request->except(['entity', 'id']);
+
+        $bikeBlueprintIds = null;
+        if ($entity === 'products' && array_key_exists('bike_blueprint_ids', $data)) {
+            $bikeBlueprintIds = $data['bike_blueprint_ids'];
+            unset($data['bike_blueprint_ids']);
+        }
+
         \Illuminate\Support\Facades\Log::info("Updating {$entity} record", ['id' => $record->id, 'data' => $data]);
-        
+
         $record->fill($data);
         $saved = $record->save();
-        
+
+        if ($entity === 'products' && $bikeBlueprintIds !== null) {
+            $record->bikeBlueprints()->sync($bikeBlueprintIds);
+            $record->load(['category', 'brand', 'bikeBlueprints']);
+        }
+
         \Illuminate\Support\Facades\Log::info("Save result", ['saved' => $saved, 'changes' => $record->getChanges()]);
         $this->invalidateEntityCache($entity);
 
