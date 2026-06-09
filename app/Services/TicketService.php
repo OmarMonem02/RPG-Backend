@@ -308,7 +308,7 @@ class TicketService
         });
     }
 
-    public function close(Ticket $ticket, array $data): Ticket
+    public function close(Ticket $ticket, array $data, ?User $user = null): Ticket
     {
         if ($ticket->status === 'closed') {
             throw ValidationException::withMessages([
@@ -316,29 +316,87 @@ class TicketService
             ]);
         }
 
-        if (! in_array($ticket->status, ['completed'], true)) {
+        if (! in_array($ticket->status, ['completed', 'partial'], true)) {
             throw ValidationException::withMessages([
                 'status' => ['Finish work on this ticket before closing it.'],
             ]);
         }
 
         $amountPaid = (float) ($data['amount_paid'] ?? 0);
+        $oldAmountPaid = (float) $ticket->amount_paid;
         $total = (float) $ticket->total;
 
+        if ($oldAmountPaid > 0) {
+            $isChangingAmount = $amountPaid < $oldAmountPaid;
+            $isChangingMethod = isset($data['payment_method']) && $data['payment_method'] !== $ticket->payment_method;
+
+            if ($isChangingAmount || $isChangingMethod) {
+                $this->verifyAdminPassword($user, $data['admin_password'] ?? null, 'Administrator password is required to change a recorded payment.');
+            }
+        }
+
+        $status = 'closed';
         if ($total > 0 && $amountPaid < $total) {
-            throw ValidationException::withMessages([
-                'amount_paid' => ['Full payment is required before closing this ticket.'],
-            ]);
+            $status = 'partial';
         }
 
         $ticket->update([
-            'status' => 'closed',
-            'payment_method' => $data['payment_method'] ?? null,
+            'status' => $status,
+            'payment_method' => $data['payment_method'] ?? $ticket->payment_method,
             'amount_paid' => $amountPaid,
-            'closed_at' => now(),
+            'closed_at' => $status === 'closed' ? now() : null,
         ]);
 
         return $ticket->fresh();
+    }
+
+    public function recordPayment(Ticket $ticket, array $data, ?User $user = null): Ticket
+    {
+        if ($ticket->status === 'closed') {
+            throw ValidationException::withMessages([
+                'status' => ['Cannot record payment on a closed ticket.'],
+            ]);
+        }
+
+        $amountPaid = (float) ($data['amount_paid'] ?? 0);
+        $oldAmountPaid = (float) $ticket->amount_paid;
+
+        if ($oldAmountPaid > 0) {
+            $isChangingAmount = $amountPaid < $oldAmountPaid;
+            $isChangingMethod = isset($data['payment_method']) && $data['payment_method'] !== $ticket->payment_method;
+
+            if ($isChangingAmount || $isChangingMethod) {
+                $this->verifyAdminPassword($user, $data['admin_password'] ?? null, 'Administrator password is required to change a recorded payment.');
+            }
+        }
+
+        $ticket->update([
+            'payment_method' => $data['payment_method'] ?? $ticket->payment_method,
+            'amount_paid' => $amountPaid,
+        ]);
+
+        return $ticket->fresh();
+    }
+
+    private function verifyAdminPassword(?User $user, ?string $password, string $message): void
+    {
+        if (! $user || $user->role !== User::ROLE_ADMIN) {
+            throw ValidationException::withMessages([
+                'admin_password' => ['Only administrators can perform this action.'],
+            ]);
+        }
+
+        if (! $password) {
+            throw ValidationException::withMessages([
+                'admin_password' => [$message],
+            ]);
+        }
+
+        if (! Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'admin_password' => ['Invalid administrator password.'],
+            ]);
+        }
     }
 
     public function reopen(Ticket $ticket, User $user, ?string $password): Ticket
@@ -356,23 +414,7 @@ class TicketService
         }
 
         if ($ticket->isClosedAndFullyPaid()) {
-            if ($user->role !== User::ROLE_ADMIN) {
-                throw ValidationException::withMessages([
-                    'admin_password' => ['Only administrators can reopen a closed and fully paid ticket.'],
-                ]);
-            }
-
-            if (! $password) {
-                throw ValidationException::withMessages([
-                    'admin_password' => ['Administrator password is required to reopen this ticket.'],
-                ]);
-            }
-
-            if (! Hash::check($password, $user->password)) {
-                throw ValidationException::withMessages([
-                    'admin_password' => ['Invalid administrator password.'],
-                ]);
-            }
+            $this->verifyAdminPassword($user, $password, 'Administrator password is required to reopen this ticket.');
         }
 
         $ticket->update([

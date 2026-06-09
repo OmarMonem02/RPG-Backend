@@ -70,7 +70,22 @@ class BikeBlueprint extends Model
             return $query;
         }
 
-        return $query->where('model', 'like', "%{$search}%");
+        $search = trim($search);
+        $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if (count($tokens) <= 1) {
+            return $query->where(function ($q) use ($search) {
+                $this->applyBlueprintTextOrYearMatch($q, $search);
+            });
+        }
+
+        foreach ($tokens as $token) {
+            $query->where(function ($q) use ($token) {
+                $this->applyBlueprintTextOrYearMatch($q, $token);
+            });
+        }
+
+        return $query;
     }
 
     public function scopeByBrand($query, ?int $brandId)
@@ -78,8 +93,42 @@ class BikeBlueprint extends Model
         return $brandId ? $query->where('brand_id', $brandId) : $query;
     }
 
+    public function scopeByBrandName($query, ?string $brandName)
+    {
+        if (!$brandName) {
+            return $query;
+        }
+
+        $brandName = trim($brandName);
+
+        return $query->whereHas('brand', function ($brandQuery) use ($brandName) {
+            $brandQuery->where('name', 'like', "%{$brandName}%");
+        });
+    }
+
+    public function scopeByModelName($query, ?string $model)
+    {
+        if (!$model) {
+            return $query;
+        }
+
+        return $query->where('model', 'like', '%' . trim($model) . '%');
+    }
+
     public function scopeByYear($query, ?int $year)
     {
         return $year ? $query->where('year', $year) : $query;
+    }
+
+    private function applyBlueprintTextOrYearMatch($query, string $term): void
+    {
+        $query->where('model', 'like', "%{$term}%")
+            ->orWhereHas('brand', function ($brandQuery) use ($term) {
+                $brandQuery->where('name', 'like', "%{$term}%");
+            });
+
+        if (ctype_digit($term) && strlen($term) === 4) {
+            $query->orWhere('year', (int) $term);
+        }
     }
 }

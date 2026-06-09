@@ -139,12 +139,30 @@ class TicketController extends Controller
         $data = $request->validate([
             'payment_method' => ['required', 'string', 'max:64'],
             'amount_paid' => ['required', 'numeric', 'min:0'],
+            'admin_password' => ['nullable', 'string'],
         ]);
 
-        $ticket = $this->ticketService->close($ticket, $data);
+        $ticket = $this->ticketService->close($ticket, $data, $request->user());
 
         return response()->json([
             'message' => 'Ticket closed',
+            'status' => $ticket->status,
+            'ticket' => $ticket->load(Ticket::detailRelations()),
+        ]);
+    }
+
+    public function recordPayment(Ticket $ticket, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'payment_method' => ['required', 'string', 'max:64'],
+            'amount_paid' => ['required', 'numeric', 'min:0'],
+            'admin_password' => ['nullable', 'string'],
+        ]);
+
+        $ticket = $this->ticketService->recordPayment($ticket, $data, $request->user());
+
+        return response()->json([
+            'message' => 'Payment recorded',
             'status' => $ticket->status,
             'ticket' => $ticket->load(Ticket::detailRelations()),
         ]);

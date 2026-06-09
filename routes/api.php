@@ -90,6 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets/{ticket}/end', [TicketController::class, 'end'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->middleware('permission:maintenance,update');
+    Route::post('/tickets/{ticket}/payment', [TicketController::class, 'recordPayment'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/ensure-tracking-link', [TicketTrackingController::class, 'ensureTrackingLink'])
         ->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/send-tracking-link', [TicketTrackingController::class, 'sendTrackingLink'])

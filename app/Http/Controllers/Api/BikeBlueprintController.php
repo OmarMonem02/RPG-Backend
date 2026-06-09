@@ -25,8 +25,10 @@ class BikeBlueprintController extends Controller
      * GET /api/bike_blueprints
      *
      * Query parameters:
-     * - search: Search by model
-     * - brand_id: Filter by brand
+     * - search: Search by model, brand name, and/or year (combined terms use AND logic)
+     * - brand: Filter by brand name (partial match)
+     * - model: Filter by model (partial match)
+     * - brand_id: Filter by brand id
      * - year: Filter by year
      * - per_page: Items per page (default: 20)
      */
@@ -38,6 +40,8 @@ class BikeBlueprintController extends Controller
         $blueprints = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request) {
             $query = BikeBlueprint::query()
                 ->search($request->query('search'))
+                ->byBrandName($request->query('brand'))
+                ->byModelName($request->query('model'))
                 ->byBrand($request->query('brand_id'))
                 ->byYear($request->query('year'));
 
