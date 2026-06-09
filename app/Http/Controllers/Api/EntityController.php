@@ -110,6 +110,8 @@ class EntityController extends Controller
         switch ($entity) {
             case 'products':
                 if ($search) $query = $query->search($search);
+                $tags = Product::parseTagsQueryParam($request->query('tags'));
+                if ($tags) $query = $query->byTags($tags);
                 if ($categoryId) $query = $query->byCategory($categoryId);
                 if ($brandId) $query = $query->byBrand($brandId);
                 if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasInventoryTags;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
 {
-    use LogsHistory, SoftDeletes;
+    use HasInventoryTags, LogsHistory, SoftDeletes;
 
     protected $table = 'spare_parts';
 
@@ -29,6 +30,7 @@ class SparePart extends Model
         'max_discount_value',
         'universal',
         'notes',
+        'tags',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class SparePart extends Model
         'sale_price' => 'decimal:2',
         'max_discount_value' => 'decimal:2',
         'universal' => 'boolean',
+        'tags' => 'array',
     ];
 
     // Relationships
@@ -101,9 +104,12 @@ class SparePart extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%")
-            ->orWhere('sku', 'like', "%{$search}%")
-            ->orWhere('part_number', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('sku', 'like', "%{$search}%")
+                ->orWhere('part_number', 'like', "%{$search}%");
+            $this->scopeSearchTags($q, $search);
+        });
     }
 
     public function scopeByBrand($query, ?int $brandId)

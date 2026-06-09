@@ -36,6 +36,8 @@ class SparePartRequest extends FormRequest
             'max_discount_value' => 'required|numeric|min:0',
             'universal' => 'boolean',
             'notes' => 'nullable|string',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:100',
             'bike_blueprint_ids' => 'array|nullable',
             'bike_blueprint_ids.*' => 'integer|exists:bike_blueprints,id',
         ];

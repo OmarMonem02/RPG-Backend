@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasInventoryTags;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use LogsHistory, SoftDeletes;
+    use HasInventoryTags, LogsHistory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -28,6 +29,7 @@ class Product extends Model
         'max_discount_value',
         'universal',
         'notes',
+        'tags',
     ];
 
     protected $casts = [
@@ -37,6 +39,7 @@ class Product extends Model
         'sale_price' => 'decimal:2',
         'max_discount_value' => 'decimal:2',
         'universal' => 'boolean',
+        'tags' => 'array',
     ];
 
     public function category(): BelongsTo
@@ -84,9 +87,12 @@ class Product extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%")
-            ->orWhere('sku', 'like', "%{$search}%")
-            ->orWhere('part_number', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('sku', 'like', "%{$search}%")
+                ->orWhere('part_number', 'like', "%{$search}%");
+            $this->scopeSearchTags($q, $search);
+        });
     }
 
     public function scopeByCategory($query, ?int $categoryId)

@@ -292,8 +292,11 @@ class SparePartController extends Controller
 
     private function buildSparePartsQuery(Request $request)
     {
+        $tags = SparePart::parseTagsQueryParam($request->query('tags'));
+
         $query = SparePart::query()
             ->search($request->query('search'))
+            ->byTags($tags)
             ->byBrand($request->query('brand_id'))
             ->byCategory($request->query('category_id'))
             ->byCurrency($request->query('currency') ? strtoupper((string) $request->query('currency')) : null)
