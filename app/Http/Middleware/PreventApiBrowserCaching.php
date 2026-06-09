@@ -15,9 +15,9 @@ class PreventApiBrowserCaching
     {
         $response = $next($request);
 
-        return $response->withHeaders([
-            'Cache-Control' => 'no-store, no-cache, must-revalidate',
-            'Pragma' => 'no-cache',
-        ]);
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        $response->headers->set('Pragma', 'no-cache');
+
+        return $response;
     }
 }
