@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Setting;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Support\TicketTrackingPresenter;
@@ -18,13 +19,22 @@ class TicketPublicResource extends JsonResource
     {
         $tasks = $this->tasks ?? collect();
 
+        $settings = Setting::query()
+            ->whereIn('key', ['exchange_rate', 'exchange_rate_eur'])
+            ->pluck('value', 'key');
+
         return [
+            'exchange_rates' => [
+                'usd_to_egp' => (float) ($settings->get('exchange_rate') ?: 0),
+                'eur_to_egp' => (float) ($settings->get('exchange_rate_eur') ?: 0),
+            ],
             'ticket' => [
                 'id' => $this->id,
                 'ticket_number' => str_pad((string) $this->id, 6, '0', STR_PAD_LEFT),
                 'status' => $this->status,
                 'status_label' => TicketTrackingPresenter::statusLabel($this->status),
                 'total' => (float) $this->total,
+                'discount' => (float) ($this->discount ?? 0),
                 'customer_notes' => $this->customer_notes,
                 'created_at' => $this->created_at?->toIso8601String(),
                 'updated_at' => $this->updated_at?->toIso8601String(),
@@ -72,18 +82,32 @@ class TicketPublicResource extends JsonResource
      */
     private function formatItem(TicketItem $item): array
     {
-        $isPart = $item->spare_part_id !== null;
+        if ($item->spare_part_id !== null) {
+            $type = 'part';
+            $label = $item->sparePart?->name ?? 'Spare part';
+        } elseif ($item->product_id !== null) {
+            $type = 'product';
+            $label = $item->product?->name ?? 'Product';
+        } else {
+            $type = 'service';
+            $label = $item->maintenanceService?->name ?? 'Service';
+        }
+
+        $catalog = $item->sparePart ?? $item->product ?? $item->maintenanceService;
+        $catalogUnitPrice = $catalog
+            ? (float) ($catalog->service_price ?? $catalog->sale_price ?? 0)
+            : 0;
 
         return [
             'id' => $item->id,
-            'type' => $isPart ? 'part' : 'service',
-            'label' => $isPart
-                ? ($item->sparePart?->name ?? 'Spare part')
-                : ($item->maintenanceService?->name ?? 'Service'),
+            'type' => $type,
+            'label' => $label,
             'qty' => (int) $item->qty,
             'unit_price' => (float) $item->price_snapshot,
             'discount' => (float) $item->discount,
             'subtotal' => (float) $item->subtotal,
+            'currency_pricing' => $catalog?->currency_pricing ?? 'EGP',
+            'catalog_unit_price' => $catalogUnitPrice,
         ];
     }
 }

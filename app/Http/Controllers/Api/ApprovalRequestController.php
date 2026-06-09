@@ -57,7 +57,13 @@ class ApprovalRequestController extends Controller
     public function store(ApprovalRequestStoreRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $record = $this->service->createSaleDiscountRequest($request->user(), $validated);
+        $record = match ($validated['type']) {
+            ApprovalRequest::TYPE_SALE_DISCOUNT => $this->service->createSaleDiscountRequest($request->user(), $validated),
+            ApprovalRequest::TYPE_TICKET_DISCOUNT => $this->service->createTicketDiscountRequest($request->user(), $validated),
+            ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT => $this->service->createSaleItemDiscountRequest($request->user(), $validated),
+            ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT => $this->service->createTicketItemDiscountRequest($request->user(), $validated),
+            default => abort(422, 'Unsupported approval request type.'),
+        };
 
         return response()->json($this->service->serialize($record), 201);
     }

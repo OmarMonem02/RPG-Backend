@@ -18,7 +18,12 @@ class ApprovalRequestIndexRequest extends FormRequest
         return [
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-            'type' => ['nullable', 'string', Rule::in([ApprovalRequest::TYPE_SALE_DISCOUNT])],
+            'type' => ['nullable', 'string', Rule::in([
+                ApprovalRequest::TYPE_SALE_DISCOUNT,
+                ApprovalRequest::TYPE_TICKET_DISCOUNT,
+                ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT,
+                ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT,
+            ])],
             'status' => ['nullable', 'string', Rule::in([
                 ApprovalRequest::STATUS_PENDING,
                 ApprovalRequest::STATUS_APPROVED,

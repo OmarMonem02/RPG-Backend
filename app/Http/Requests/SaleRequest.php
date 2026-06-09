@@ -46,6 +46,7 @@ class SaleRequest extends FormRequest
             'items.*.bike_for_sale_id' => ['nullable', 'exists:bike_for_sale,id'],
             'items.*.selling_price' => ['required', 'numeric', 'min:0'],
             'items.*.discount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.discount_approval_request_id' => ['nullable', 'integer', 'exists:approval_requests,id'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
         ];
     }

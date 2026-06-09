@@ -19,6 +19,7 @@ class TicketItem extends Model
         'ticket_id',
         'spare_part_id',
         'maintenance_service_id',
+        'product_id',
         'price_snapshot',
         'discount',
         'qty',
@@ -45,10 +46,19 @@ class TicketItem extends Model
         return $this->belongsTo(MaintenanceService::class);
     }
 
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
     public function getItemNameAttribute(): string
     {
         if ($this->spare_part_id !== null) {
             return $this->sparePart?->name ?? 'Spare Part';
+        }
+
+        if ($this->product_id !== null) {
+            return $this->product?->name ?? 'Product';
         }
 
         return $this->maintenanceService?->name ?? 'Service';

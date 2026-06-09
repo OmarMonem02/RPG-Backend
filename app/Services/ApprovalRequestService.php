@@ -53,15 +53,74 @@ class ApprovalRequestService
 
     public function createSaleDiscountRequest(User $actor, array $data): ApprovalRequest
     {
-        return DB::transaction(function () use ($actor, $data) {
+        return $this->createDiscountRequest($actor, ApprovalRequest::TYPE_SALE_DISCOUNT, $data);
+    }
+
+    public function createTicketDiscountRequest(User $actor, array $data): ApprovalRequest
+    {
+        return $this->createDiscountRequest($actor, ApprovalRequest::TYPE_TICKET_DISCOUNT, $data);
+    }
+
+    public function createSaleItemDiscountRequest(User $actor, array $data): ApprovalRequest
+    {
+        return $this->createItemDiscountRequest($actor, ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT, $data);
+    }
+
+    public function createTicketItemDiscountRequest(User $actor, array $data): ApprovalRequest
+    {
+        return $this->createItemDiscountRequest($actor, ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT, $data);
+    }
+
+    private function createDiscountRequest(User $actor, string $type, array $data): ApprovalRequest
+    {
+        return DB::transaction(function () use ($actor, $type, $data) {
             ApprovalRequest::query()
                 ->where('requested_by', $actor->id)
-                ->where('type', ApprovalRequest::TYPE_SALE_DISCOUNT)
+                ->where('type', $type)
                 ->where('status', ApprovalRequest::STATUS_PENDING)
                 ->update(['status' => ApprovalRequest::STATUS_CANCELLED]);
 
             return ApprovalRequest::create([
-                'type' => ApprovalRequest::TYPE_SALE_DISCOUNT,
+                'type' => $type,
+                'status' => ApprovalRequest::STATUS_PENDING,
+                'requested_by' => $actor->id,
+                'requested_discount_amount' => (float) $data['requested_discount_amount'],
+                'discount_input_type' => $data['discount_input_type'],
+                'discount_input_value' => (float) $data['discount_input_value'],
+                'cart_subtotal' => (float) $data['cart_subtotal'],
+                'payload' => $data['payload'],
+            ]);
+        });
+    }
+
+    private function createItemDiscountRequest(User $actor, string $type, array $data): ApprovalRequest
+    {
+        return DB::transaction(function () use ($actor, $type, $data) {
+            $itemContext = $data['payload']['item_context'] ?? [];
+            $pendingQuery = ApprovalRequest::query()
+                ->where('requested_by', $actor->id)
+                ->where('type', $type)
+                ->where('status', ApprovalRequest::STATUS_PENDING);
+
+            if ($type === ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT) {
+                $ticketItemId = (int) ($itemContext['ticket_item_id'] ?? 0);
+                if ($ticketItemId > 0) {
+                    $pendingQuery->where('payload->item_context->ticket_item_id', $ticketItemId);
+                }
+            } else {
+                $sellableType = (string) ($itemContext['sellable_type'] ?? '');
+                $sellableId = (int) ($itemContext['sellable_id'] ?? 0);
+                if ($sellableType !== '' && $sellableId > 0) {
+                    $pendingQuery
+                        ->where('payload->item_context->sellable_type', $sellableType)
+                        ->where('payload->item_context->sellable_id', $sellableId);
+                }
+            }
+
+            $pendingQuery->update(['status' => ApprovalRequest::STATUS_CANCELLED]);
+
+            return ApprovalRequest::create([
+                'type' => $type,
                 'status' => ApprovalRequest::STATUS_PENDING,
                 'requested_by' => $actor->id,
                 'requested_discount_amount' => (float) $data['requested_discount_amount'],
@@ -85,9 +144,16 @@ class ApprovalRequestService
             ]);
         }
 
+        $subtotalLabel = in_array($request->type, [
+            ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT,
+            ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT,
+        ], true)
+            ? 'line subtotal'
+            : 'cart subtotal';
+
         if ($approvedAmount > (float) $request->cart_subtotal) {
             throw ValidationException::withMessages([
-                'approved_discount_amount' => ['Approved discount cannot exceed the cart subtotal.'],
+                'approved_discount_amount' => ["Approved discount cannot exceed the {$subtotalLabel}."],
             ]);
         }
 
@@ -134,8 +200,13 @@ class ApprovalRequestService
         return $request->fresh(['requester:id,name,email', 'reviewer:id,name,email']);
     }
 
-    public function consumeApprovedRequest(int $requestId, int $userId, float $saleDiscount, int $saleId): void
-    {
+    public function consumeApprovedRequest(
+        int $requestId,
+        int $userId,
+        float $discountAmount,
+        ?int $consumedSaleId = null,
+        ?int $consumedTicketId = null,
+    ): void {
         $request = ApprovalRequest::query()->lockForUpdate()->find($requestId);
         if (! $request) {
             throw ValidationException::withMessages([
@@ -155,16 +226,41 @@ class ApprovalRequestService
             ]);
         }
 
-        if (round((float) $request->approved_discount_amount, 2) !== round($saleDiscount, 2)) {
+        if (round((float) $request->approved_discount_amount, 2) !== round($discountAmount, 2)) {
+            $label = match ($request->type) {
+                ApprovalRequest::TYPE_TICKET_DISCOUNT => 'Ticket discount must match the approved discount amount.',
+                ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT,
+                ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT => 'Item discount must match the approved discount amount.',
+                default => 'Sale discount must match the approved discount amount.',
+            };
             throw ValidationException::withMessages([
-                'discount' => ['Sale discount must match the approved discount amount.'],
+                'discount' => [$label],
+            ]);
+        }
+
+        if (in_array($request->type, [
+            ApprovalRequest::TYPE_SALE_DISCOUNT,
+            ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT,
+        ], true) && ! $consumedSaleId) {
+            throw ValidationException::withMessages([
+                'discount_approval_request_id' => ['Sale ID is required to consume this approval request.'],
+            ]);
+        }
+
+        if (in_array($request->type, [
+            ApprovalRequest::TYPE_TICKET_DISCOUNT,
+            ApprovalRequest::TYPE_TICKET_ITEM_DISCOUNT,
+        ], true) && ! $consumedTicketId) {
+            throw ValidationException::withMessages([
+                'discount_approval_request_id' => ['Ticket ID is required to consume this approval request.'],
             ]);
         }
 
         $request->update([
             'status' => ApprovalRequest::STATUS_CONSUMED,
             'consumed_at' => now(),
-            'consumed_sale_id' => $saleId,
+            'consumed_sale_id' => $consumedSaleId,
+            'consumed_ticket_id' => $consumedTicketId,
         ]);
     }
 
@@ -206,6 +302,7 @@ class ApprovalRequestService
             'payload' => $request->payload ?? [],
             'consumed_at' => $request->consumed_at?->toIso8601String(),
             'consumed_sale_id' => $request->consumed_sale_id,
+            'consumed_ticket_id' => $request->consumed_ticket_id,
             'created_at' => $request->created_at?->toIso8601String(),
             'updated_at' => $request->updated_at?->toIso8601String(),
         ];

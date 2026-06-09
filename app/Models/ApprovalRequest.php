@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ApprovalRequest extends Model
 {
     public const TYPE_SALE_DISCOUNT = 'sale_discount';
+    public const TYPE_TICKET_DISCOUNT = 'ticket_discount';
+    public const TYPE_SALE_ITEM_DISCOUNT = 'sale_item_discount';
+    public const TYPE_TICKET_ITEM_DISCOUNT = 'ticket_item_discount';
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -32,6 +35,7 @@ class ApprovalRequest extends Model
         'payload',
         'consumed_at',
         'consumed_sale_id',
+        'consumed_ticket_id',
     ];
 
     protected function casts(): array
@@ -61,6 +65,11 @@ class ApprovalRequest extends Model
     public function consumedSale(): BelongsTo
     {
         return $this->belongsTo(Sale::class, 'consumed_sale_id');
+    }
+
+    public function consumedTicket(): BelongsTo
+    {
+        return $this->belongsTo(Ticket::class, 'consumed_ticket_id');
     }
 
     public function isPending(): bool

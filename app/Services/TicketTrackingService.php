@@ -48,6 +48,7 @@ class TicketTrackingService
                 'customerBike.bikeBlueprint.brand',
                 'tasks.items.sparePart',
                 'tasks.items.maintenanceService',
+                'tasks.items.product',
             ])
             ->first();
     }
@@ -95,6 +96,7 @@ class TicketTrackingService
                 'customerBike.bikeBlueprint.brand',
                 'tasks.items.sparePart',
                 'tasks.items.maintenanceService',
+                'tasks.items.product',
             ])
             ->first();
     }

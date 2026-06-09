@@ -20,6 +20,7 @@ class Ticket extends Model
         'notes',
         'customer_notes',
         'total',
+        'discount',
         'payment_method',
         'amount_paid',
         'closed_at',
@@ -33,6 +34,7 @@ class Ticket extends Model
         return [
             'amount_paid' => 'decimal:2',
             'total' => 'decimal:2',
+            'discount' => 'decimal:2',
             'closed_at' => 'datetime',
             'tracking_link_sent_at' => 'datetime',
             'tracking_link_send_count' => 'integer',
@@ -83,8 +85,10 @@ class Ticket extends Model
         return [
             'tasks.items.sparePart',
             'tasks.items.maintenanceService',
+            'tasks.items.product',
             'items.sparePart',
             'items.maintenanceService',
+            'items.product',
             'customer',
             'customerBike.bikeBlueprint.brand',
             'user',

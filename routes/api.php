@@ -66,7 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/approval-requests/pending-count', [ApprovalRequestController::class, 'pendingCount']);
     Route::get('/approval-requests', [ApprovalRequestController::class, 'index']);
-    Route::post('/approval-requests', [ApprovalRequestController::class, 'store'])->middleware('permission:sales,create');
+    Route::post('/approval-requests', [ApprovalRequestController::class, 'store'])
+        ->middleware('any_permission:sales,create,maintenance,update');
     Route::get('/approval-requests/{approvalRequest}', [ApprovalRequestController::class, 'show']);
     Route::post('/approval-requests/{approvalRequest}/approve', [ApprovalRequestController::class, 'approve']);
     Route::post('/approval-requests/{approvalRequest}/reject', [ApprovalRequestController::class, 'reject']);
@@ -77,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets', [TicketController::class, 'store'])->middleware('permission:maintenance,create');
     Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->middleware('permission:maintenance,update');
     Route::patch('/tickets/{ticket}/notes', [TicketController::class, 'updateNotes'])->middleware('permission:maintenance,update');
+    Route::patch('/tickets/{ticket}/discount', [TicketController::class, 'updateDiscount'])->middleware('permission:maintenance,update');
     Route::get('/tickets/{ticket}/messages', [TicketMessageController::class, 'index'])->middleware('permission:maintenance,read');
     Route::post('/tickets/{ticket}/messages', [TicketMessageController::class, 'store'])->middleware('permission:maintenance,update');
     Route::post('/tickets/{ticket}/tasks', [TicketController::class, 'addTask'])->middleware('permission:maintenance,update');

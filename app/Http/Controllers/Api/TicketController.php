@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TicketDiscountRequest;
 use App\Http\Requests\TicketItemRequest;
 use App\Http\Requests\TicketRequest;
 use App\Http\Requests\TicketTaskRequest;
@@ -120,6 +121,17 @@ class TicketController extends Controller
             'status' => $ticket->status,
             'ticket' => $ticket->load(Ticket::detailRelations()),
         ]);
+    }
+
+    public function updateDiscount(Ticket $ticket, TicketDiscountRequest $request): JsonResponse
+    {
+        $ticket = $this->ticketService->updateDiscount(
+            $ticket,
+            $request->user(),
+            $request->validated(),
+        );
+
+        return response()->json($ticket);
     }
 
     public function close(Ticket $ticket, Request $request): JsonResponse

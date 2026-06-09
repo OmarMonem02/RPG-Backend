@@ -7,6 +7,7 @@ use App\Models\Sale;
 use App\Models\SaleAdjustment;
 use App\Models\SaleItem;
 use App\Models\User;
+use App\Support\ItemDiscountResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -75,8 +76,37 @@ class SaleService
                 'is_maintenance' => (bool) ($data['is_maintenance'] ?? false),
             ]);
 
+            $user = User::query()->find($userId);
+
             foreach ($data['items'] as $itemData) {
+                $unitDiscount = ItemDiscountResolver::resolveUnitDiscount(
+                    $user,
+                    (float) ($itemData['discount'] ?? 0),
+                    (float) $itemData['selling_price'],
+                    ! empty($itemData['product_id']) ? (int) $itemData['product_id'] : null,
+                    ! empty($itemData['spare_part_id']) ? (int) $itemData['spare_part_id'] : null,
+                    ! empty($itemData['maintenance_service_id']) ? (int) $itemData['maintenance_service_id'] : null,
+                    ! empty($itemData['bike_for_sale_id']) ? (int) $itemData['bike_for_sale_id'] : null,
+                    isset($itemData['discount_approval_request_id'])
+                        ? (int) $itemData['discount_approval_request_id']
+                        : null,
+                );
+
+                $itemData['discount'] = $unitDiscount;
                 $this->inventory->createSaleItem($sale, $itemData);
+
+                $itemApprovalRequestId = isset($itemData['discount_approval_request_id'])
+                    ? (int) $itemData['discount_approval_request_id']
+                    : null;
+
+                if ($itemApprovalRequestId && $unitDiscount > 0) {
+                    ItemDiscountResolver::consumeItemApproval(
+                        $itemApprovalRequestId,
+                        $userId,
+                        $unitDiscount,
+                        consumedSaleId: (int) $sale->id,
+                    );
+                }
             }
 
             CustomerSale::updateOrCreate(
@@ -102,7 +132,7 @@ class SaleService
                     $discountApprovalRequestId,
                     $userId,
                     (float) ($data['discount'] ?? 0),
-                    (int) $sale->id,
+                    consumedSaleId: (int) $sale->id,
                 );
             }
 
