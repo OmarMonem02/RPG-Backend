@@ -359,6 +359,90 @@ class ImportExportProfessionalWorkflowTest extends TestCase
         $this->assertSame('Bike Brand | Export Model | 2025', $row[$blueprintIndex]);
     }
 
+    public function test_product_category_name_must_be_unique_case_insensitive(): void
+    {
+        ProductCategory::create(['name' => 'Helmets']);
+
+        $response = $this->actingAs($this->admin)->postJson('/api/product_categories', [
+            'name' => 'HELMETS',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_product_category_import_skips_case_insensitive_duplicate(): void
+    {
+        ProductCategory::create(['name' => 'Helmets']);
+
+        $response = $this->actingAs($this->admin)->post('/api/import-export/product_categories/import', [
+            'file' => $this->csvUpload(implode("\n", [
+                'name',
+                'HELMETS',
+                'Gloves',
+            ])),
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('created_count', 1)
+            ->assertJsonPath('skipped_count', 1);
+
+        $this->assertSame(2, ProductCategory::count());
+    }
+
+    public function test_parse_includes_quick_create_action_for_missing_brand(): void
+    {
+        $category = ProductCategory::create(['name' => 'Helmets']);
+
+        $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
+            'file' => $this->csvUpload(implode("\n", [
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,Missing Brand,fixed,0,yes,Ready",
+            ])),
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('rows.0.status', 'invalid')
+            ->assertJsonPath('rows.0.issues.0.code', 'reference')
+            ->assertJsonPath('rows.0.issues.0.action.type', 'create_brand')
+            ->assertJsonPath('rows.0.issues.0.action.name', 'Missing Brand')
+            ->assertJsonPath('rows.0.issues.0.action.brand_type', 'products');
+    }
+
+    public function test_parse_includes_add_brand_type_action_when_brand_exists_without_type(): void
+    {
+        $brand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
+        $category = ProductCategory::create(['name' => 'Helmets']);
+
+        $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
+            'file' => $this->csvUpload(implode("\n", [
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+            ])),
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('rows.0.status', 'invalid')
+            ->assertJsonPath('rows.0.issues.0.action.type', 'add_brand_type')
+            ->assertJsonPath('rows.0.issues.0.action.brand_id', $brand->id)
+            ->assertJsonPath('rows.0.issues.0.action.brand_type', 'products');
+    }
+
+    public function test_parse_includes_quick_create_action_for_missing_category(): void
+    {
+        $brand = Brand::create(['name' => 'Shoei', 'types' => ['products']]);
+
+        $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
+            'file' => $this->csvUpload(implode("\n", [
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,Missing Category,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+            ])),
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('rows.0.issues.0.action.type', 'create_product_category')
+            ->assertJsonPath('rows.0.issues.0.action.name', 'Missing Category');
+    }
+
     private function csvUpload(string $content): UploadedFile
     {
         $directory = storage_path('app/testing-imports');

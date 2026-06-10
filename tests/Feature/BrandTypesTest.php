@@ -62,4 +62,16 @@ class BrandTypesTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_brand_name_must_be_unique_case_insensitive(): void
+    {
+        Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
+
+        $response = $this->actingAs($this->admin)->postJson('/api/brands', [
+            'name' => 'HONDA',
+            'types' => ['products'],
+        ]);
+
+        $response->assertStatus(422);
+    }
 }

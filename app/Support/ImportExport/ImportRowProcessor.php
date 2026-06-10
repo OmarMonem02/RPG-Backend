@@ -51,7 +51,7 @@ class ImportRowProcessor
         $this->seenDuplicateKeys[$duplicateKey] = true;
 
         $modelClass = $definition['model'];
-        $existing = $modelClass::withTrashed()->where($lookup)->first();
+        $existing = $this->findExistingRecord($entity, $modelClass, $lookup, $row);
 
         if ($existing && ! $this->isTrashed($existing)) {
             return $this->result($rowNumber, 'duplicate', 'warning', $row, [
@@ -166,13 +166,20 @@ class ImportRowProcessor
 
             if ($row['category_name'] ?? null) {
                 $resolved[$entity === 'products' ? 'products_category_id' : 'spare_parts_category_id'] = $entity === 'products'
-                    ? $this->resolveByName(ProductCategory::class, $row['category_name'], 'product category', $rowNumber, $issues)
-                    : $this->resolveByName(SparePartCategory::class, $row['category_name'], 'spare part category', $rowNumber, $issues);
+                    ? $this->resolveByName(ProductCategory::class, $row['category_name'], 'product category', $rowNumber, $issues, 'create_product_category')
+                    : $this->resolveByName(SparePartCategory::class, $row['category_name'], 'spare part category', $rowNumber, $issues, 'create_spare_part_category');
             }
         }
 
         if ($entity === 'maintenance_services' && ($row['sector_name'] ?? null)) {
-            $resolved['maintenance_service_sector_id'] = $this->resolveByName(MaintenanceServiceSector::class, $row['sector_name'], 'maintenance sector', $rowNumber, $issues);
+            $resolved['maintenance_service_sector_id'] = $this->resolveByName(
+                MaintenanceServiceSector::class,
+                $row['sector_name'],
+                'maintenance sector',
+                $rowNumber,
+                $issues,
+                'create_maintenance_service_sector',
+            );
         }
 
         if (in_array($entity, ['bikes', 'bike_blueprints'], true)) {
@@ -196,8 +203,9 @@ class ImportRowProcessor
             return null;
         }
 
+        $normalizedName = trim($name);
         $query = Brand::query()
-            ->whereRaw('LOWER(name) = ?', [Str::lower(trim($name))])
+            ->whereRaw('LOWER(name) = ?', [Str::lower($normalizedName)])
             ->whereJsonContains('types', $type);
 
         $count = (clone $query)->count();
@@ -206,25 +214,72 @@ class ImportRowProcessor
             return $query->value('id');
         }
 
-        $issues[] = $this->issue($rowNumber, 'reference', $count === 0
-            ? "Brand '{$name}' was not found for {$type}."
-            : "Brand '{$name}' is ambiguous for {$type}.");
+        if ($count > 1) {
+            $issues[] = $this->issue($rowNumber, 'reference', "Brand '{$normalizedName}' is ambiguous for {$type}.");
+
+            return null;
+        }
+
+        $brandWithoutType = Brand::query()
+            ->whereRaw('LOWER(name) = ?', [Str::lower($normalizedName)])
+            ->first();
+
+        if ($brandWithoutType) {
+            $issues[] = $this->issue(
+                $rowNumber,
+                'reference',
+                "Brand '{$normalizedName}' was not found for {$type}.",
+                [
+                    'type' => 'add_brand_type',
+                    'name' => $brandWithoutType->name,
+                    'brand_type' => $type,
+                    'brand_id' => $brandWithoutType->id,
+                ],
+            );
+
+            return null;
+        }
+
+        $issues[] = $this->issue(
+            $rowNumber,
+            'reference',
+            "Brand '{$normalizedName}' was not found for {$type}.",
+            [
+                'type' => 'create_brand',
+                'name' => $normalizedName,
+                'brand_type' => $type,
+            ],
+        );
 
         return null;
     }
 
-    private function resolveByName(string $modelClass, ?string $name, string $label, int $rowNumber, array &$issues): ?int
-    {
-        $query = $modelClass::query()->whereRaw('LOWER(name) = ?', [Str::lower(trim((string) $name))]);
+    private function resolveByName(
+        string $modelClass,
+        ?string $name,
+        string $label,
+        int $rowNumber,
+        array &$issues,
+        ?string $createActionType = null,
+    ): ?int {
+        $normalizedName = trim((string) $name);
+        $query = $modelClass::query()->whereRaw('LOWER(name) = ?', [Str::lower($normalizedName)]);
         $count = (clone $query)->count();
 
         if ($count === 1) {
             return $query->value('id');
         }
 
-        $issues[] = $this->issue($rowNumber, 'reference', $count === 0
-            ? ucfirst($label) . " '{$name}' was not found."
-            : ucfirst($label) . " '{$name}' is ambiguous.");
+        $issues[] = $this->issue(
+            $rowNumber,
+            'reference',
+            $count === 0
+                ? ucfirst($label) . " '{$normalizedName}' was not found."
+                : ucfirst($label) . " '{$normalizedName}' is ambiguous.",
+            $count === 0 && $createActionType
+                ? ['type' => $createActionType, 'name' => $normalizedName]
+                : null,
+        );
 
         return null;
     }
@@ -242,9 +297,21 @@ class ImportRowProcessor
             return $query->value('id');
         }
 
-        $issues[] = $this->issue($rowNumber, 'reference', $count === 0
-            ? "Bike blueprint '{$model} {$year}' was not found for the selected brand."
-            : "Bike blueprint '{$model} {$year}' is ambiguous for the selected brand.");
+        $issues[] = $this->issue(
+            $rowNumber,
+            'reference',
+            $count === 0
+                ? "Bike blueprint '{$model} {$year}' was not found for the selected brand."
+                : "Bike blueprint '{$model} {$year}' is ambiguous for the selected brand.",
+            $count === 0
+                ? [
+                    'type' => 'create_bike_blueprint',
+                    'brand_id' => $brandId,
+                    'model' => trim((string) $model),
+                    'year' => (int) $year,
+                ]
+                : null,
+        );
 
         return null;
     }
@@ -270,6 +337,23 @@ class ImportRowProcessor
         }
 
         return array_values(array_unique($ids));
+    }
+
+    private function findExistingRecord(string $entity, string $modelClass, array $lookup, array $row): ?Model
+    {
+        if (in_array($entity, ['brands', 'product_categories', 'spare_part_categories', 'maintenance_service_sectors'], true)) {
+            $name = $row['name'] ?? $lookup['name'] ?? null;
+
+            if (! is_string($name) || trim($name) === '') {
+                return null;
+            }
+
+            return $modelClass::withTrashed()
+                ->whereRaw('LOWER(name) = ?', [Str::lower(trim($name))])
+                ->first();
+        }
+
+        return $modelClass::withTrashed()->where($lookup)->first();
     }
 
     private function lookupAttributes(string $entity, array $row, array $resolved): array
@@ -567,12 +651,18 @@ class ImportRowProcessor
         ];
     }
 
-    private function issue(int $rowNumber, string $code, string $message): array
+    private function issue(int $rowNumber, string $code, string $message, ?array $action = null): array
     {
-        return [
+        $issue = [
             'row_number' => $rowNumber,
             'code' => $code,
             'message' => $message,
         ];
+
+        if ($action !== null) {
+            $issue['action'] = $action;
+        }
+
+        return $issue;
     }
 }

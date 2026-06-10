@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Setting;
+use App\Rules\UniqueNameCaseInsensitive;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -84,8 +85,14 @@ class EntityRequest extends FormRequest
                 'bike_blueprint_ids' => ['nullable', 'array'],
                 'bike_blueprint_ids.*' => ['exists:bike_blueprints,id'],
             ],
-            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => [
-                'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
+            'product_categories' => [
+                'name' => $this->uniqueNameRules('product_categories', $id, $isUpdate, 'product category'),
+            ],
+            'spare_part_categories' => [
+                'name' => $this->uniqueNameRules('spare_part_categories', $id, $isUpdate, 'spare part category'),
+            ],
+            'maintenance_service_sectors' => [
+                'name' => $this->uniqueNameRules('maintenance_service_sectors', $id, $isUpdate, 'maintenance sector'),
             ],
             'payment_methods' => [
                 'name' => [
@@ -96,11 +103,7 @@ class EntityRequest extends FormRequest
                 ],
             ],
             'brands' => [
-                'name' => [
-                    $isUpdate ? 'nullable' : 'required',
-                    'string',
-                    Rule::unique('brands', 'name')->whereNull('deleted_at')->ignore($id),
-                ],
+                'name' => $this->uniqueNameRules('brands', $id, $isUpdate, 'brand'),
                 'types' => [$isUpdate ? 'nullable' : 'required', 'array', 'min:1'],
                 'types.*' => [Rule::in(['spare_parts', 'products', 'bikes'])],
             ],
@@ -176,6 +179,20 @@ class EntityRequest extends FormRequest
             ],
             default => [],
         };
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function uniqueNameRules(string $table, mixed $id, bool $isUpdate, string $entityLabel): array
+    {
+        $ignoreId = is_numeric($id) ? (int) $id : null;
+
+        return [
+            $isUpdate ? 'nullable' : 'required',
+            'string',
+            new UniqueNameCaseInsensitive($table, $ignoreId, true, $entityLabel),
+        ];
     }
 
     public function withValidator($validator): void
