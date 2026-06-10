@@ -55,7 +55,7 @@ class ApprovalRequestTest extends TestCase
 
         $this->paymentMethod = PaymentMethod::create(['name' => 'Cash']);
 
-        $brand = Brand::create(['name' => 'Brand', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Accessories']);
 
         $this->product = Product::create([

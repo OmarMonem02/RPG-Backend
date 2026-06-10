@@ -256,9 +256,9 @@ class ReportingApiTest extends TestCase
         $sparePartCategory = SparePartCategory::create(['name' => 'Parts']);
         $sector = MaintenanceServiceSector::create(['name' => 'Workshop']);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
-        $sparePartBrand = Brand::create(['name' => 'Spare Brand', 'type' => 'spare_parts']);
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
+        $sparePartBrand = Brand::create(['name' => 'Spare Brand', 'types' => ['spare_parts']]);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
 
         $bikeBlueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,

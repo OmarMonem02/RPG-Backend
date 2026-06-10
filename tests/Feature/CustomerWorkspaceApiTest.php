@@ -78,7 +78,7 @@ class CustomerWorkspaceApiTest extends TestCase
             'total' => 150.50,
         ]);
 
-        $bikeBrand = Brand::create(['name' => 'Trail', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Trail', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'X1',

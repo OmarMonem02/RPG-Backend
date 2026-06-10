@@ -46,7 +46,7 @@ class SellerMonthlyHistoryTest extends TestCase
         ]);
         $this->paymentMethod = PaymentMethod::query()->create(['name' => 'Cash']);
 
-        $brand = Brand::query()->create(['name' => 'History Brand', 'type' => 'products']);
+        $brand = Brand::query()->create(['name' => 'History Brand', 'types' => ['products']]);
         $category = ProductCategory::query()->create(['name' => 'History Category']);
         $this->product = Product::query()->create([
             'name' => 'History Product',

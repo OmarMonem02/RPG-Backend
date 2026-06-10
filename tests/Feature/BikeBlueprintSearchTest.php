@@ -28,7 +28,7 @@ class BikeBlueprintSearchTest extends TestCase
 
     public function test_index_search_matches_model(): void
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'MT-07',
@@ -45,7 +45,7 @@ class BikeBlueprintSearchTest extends TestCase
 
     public function test_index_search_matches_brand_name(): void
     {
-        $brand = Brand::create(['name' => 'Honda', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'CBR600RR',
@@ -62,7 +62,7 @@ class BikeBlueprintSearchTest extends TestCase
 
     public function test_index_search_matches_year(): void
     {
-        $brand = Brand::create(['name' => 'Kawasaki', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Kawasaki', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'Ninja 650',
@@ -79,7 +79,7 @@ class BikeBlueprintSearchTest extends TestCase
 
     public function test_index_search_matches_combined_terms(): void
     {
-        $brand = Brand::create(['name' => 'Honda', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
         $match = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'CBR600RR',
@@ -101,7 +101,7 @@ class BikeBlueprintSearchTest extends TestCase
 
     public function test_index_filters_by_brand_model_and_year_together(): void
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         $match = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'MT-09',

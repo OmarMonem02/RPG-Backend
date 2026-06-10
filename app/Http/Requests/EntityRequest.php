@@ -96,8 +96,13 @@ class EntityRequest extends FormRequest
                 ],
             ],
             'brands' => [
-                'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
-                'type' => [$isUpdate ? 'nullable' : 'required', Rule::in(['spare_parts', 'products', 'bikes'])],
+                'name' => [
+                    $isUpdate ? 'nullable' : 'required',
+                    'string',
+                    Rule::unique('brands', 'name')->whereNull('deleted_at')->ignore($id),
+                ],
+                'types' => [$isUpdate ? 'nullable' : 'required', 'array', 'min:1'],
+                'types.*' => [Rule::in(['spare_parts', 'products', 'bikes'])],
             ],
             'maintenance_services' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],

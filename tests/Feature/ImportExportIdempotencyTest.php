@@ -67,7 +67,7 @@ class ImportExportIdempotencyTest extends TestCase
 
     public function test_bike_blueprints_import_skips_duplicates_for_brand_name(): void
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/bike_blueprints/import', [
             'file' => $this->csvUpload(implode("\n", [
@@ -137,7 +137,7 @@ class ImportExportIdempotencyTest extends TestCase
 
     public function test_products_import_skips_duplicate_skus(): void
     {
-        $brand = Brand::create(['name' => 'Shoei', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Shoei', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Helmets']);
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
@@ -170,9 +170,9 @@ class ImportExportIdempotencyTest extends TestCase
 
     public function test_spare_parts_import_skips_duplicate_skus_and_duplicate_pivot_assignments(): void
     {
-        $brand = Brand::create(['name' => 'Bosch', 'type' => 'spare_parts']);
+        $brand = Brand::create(['name' => 'Bosch', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Brakes']);
-        $bikeBrand = Brand::create(['name' => 'BMW', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'BMW', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'GS 1250',
@@ -212,7 +212,7 @@ class ImportExportIdempotencyTest extends TestCase
 
     public function test_bikes_import_skips_duplicate_vins(): void
     {
-        $brand = Brand::create(['name' => 'Kawasaki', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Kawasaki', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'Ninja ZX-6R',
@@ -249,7 +249,7 @@ class ImportExportIdempotencyTest extends TestCase
 
     public function test_import_restores_soft_deleted_brand_instead_of_skipping_it(): void
     {
-        $brand = Brand::create(['name' => 'Restorable', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Restorable', 'types' => ['bikes']]);
         $brand->delete();
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/brands/import', [
@@ -267,16 +267,16 @@ class ImportExportIdempotencyTest extends TestCase
         $this->assertDatabaseHas('brands', [
             'id' => $brand->id,
             'name' => 'Restorable',
-            'type' => 'bikes',
+            'types' => json_encode(['bikes']),
             'deleted_at' => null,
         ]);
     }
 
     public function test_import_restores_soft_deleted_spare_part_and_relinks_blueprints(): void
     {
-        $brand = Brand::create(['name' => 'Restore Brand', 'type' => 'spare_parts']);
+        $brand = Brand::create(['name' => 'Restore Brand', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Restore Category']);
-        $bikeBrand = Brand::create(['name' => 'Restore Bike', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Restore Bike', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'Restore Model',

@@ -18,7 +18,7 @@ class SparePartBikeBlueprintIdsTest extends TestCase
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
-        $spareBrand = Brand::create(['name' => 'Parts Brand', 'type' => 'spare_parts']);
+        $spareBrand = Brand::create(['name' => 'Parts Brand', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Test Category']);
         $sparePart = SparePart::create([
             'name' => 'Linked Part',
@@ -32,7 +32,7 @@ class SparePartBikeBlueprintIdsTest extends TestCase
             'universal' => false,
         ]);
 
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
         $blueprintA = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'Zebra',

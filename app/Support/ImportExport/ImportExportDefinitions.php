@@ -131,11 +131,11 @@ class ImportExportDefinitions
                 'label' => 'Brands',
                 'model' => Brand::class,
                 'export' => BrandsExport::class,
-                'unique' => ['name', 'type'],
+                'unique' => ['name'],
                 'duplicate_label' => 'brand',
                 'columns' => [
                     $this->column('name', 'Name', true, 'text', 'Brand name.'),
-                    $this->column('type', 'Type', false, 'select', 'products, spare_parts, or bikes.', ['products', 'spare_parts', 'bikes']),
+                    $this->column('types', 'Types', true, 'reference_list', 'Comma-separated: products, spare_parts, bikes.', reference: 'brands.types'),
                 ],
             ],
             'product_categories' => [

@@ -47,7 +47,7 @@ class TicketMessageTest extends TestCase
         ]);
 
         $customer = Customer::create(['name' => 'Ahmed Ali', 'phone' => '01001234567']);
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'R1',

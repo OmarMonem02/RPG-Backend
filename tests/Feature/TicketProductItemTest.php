@@ -123,7 +123,7 @@ class TicketProductItemTest extends TestCase
 
     private function createCustomerBike(int $customerId): CustomerBike
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'MT-07',
@@ -143,7 +143,7 @@ class TicketProductItemTest extends TestCase
         string $maxDiscountType = 'fixed',
         float $maxDiscountValue = 0,
     ): Product {
-        $brand = Brand::create(['name' => 'GearCo '.uniqid(), 'type' => 'products']);
+        $brand = Brand::create(['name' => 'GearCo '.uniqid(), 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Accessories '.uniqid()]);
 
         return Product::create([

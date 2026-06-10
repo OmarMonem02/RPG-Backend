@@ -23,9 +23,9 @@ class SparePartCompatibilityFilterTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $spBrand = Brand::create(['name' => 'SP Brand', 'type' => 'spare_parts']);
-        $bikeBrandA = Brand::create(['name' => 'Bike Brand A', 'type' => 'bikes']);
-        $bikeBrandB = Brand::create(['name' => 'Bike Brand B', 'type' => 'bikes']);
+        $spBrand = Brand::create(['name' => 'SP Brand', 'types' => ['spare_parts']]);
+        $bikeBrandA = Brand::create(['name' => 'Bike Brand A', 'types' => ['bikes']]);
+        $bikeBrandB = Brand::create(['name' => 'Bike Brand B', 'types' => ['bikes']]);
 
         $category = SparePartCategory::create(['name' => 'Cat A']);
         $otherCategory = SparePartCategory::create(['name' => 'Cat B']);

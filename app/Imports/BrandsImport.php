@@ -19,26 +19,44 @@ class BrandsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
     public function model(array $row): ?Brand
     {
+        $types = Brand::mergeTypes(
+            null,
+            Brand::parseTypes($row['types'] ?? $row['type'] ?? null)
+        );
+
+        if ($types === []) {
+            return null;
+        }
+
         $lookupAttributes = [
             'name' => $row['name'] ?? null,
-            'type' => $row['type'] ?? null,
         ];
 
-        if ($this->restoreMatchingRecord(
+        $fillAttributes = [
+            'name' => $row['name'] ?? null,
+            'types' => $types,
+        ];
+
+        $restored = $this->restoreMatchingRecord(
             Brand::class,
             $lookupAttributes,
-            $lookupAttributes,
+            $fillAttributes,
             'brand',
             $this->getRowNumber(),
             $lookupAttributes
-        )) {
+        );
+
+        if ($restored) {
+            $restored->types = Brand::mergeTypes($restored->types, $types);
+            $restored->save();
+
             return null;
         }
 
         if ($this->shouldSkipDuplicate(
             Brand::class,
             $lookupAttributes,
-            [$row['name'] ?? null, $row['type'] ?? null],
+            [$row['name'] ?? null],
             'brand',
             $this->getRowNumber(),
             $lookupAttributes
@@ -48,16 +66,14 @@ class BrandsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
         $this->recordCreated();
 
-        return new Brand([
-            'name' => $row['name'] ?? null,
-            'type' => $row['type'] ?? null,
-        ]);
+        return new Brand($fillAttributes);
     }
 
     public function rules(): array
     {
         return [
             'name' => 'required|string|max:255',
+            'types' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
         ];
     }

@@ -42,13 +42,13 @@ class TemplateExport implements WithMultipleSheets
         $references = match ($this->entity) {
             'products' => [
                 ['Type', 'Name'],
-                ...Brand::where('type', 'products')->orderBy('name')->get(['name'])->map(fn ($row) => ['Brand', $row->name])->all(),
+                ...Brand::whereJsonContains('types', 'products')->orderBy('name')->get(['name'])->map(fn ($row) => ['Brand', $row->name])->all(),
                 ...ProductCategory::orderBy('name')->get(['name'])->map(fn ($row) => ['Category', $row->name])->all(),
                 ...BikeBlueprint::with('brand')->orderBy('model')->orderBy('year')->get()->map(fn ($row) => ['Bike Blueprint', "{$row->brand?->name} | {$row->model} | {$row->year}"])->all(),
             ],
             'spare_parts' => [
                 ['Type', 'Name'],
-                ...Brand::where('type', 'spare_parts')->orderBy('name')->get(['name'])->map(fn ($row) => ['Brand', $row->name])->all(),
+                ...Brand::whereJsonContains('types', 'spare_parts')->orderBy('name')->get(['name'])->map(fn ($row) => ['Brand', $row->name])->all(),
                 ...SparePartCategory::orderBy('name')->get(['name'])->map(fn ($row) => ['Category', $row->name])->all(),
                 ...BikeBlueprint::with('brand')->orderBy('model')->orderBy('year')->get()->map(fn ($row) => ['Bike Blueprint', "{$row->brand?->name} | {$row->model} | {$row->year}"])->all(),
             ],
@@ -58,7 +58,7 @@ class TemplateExport implements WithMultipleSheets
             ],
             'bikes', 'bike_blueprints' => [
                 ['Type', 'Name'],
-                ...Brand::where('type', 'bikes')->orderBy('name')->get(['name'])->map(fn ($row) => ['Bike Brand', $row->name])->all(),
+                ...Brand::whereJsonContains('types', 'bikes')->orderBy('name')->get(['name'])->map(fn ($row) => ['Bike Brand', $row->name])->all(),
                 ...BikeBlueprint::with('brand')->orderBy('model')->orderBy('year')->get()->map(fn ($row) => ['Bike Blueprint', "{$row->brand?->name} | {$row->model} | {$row->year}"])->all(),
             ],
             default => [],

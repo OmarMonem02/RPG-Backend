@@ -120,7 +120,7 @@ class SparePartCachingTest extends TestCase
     {
         $brand = Brand::query()->create([
             'name' => 'Cache Test Brand',
-            'type' => 'bikes',
+            'types' => ['bikes'],
         ]);
 
         $category = SparePartCategory::query()->create([

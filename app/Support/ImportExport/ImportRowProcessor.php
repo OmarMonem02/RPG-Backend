@@ -23,6 +23,7 @@ class ImportRowProcessor
     {
         $row = $this->normalizeKeys($row);
         $row = $this->aliasColumnKeys($row, $definition['columns']);
+        $row = $this->normalizeEntityRow($entity, $row);
         $row = $this->normalizeRowValues($row, $definition['columns']);
         $issues = $this->validate($definition, $row, $rowNumber);
         $resolved = [];
@@ -197,7 +198,7 @@ class ImportRowProcessor
 
         $query = Brand::query()
             ->whereRaw('LOWER(name) = ?', [Str::lower(trim($name))])
-            ->where('type', $type);
+            ->whereJsonContains('types', $type);
 
         $count = (clone $query)->count();
 
@@ -285,7 +286,7 @@ class ImportRowProcessor
                 'model' => $row['model'],
                 'year' => (int) $row['year'],
             ],
-            'brands' => ['name' => $row['name'], 'type' => $row['type'] ?? null],
+            'brands' => ['name' => $row['name']],
             'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => ['name' => $row['name']],
         };
     }
@@ -357,7 +358,7 @@ class ImportRowProcessor
             ],
             'brands' => [
                 'name' => $row['name'],
-                'type' => $row['type'] ?? null,
+                'types' => Brand::parseTypes($row['types'] ?? $row['type'] ?? null),
             ],
             'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => [
                 'name' => $row['name'],
@@ -381,6 +382,21 @@ class ImportRowProcessor
         if (in_array($entity, ['products', 'spare_parts'], true) && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
             $model->bikeBlueprints()->sync($related['bike_blueprint_ids']);
         }
+    }
+
+    private function normalizeEntityRow(string $entity, array $row): array
+    {
+        if ($entity !== 'brands') {
+            return $row;
+        }
+
+        if ((! array_key_exists('types', $row) || $row['types'] === null || $row['types'] === '') && array_key_exists('type', $row)) {
+            $row['types'] = $row['type'];
+        }
+
+        unset($row['type']);
+
+        return $row;
     }
 
     private function normalizeKeys(array $row): array

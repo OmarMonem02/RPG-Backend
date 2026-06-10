@@ -27,7 +27,7 @@ class BulkCreateBikeBlueprintByYearRangeTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $this->brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $this->brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
     }
 
     public function test_creates_blueprint_for_each_year_in_range(): void

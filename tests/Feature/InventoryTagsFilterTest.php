@@ -26,7 +26,7 @@ class InventoryTagsFilterTest extends TestCase
 
     public function test_filters_products_by_tags_with_and_partial_match(): void
     {
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Cat A']);
 
         $tagged = Product::create([
@@ -79,7 +79,7 @@ class InventoryTagsFilterTest extends TestCase
 
     public function test_filters_spare_parts_by_tags(): void
     {
-        $spareBrand = Brand::create(['name' => 'Spare Brand', 'type' => 'spare_parts']);
+        $spareBrand = Brand::create(['name' => 'Spare Brand', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Cat A']);
 
         $tagged = SparePart::create([
@@ -106,7 +106,7 @@ class InventoryTagsFilterTest extends TestCase
 
     public function test_create_product_with_tags(): void
     {
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Cat A']);
 
         $response = $this->actingAs($this->admin)->postJson('/api/products', [
@@ -131,7 +131,7 @@ class InventoryTagsFilterTest extends TestCase
 
     public function test_create_spare_part_with_tags(): void
     {
-        $spareBrand = Brand::create(['name' => 'Spare Brand', 'type' => 'spare_parts']);
+        $spareBrand = Brand::create(['name' => 'Spare Brand', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Cat A']);
 
         $response = $this->actingAs($this->admin)->postJson('/api/spare_parts', [
@@ -156,7 +156,7 @@ class InventoryTagsFilterTest extends TestCase
 
     public function test_search_includes_tags(): void
     {
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Cat A']);
 
         $tagged = Product::create([

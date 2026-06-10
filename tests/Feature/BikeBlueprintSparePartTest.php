@@ -27,7 +27,7 @@ class BikeBlueprintSparePartTest extends TestCase
         parent::setUp();
 
         // Create necessary data
-        $this->brand = Brand::create(['name' => 'Test Brand', 'type' => 'spare_parts']);
+        $this->brand = Brand::create(['name' => 'Test Brand', 'types' => ['spare_parts']]);
         $this->category = SparePartCategory::create(['name' => 'Test Category']);
 
         $this->sparePart1 = SparePart::create([
@@ -52,7 +52,7 @@ class BikeBlueprintSparePartTest extends TestCase
             'max_discount_type' => 'percentage',
         ]);
 
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
         $this->bikeBlueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'Test Model',

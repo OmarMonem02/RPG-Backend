@@ -23,9 +23,9 @@ class ProductCompatibilityFilterTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
-        $bikeBrandA = Brand::create(['name' => 'Bike Brand A', 'type' => 'bikes']);
-        $bikeBrandB = Brand::create(['name' => 'Bike Brand B', 'type' => 'bikes']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
+        $bikeBrandA = Brand::create(['name' => 'Bike Brand A', 'types' => ['bikes']]);
+        $bikeBrandB = Brand::create(['name' => 'Bike Brand B', 'types' => ['bikes']]);
 
         $category = ProductCategory::create(['name' => 'Cat A']);
         $otherCategory = ProductCategory::create(['name' => 'Cat B']);
@@ -122,9 +122,9 @@ class ProductCompatibilityFilterTest extends TestCase
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Test Category']);
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'CBR',
@@ -160,9 +160,9 @@ class ProductCompatibilityFilterTest extends TestCase
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Test Category']);
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
         $blueprintA = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'Alpha',
@@ -209,7 +209,7 @@ class ProductCompatibilityFilterTest extends TestCase
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Test Category']);
 
         $response = $this->actingAs($admin)->postJson('/api/products', [

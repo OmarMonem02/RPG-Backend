@@ -11,7 +11,13 @@ class Brand extends Model
 {
     use SoftDeletes, LogsHistory;
 
-    protected $fillable = ['name', 'type'];
+    public const VALID_TYPES = ['spare_parts', 'products', 'bikes'];
+
+    protected $fillable = ['name', 'types'];
+
+    protected $casts = [
+        'types' => 'array',
+    ];
 
     public function products(): HasMany
     {
@@ -28,17 +34,52 @@ class Brand extends Model
         return $this->hasMany(BikeBlueprint::class);
     }
 
+    public function hasType(string $type): bool
+    {
+        return in_array($type, $this->types ?? [], true);
+    }
+
+    /**
+     * @param  array<int, string>|null  $existing
+     * @param  array<int, string>  $additional
+     * @return array<int, string>
+     */
+    public static function mergeTypes(?array $existing, array $additional): array
+    {
+        return array_values(array_unique(array_merge($existing ?? [], $additional)));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function parseTypes(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter($value, fn ($type) => is_string($type) && $type !== ''));
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $type) => trim($type),
+            preg_split('/\s*,\s*/', $value) ?: []
+        )));
+    }
+
     // Scopes
     public function scopeSearch($query, ?string $search)
     {
-        if (!$search) {
+        if (! $search) {
             return $query;
         }
 
         return $query->where('name', 'like', "%{$search}%");
     }
+
     public function scopeByType($query, ?string $type)
     {
-        return $type ? $query->where('type', $type) : $query;
+        return $type ? $query->whereJsonContains('types', $type) : $query;
     }
 }

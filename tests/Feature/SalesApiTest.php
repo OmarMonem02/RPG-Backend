@@ -67,9 +67,9 @@ class SalesApiTest extends TestCase
 
         $this->paymentMethod = PaymentMethod::create(['name' => 'Cash']);
 
-        $productBrand = Brand::create(['name' => 'Product Brand', 'type' => 'products']);
-        $spareBrand = Brand::create(['name' => 'Spare Brand', 'type' => 'spare_parts']);
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
+        $spareBrand = Brand::create(['name' => 'Spare Brand', 'types' => ['spare_parts']]);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
 
         $productCategory = ProductCategory::create(['name' => 'Accessories']);
         $spareCategory = SparePartCategory::create(['name' => 'Brakes']);

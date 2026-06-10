@@ -61,7 +61,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_parse_validates_without_writing_and_reports_row_statuses(): void
     {
-        $brand = Brand::create(['name' => 'Shoei', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Shoei', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Helmets']);
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
@@ -84,7 +84,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_import_saves_valid_rows_and_skips_invalid_rows(): void
     {
-        $brand = Brand::create(['name' => 'Shoei', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Shoei', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Helmets']);
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
@@ -105,7 +105,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_export_and_template_endpoints_respond_successfully(): void
     {
-        $brand = Brand::create(['name' => 'Export Brand', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Export Brand', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Export Category']);
         Product::create([
             'name' => 'Export Product',
@@ -145,7 +145,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_product_import_persists_tags_and_image_url(): void
     {
-        $brand = Brand::create(['name' => 'Shoei', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Shoei', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Helmets']);
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
@@ -166,7 +166,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_spare_parts_import_persists_image_from_export_style_headers(): void
     {
-        $brand = Brand::create(['name' => 'LS2', 'type' => 'spare_parts']);
+        $brand = Brand::create(['name' => 'LS2', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Brakes']);
         $imageUrl = 'https://res.cloudinary.com/demo/image/upload/v123/rpg-system/spare-parts/sample-part.jpg';
 
@@ -187,7 +187,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_bike_import_rejects_invalid_status(): void
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         BikeBlueprint::create(['brand_id' => $brand->id, 'model' => 'R1', 'year' => 2024]);
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/bikes/parse', [
@@ -288,9 +288,9 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_spare_parts_parse_accepts_excel_typed_sku_and_universal_values(): void
     {
-        $brand = Brand::create(['name' => 'LS2', 'type' => 'spare_parts']);
+        $brand = Brand::create(['name' => 'LS2', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Brakes']);
-        $bikeBrand = Brand::create(['name' => 'Honda', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
         BikeBlueprint::create(['brand_id' => $bikeBrand->id, 'model' => 'MT-07', 'year' => 2020]);
 
         $definition = (new ImportExportDefinitions())->get('spare_parts');
@@ -324,9 +324,9 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
     public function test_spare_parts_export_includes_compatible_bike_blueprints(): void
     {
-        $brand = Brand::create(['name' => 'Part Brand', 'type' => 'spare_parts']);
+        $brand = Brand::create(['name' => 'Part Brand', 'types' => ['spare_parts']]);
         $category = SparePartCategory::create(['name' => 'Export Category']);
-        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'type' => 'bikes']);
+        $bikeBrand = Brand::create(['name' => 'Bike Brand', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $bikeBrand->id,
             'model' => 'Export Model',

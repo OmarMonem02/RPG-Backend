@@ -177,7 +177,7 @@ class TicketItemDiscountTest extends TestCase
 
     private function createCustomerBike(int $customerId): CustomerBike
     {
-        $brand = Brand::create(['name' => 'Honda', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'CBR',

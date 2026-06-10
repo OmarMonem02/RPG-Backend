@@ -32,7 +32,7 @@ class BrandsExport implements FromCollection, WithHeadings, WithMapping, WithSty
         return [
             'ID',
             'Name',
-            'Type'
+            'Types',
         ];
     }
 
@@ -41,7 +41,7 @@ class BrandsExport implements FromCollection, WithHeadings, WithMapping, WithSty
         return [
             $brand->id,
             $brand->name,
-            $brand->type
+            implode(', ', $brand->types ?? []),
         ];
     }
 

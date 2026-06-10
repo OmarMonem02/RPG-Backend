@@ -59,7 +59,7 @@ class ItemDiscountApprovalTest extends TestCase
 
         $this->paymentMethod = PaymentMethod::create(['name' => 'Cash']);
 
-        $brand = Brand::create(['name' => 'Gear', 'type' => 'products']);
+        $brand = Brand::create(['name' => 'Gear', 'types' => ['products']]);
         $category = ProductCategory::create(['name' => 'Accessories']);
 
         $this->product = Product::create([
@@ -331,7 +331,7 @@ class ItemDiscountApprovalTest extends TestCase
      */
     private function createTicketItem(): array
     {
-        $brand = Brand::create(['name' => 'Yamaha', 'type' => 'bikes']);
+        $brand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
         $blueprint = BikeBlueprint::create([
             'brand_id' => $brand->id,
             'model' => 'MT-07',
