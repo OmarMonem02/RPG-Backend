@@ -6,14 +6,20 @@ use App\Exports\BikeBlueprintsExport;
 use App\Exports\BikesExport;
 use App\Exports\BrandsExport;
 use App\Exports\MaintenanceServicesExport;
+use App\Exports\MaintenanceServiceSectorsExport;
+use App\Exports\ProductCategoriesExport;
 use App\Exports\ProductsExport;
+use App\Exports\SparePartCategoriesExport;
 use App\Exports\SparePartsExport;
 use App\Models\BikeBlueprint;
 use App\Models\BikeForSale;
 use App\Models\Brand;
 use App\Models\MaintenanceService;
+use App\Models\MaintenanceServiceSector;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\SparePart;
+use App\Models\SparePartCategory;
 
 class ImportExportDefinitions
 {
@@ -42,6 +48,8 @@ class ImportExportDefinitions
                     $this->column('universal', 'Universal', false, 'boolean', 'Yes/No, true/false, or 1/0.'),
                     $this->column('notes', 'Notes', false, 'text', 'Internal notes.'),
                     $this->column('bike_blueprints', 'Compatible Bike Blueprints', false, 'reference_list', 'Optional list: Brand | Model | Year; Brand | Model | Year.', reference: 'bike_blueprints.brand_model_year'),
+                    $this->column('tags', 'Tags', false, 'tag_list', 'Semicolon-separated tags, e.g. Matte Black; High Load'),
+                    $this->column('image', 'Image URL', false, 'url', 'Public image URL (optional).'),
                 ],
             ],
             'spare_parts' => [
@@ -66,6 +74,8 @@ class ImportExportDefinitions
                     $this->column('universal', 'Universal', false, 'boolean', 'Yes/No, true/false, or 1/0.'),
                     $this->column('notes', 'Notes', false, 'text', 'Internal notes.'),
                     $this->column('bike_blueprints', 'Compatible Bike Blueprints', false, 'reference_list', 'Optional list: Brand | Model | Year; Brand | Model | Year.', reference: 'bike_blueprints.brand_model_year'),
+                    $this->column('tags', 'Tags', false, 'tag_list', 'Semicolon-separated tags, e.g. Matte Black; High Load'),
+                    $this->column('image', 'Image URL', false, 'url', 'Public image URL (optional).'),
                 ],
             ],
             'maintenance_services' => [
@@ -95,13 +105,14 @@ class ImportExportDefinitions
                     $this->column('year', 'Year', true, 'integer', 'Existing bike blueprint year.'),
                     $this->column('vin', 'VIN', true, 'text', 'Unique vehicle identification number.'),
                     $this->column('mileage', 'Mileage', false, 'integer', 'Current mileage.'),
-                    $this->column('status', 'Status', false, 'text', 'Bike sales status.'),
+                    $this->column('status', 'Status', false, 'select', 'Bike sales status.', ['available', 'sold', 'maintenance', 'reserved']),
                     $this->column('currency_pricing', 'Currency', false, 'text', 'Pricing currency: EGP, USD, or EUR.'),
                     $this->column('cost_price', 'Cost Price', false, 'decimal', 'Purchase cost.'),
                     $this->column('sale_price', 'Sale Price', false, 'decimal', 'Retail sale price.'),
                     $this->column('max_discount_type', 'Max Discount Type', false, 'select', 'fixed or percentage.', ['fixed', 'percentage']),
                     $this->column('max_discount_value', 'Max Discount Value', false, 'decimal', 'Maximum discount amount or percentage.'),
                     $this->column('notes', 'Notes', false, 'text', 'Internal notes.'),
+                    $this->column('image', 'Image URL', false, 'url', 'Public image URL (optional).'),
                 ],
             ],
             'bike_blueprints' => [
@@ -127,6 +138,36 @@ class ImportExportDefinitions
                     $this->column('type', 'Type', false, 'select', 'products, spare_parts, or bikes.', ['products', 'spare_parts', 'bikes']),
                 ],
             ],
+            'product_categories' => [
+                'label' => 'Product Categories',
+                'model' => ProductCategory::class,
+                'export' => ProductCategoriesExport::class,
+                'unique' => ['name'],
+                'duplicate_label' => 'product category',
+                'columns' => [
+                    $this->column('name', 'Name', true, 'text', 'Product category name.'),
+                ],
+            ],
+            'spare_part_categories' => [
+                'label' => 'Spare Part Categories',
+                'model' => SparePartCategory::class,
+                'export' => SparePartCategoriesExport::class,
+                'unique' => ['name'],
+                'duplicate_label' => 'spare part category',
+                'columns' => [
+                    $this->column('name', 'Name', true, 'text', 'Spare part category name.'),
+                ],
+            ],
+            'maintenance_service_sectors' => [
+                'label' => 'Maintenance Sectors',
+                'model' => MaintenanceServiceSector::class,
+                'export' => MaintenanceServiceSectorsExport::class,
+                'unique' => ['name'],
+                'duplicate_label' => 'maintenance sector',
+                'columns' => [
+                    $this->column('name', 'Name', true, 'text', 'Maintenance service sector name.'),
+                ],
+            ],
         ];
     }
 
@@ -148,10 +189,10 @@ class ImportExportDefinitions
             'label' => $definition['label'],
             'columns' => $definition['columns'],
             'endpoints' => [
-                'export' => url("/api/import-export/{$slug}/export"),
-                'import' => url("/api/import-export/{$slug}/import"),
-                'parse' => url("/api/import-export/{$slug}/parse"),
-                'template' => url("/api/import-export/{$slug}/template"),
+                'export' => "/import-export/{$slug}/export",
+                'import' => "/import-export/{$slug}/import",
+                'parse' => "/import-export/{$slug}/parse",
+                'template' => "/import-export/{$slug}/template",
             ],
         ])->values()->all();
     }

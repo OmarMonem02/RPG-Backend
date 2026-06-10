@@ -5,6 +5,7 @@ namespace App\Support\ImportExport;
 use App\Models\BikeBlueprint;
 use App\Models\Brand;
 use App\Models\MaintenanceServiceSector;
+use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SparePartCategory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,8 @@ class ImportRowProcessor
     public function process(string $entity, array $definition, array $row, int $rowNumber, bool $persist): array
     {
         $row = $this->normalizeKeys($row);
+        $row = $this->aliasColumnKeys($row, $definition['columns']);
+        $row = $this->normalizeRowValues($row, $definition['columns']);
         $issues = $this->validate($definition, $row, $rowNumber);
         $resolved = [];
         $related = [];
@@ -128,6 +131,8 @@ class ImportRowProcessor
                 'integer' => 'integer',
                 'decimal' => 'numeric',
                 'boolean' => 'in:yes,no,true,false,1,0',
+                'url' => 'url',
+                'tag_list', 'reference_list' => 'string',
                 default => 'string',
             };
 
@@ -281,6 +286,7 @@ class ImportRowProcessor
                 'year' => (int) $row['year'],
             ],
             'brands' => ['name' => $row['name'], 'type' => $row['type'] ?? null],
+            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => ['name' => $row['name']],
         };
     }
 
@@ -302,6 +308,8 @@ class ImportRowProcessor
                 'max_discount_value' => $row['max_discount_value'] ?? null,
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
+                'tags' => $this->parseTagList($row['tags'] ?? null),
+                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'spare_parts' => [
                 'name' => $row['name'],
@@ -318,6 +326,8 @@ class ImportRowProcessor
                 'max_discount_value' => $row['max_discount_value'] ?? null,
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
+                'tags' => $this->parseTagList($row['tags'] ?? null),
+                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'maintenance_services' => [
                 'name' => $row['name'],
@@ -338,6 +348,7 @@ class ImportRowProcessor
                 'max_discount_type' => $row['max_discount_type'] ?? null,
                 'max_discount_value' => $row['max_discount_value'] ?? null,
                 'notes' => $row['notes'] ?? null,
+                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'bike_blueprints' => [
                 'brand_id' => $resolved['brand_id'],
@@ -348,7 +359,21 @@ class ImportRowProcessor
                 'name' => $row['name'],
                 'type' => $row['type'] ?? null,
             ],
+            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => [
+                'name' => $row['name'],
+            ],
         };
+    }
+
+    private function parseTagList(?string $value): ?array
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $tags = array_map('trim', explode(';', $value));
+
+        return Product::normalizeTags($tags);
     }
 
     private function syncRelated(string $entity, Model $model, array $related): void
@@ -366,6 +391,135 @@ class ImportRowProcessor
         }
 
         return $normalized;
+    }
+
+    private function aliasColumnKeys(array $row, array $columns): array
+    {
+        foreach ($columns as $column) {
+            $key = $column['key'];
+            $aliases = array_unique(array_filter([
+                Str::slug($column['label'], '_'),
+                Str::snake($column['label']),
+            ]));
+
+            foreach ($aliases as $alias) {
+                if ($alias === $key || ! array_key_exists($alias, $row)) {
+                    continue;
+                }
+
+                if (! array_key_exists($key, $row) || $row[$key] === null || $row[$key] === '') {
+                    $row[$key] = $row[$alias];
+                }
+
+                unset($row[$alias]);
+            }
+        }
+
+        unset($row['id']);
+
+        return $row;
+    }
+
+    /** @return array{image: ?string, image_public_id: ?string} */
+    private function resolveImageAttributes(mixed $value): array
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return [
+                'image' => null,
+                'image_public_id' => null,
+            ];
+        }
+
+        $image = trim((string) $value);
+
+        return [
+            'image' => $image,
+            'image_public_id' => $this->extractCloudinaryPublicId($image),
+        ];
+    }
+
+    private function extractCloudinaryPublicId(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+
+        if (! is_string($path) || ! str_contains($path, '/image/upload/')) {
+            return null;
+        }
+
+        $segments = explode('/', Str::after($path, '/image/upload/'));
+
+        if ($segments === []) {
+            return null;
+        }
+
+        if (isset($segments[0]) && preg_match('/^v\d+$/', $segments[0])) {
+            array_shift($segments);
+        }
+
+        while (isset($segments[0]) && (str_contains($segments[0], ',') || (str_contains($segments[0], '_') && ! str_contains($segments[0], '.')))) {
+            array_shift($segments);
+        }
+
+        $publicId = preg_replace('/\.[^.]+$/', '', implode('/', $segments));
+
+        return $publicId !== '' ? $publicId : null;
+    }
+
+    private function normalizeRowValues(array $row, array $columns): array
+    {
+        foreach ($columns as $column) {
+            $key = $column['key'];
+
+            if (! array_key_exists($key, $row)) {
+                continue;
+            }
+
+            $value = $row[$key];
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $row[$key] = match ($column['type']) {
+                'boolean' => $this->normalizeBooleanImportValue($value),
+                'integer' => is_numeric($value) ? (int) $value : $value,
+                'decimal' => is_numeric($value) ? (float) $value : $value,
+                default => $this->normalizeStringImportValue($value),
+            };
+        }
+
+        return $row;
+    }
+
+    private function normalizeStringImportValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return $this->numericToString($value);
+        }
+
+        return trim((string) $value);
+    }
+
+    private function numericToString(int|float $value): string
+    {
+        if (is_float($value) && floor($value) === $value) {
+            return (string) (int) $value;
+        }
+
+        return (string) $value;
+    }
+
+    private function normalizeBooleanImportValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'yes' : 'no';
+        }
+
+        return in_array(Str::lower(trim((string) $value)), ['yes', 'true', '1'], true) ? 'yes' : 'no';
     }
 
     private function duplicateKey(array $lookup): string

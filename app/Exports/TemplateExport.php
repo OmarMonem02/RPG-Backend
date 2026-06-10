@@ -44,6 +44,7 @@ class TemplateExport implements WithMultipleSheets
                 ['Type', 'Name'],
                 ...Brand::where('type', 'products')->orderBy('name')->get(['name'])->map(fn ($row) => ['Brand', $row->name])->all(),
                 ...ProductCategory::orderBy('name')->get(['name'])->map(fn ($row) => ['Category', $row->name])->all(),
+                ...BikeBlueprint::with('brand')->orderBy('model')->orderBy('year')->get()->map(fn ($row) => ['Bike Blueprint', "{$row->brand?->name} | {$row->model} | {$row->year}"])->all(),
             ],
             'spare_parts' => [
                 ['Type', 'Name'],

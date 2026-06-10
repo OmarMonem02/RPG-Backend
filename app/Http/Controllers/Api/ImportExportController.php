@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\Response;
 
 class ImportExportController extends Controller
 {
@@ -26,7 +27,9 @@ class ImportExportController extends Controller
             . '_' . now()->format('Ymd_His')
             . ($format === ExcelFormat::CSV ? '.csv' : '.xlsx');
 
-        return Excel::download(new $config['export'](), $filename, $format);
+        $content = Excel::raw(new $config['export'](), $format);
+
+        return response($content, Response::HTTP_OK, $this->downloadHeaders($filename, $format));
     }
 
     public function import(Request $request, string $entity): JsonResponse
@@ -84,7 +87,9 @@ class ImportExportController extends Controller
             . '_template'
             . ($format === ExcelFormat::CSV ? '.csv' : '.xlsx');
 
-        return Excel::download(new TemplateExport($config['label'], $config['columns'], $entity), $filename, $format);
+        $content = Excel::raw(new TemplateExport($config['label'], $config['columns'], $entity), $format);
+
+        return response($content, Response::HTTP_OK, $this->downloadHeaders($filename, $format));
     }
 
     public function entities(): JsonResponse
@@ -98,6 +103,18 @@ class ImportExportController extends Controller
             'csv' => ExcelFormat::CSV,
             default => ExcelFormat::XLSX,
         };
+    }
+
+    /** @return array<string, string> */
+    private function downloadHeaders(string $filename, string $format): array
+    {
+        return [
+            'Content-Type' => $format === ExcelFormat::CSV
+                ? 'text/csv; charset=UTF-8'
+                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ];
     }
 
     private function runExcelImport(ProfessionalImport $importer, Request $request): void

@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Exports\Concerns\StylesProfessionalSheets;
-use App\Models\Brand;
+use App\Models\SparePartCategory;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -13,18 +13,18 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class BrandsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class SparePartCategoriesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use StylesProfessionalSheets;
 
     public function title(): string
     {
-        return 'Brands';
+        return 'Spare Part Categories';
     }
 
     public function collection()
     {
-        return Brand::query()->get();
+        return SparePartCategory::query()->get();
     }
 
     public function headings(): array
@@ -32,16 +32,14 @@ class BrandsExport implements FromCollection, WithHeadings, WithMapping, WithSty
         return [
             'ID',
             'Name',
-            'Type'
         ];
     }
 
-    public function map($brand): array
+    public function map($category): array
     {
         return [
-            $brand->id,
-            $brand->name,
-            $brand->type
+            $category->id,
+            $category->name,
         ];
     }
 

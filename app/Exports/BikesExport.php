@@ -5,7 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\BikeForSale;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -13,7 +13,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use StylesProfessionalSheets;
 
@@ -22,19 +22,18 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
         return 'Bikes For Sale';
     }
 
-    public function query()
+    public function collection()
     {
-        return BikeForSale::query()->with(['bikeBlueprint.brand']);
+        return BikeForSale::query()->with(['bikeBlueprint.brand'])->get();
     }
 
     public function headings(): array
     {
         return [
             'ID',
-            'Blueprint ID',
-            'Blueprint Model',
-            'Blueprint Year',
             'Brand Name',
+            'Model',
+            'Year',
             'VIN',
             'Mileage',
             'Status',
@@ -44,6 +43,7 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             'Max Discount Type',
             'Max Discount Value',
             'Notes',
+            'image',
         ];
     }
 
@@ -51,10 +51,9 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
     {
         return [
             $bike->id,
-            $bike->bike_blueprint_id,
+            $bike->bikeBlueprint?->brand?->name,
             $bike->bikeBlueprint?->model,
             $bike->bikeBlueprint?->year,
-            $bike->bikeBlueprint?->brand?->name,
             $bike->vin,
             $bike->mileage,
             $bike->status,
@@ -64,6 +63,7 @@ class BikesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             $bike->max_discount_type,
             $bike->max_discount_value,
             $bike->notes,
+            $bike->image,
         ];
     }
 

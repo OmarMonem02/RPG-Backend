@@ -5,7 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\SparePart;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -13,7 +13,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class SparePartsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use StylesProfessionalSheets;
 
@@ -22,9 +22,9 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         return 'Spare Parts';
     }
 
-    public function query()
+    public function collection()
     {
-        return SparePart::query()->with(['category', 'brand']);
+        return SparePart::query()->with(['category', 'brand', 'bikeBlueprints.brand'])->get();
     }
 
     public function headings(): array
@@ -36,24 +36,32 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Part Number',
             'Stock Quantity',
             'Low Stock Alarm',
-            'Category ID',
             'Category Name',
             'Currency Pricing',
             'Cost Price',
             'Sale Price',
-            'Brand ID',
             'Brand Name',
             'Max Discount Type',
             'Max Discount Value',
             'Universal',
             'Notes',
-            'Created At',
-            'Updated At',
+            'bike_blueprints',
+            'tags',
+            'image',
         ];
     }
 
     public function map($part): array
     {
+        $blueprints = $part->bikeBlueprints
+            ->map(fn ($bp) => trim(implode(' | ', array_filter([
+                $bp->brand?->name,
+                $bp->model,
+                $bp->year,
+            ]))))
+            ->filter()
+            ->implode('; ');
+
         return [
             $part->id,
             $part->name,
@@ -61,19 +69,18 @@ class SparePartsExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             $part->part_number,
             $part->stock_quantity,
             $part->low_stock_alarm,
-            $part->spare_parts_category_id,
             $part->category?->name,
             $part->currency_pricing,
             $part->cost_price,
             $part->sale_price,
-            $part->brand_id,
             $part->brand?->name,
             $part->max_discount_type,
             $part->max_discount_value,
             $part->universal ? 'Yes' : 'No',
             $part->notes,
-            $part->created_at?->format('Y-m-d H:i:s'),
-            $part->updated_at?->format('Y-m-d H:i:s'),
+            $blueprints,
+            $part->tags ? implode('; ', $part->tags) : null,
+            $part->image,
         ];
     }
 

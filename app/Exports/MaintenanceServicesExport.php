@@ -5,7 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\MaintenanceService;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -13,7 +13,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MaintenanceServicesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class MaintenanceServicesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use StylesProfessionalSheets;
 
@@ -22,9 +22,9 @@ class MaintenanceServicesExport implements FromQuery, WithHeadings, WithMapping,
         return 'Maintenance Services';
     }
 
-    public function query()
+    public function collection()
     {
-        return MaintenanceService::query()->with(['sector']);
+        return MaintenanceService::query()->with(['sector'])->get();
     }
 
     public function headings(): array

@@ -136,6 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Allow spare-part users to use compatibility cascading filters (brand -> model -> year)
     Route::get('/bike_blueprints/filter/models', [BikeBlueprintController::class, 'getModelsByBrand'])->middleware('any_permission:spare-parts,read,products,read');
     Route::get('/bike_blueprints/filter/years', [BikeBlueprintController::class, 'getYearsByBrandAndModel'])->middleware('any_permission:spare-parts,read,products,read');
+    Route::post('/bike_blueprints/bulk/create-by-range', [BikeBlueprintController::class, 'bulkCreateByYearRange'])->middleware('permission:bike-blueprints,create');
     Route::post('/bike_blueprints/bulk/assign-spare-parts', [BikeBlueprintController::class, 'bulkAssignSpareParts'])->middleware('permission:bike-blueprints,update');
     Route::get('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'getLinkedSpareParts'])->middleware('permission:bike-blueprints,read');
     Route::post('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'assignSpareParts'])->middleware('permission:bike-blueprints,update');

@@ -5,7 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\Product;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -13,7 +13,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use StylesProfessionalSheets;
 
@@ -22,9 +22,9 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
         return 'Products';
     }
 
-    public function query()
+    public function collection()
     {
-        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand']);
+        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand'])->get();
     }
 
     public function headings(): array
@@ -45,7 +45,9 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'Max Discount Value',
             'Universal',
             'Notes',
-            'Compatible Bike Blueprints',
+            'bike_blueprints',
+            'tags',
+            'image',
         ];
     }
 
@@ -77,6 +79,8 @@ class ProductsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             $product->universal ? 'Yes' : 'No',
             $product->notes,
             $blueprints,
+            $product->tags ? implode('; ', $product->tags) : null,
+            $product->image,
         ];
     }
 

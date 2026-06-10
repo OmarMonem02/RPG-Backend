@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignSparePartRequest;
 use App\Http\Requests\BikeBlueprintRequest;
+use App\Http\Requests\BulkCreateBikeBlueprintByYearRangeRequest;
 use App\Models\BikeBlueprint;
 use App\Models\SparePart;
 use App\Support\ApiCache;
@@ -64,6 +65,92 @@ class BikeBlueprintController extends Controller
         ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes']);
 
         return response()->json($blueprint->load('brand'), 201);
+    }
+
+    /**
+     * Bulk create bike blueprints for each year in a range.
+     * POST /api/bike_blueprints/bulk/create-by-range
+     *
+     * Request body:
+     * {
+     *   "brand_id": 1,
+     *   "model": "YZF R1",
+     *   "year_from": 2000,
+     *   "year_to": 2026
+     * }
+     */
+    public function bulkCreateByYearRange(BulkCreateBikeBlueprintByYearRangeRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $brandId = (int) $validated['brand_id'];
+        $model = trim($validated['model']);
+        $yearFrom = (int) $validated['year_from'];
+        $yearTo = (int) $validated['year_to'];
+
+        $created = [];
+        $restored = [];
+        $skipped = [];
+
+        for ($year = $yearFrom; $year <= $yearTo; $year++) {
+            $result = $this->upsertBlueprintForYear($brandId, $model, $year);
+
+            match ($result['action']) {
+                'created' => $created[] = $result['blueprint'],
+                'restored' => $restored[] = $result['blueprint'],
+                'skipped' => $skipped[] = ['year' => $year, 'reason' => $result['reason']],
+                default => null,
+            };
+        }
+
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'bikes']);
+
+        return response()->json([
+            'created' => collect($created)->map(fn (BikeBlueprint $bp) => $bp->load('brand')),
+            'restored' => collect($restored)->map(fn (BikeBlueprint $bp) => $bp->load('brand')),
+            'skipped' => $skipped,
+            'count_created' => count($created),
+            'count_restored' => count($restored),
+            'count_skipped' => count($skipped),
+        ], 201);
+    }
+
+    /**
+     * @return array{action: 'created'|'restored'|'skipped', blueprint?: BikeBlueprint, reason?: string}
+     */
+    private function upsertBlueprintForYear(int $brandId, string $model, int $year): array
+    {
+        $existing = BikeBlueprint::withTrashed()
+            ->where([
+                'brand_id' => $brandId,
+                'model' => $model,
+                'year' => $year,
+            ])
+            ->first();
+
+        if ($existing && ! $existing->trashed()) {
+            return [
+                'action' => 'skipped',
+                'reason' => 'already_exists',
+            ];
+        }
+
+        if ($existing) {
+            $existing->restore();
+
+            return [
+                'action' => 'restored',
+                'blueprint' => $existing,
+            ];
+        }
+
+        return [
+            'action' => 'created',
+            'blueprint' => BikeBlueprint::create([
+                'brand_id' => $brandId,
+                'model' => $model,
+                'year' => $year,
+            ]),
+        ];
     }
 
     /**
