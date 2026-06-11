@@ -102,7 +102,7 @@ class SparePart extends Model
     // Scopes
     public function scopeLowStock($query)
     {
-        return $query->where('stock_quantity', '<=', 'low_stock_alarm');
+        return $query->whereColumn('stock_quantity', '<=', 'low_stock_alarm');
     }
 
     public function scopeSearch($query, ?string $search)
