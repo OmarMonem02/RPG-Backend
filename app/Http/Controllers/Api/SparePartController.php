@@ -33,6 +33,7 @@ class SparePartController extends Controller
      * - bike_year_from: Filter by compatible bike year from
      * - bike_year_to: Filter by compatible bike year to
      * - low_stock: Show only low stock items (true/false)
+     * - tags: Comma-separated tag filters (partial match, AND logic)
      * - per_page: Items per page (default: 20)
      */
     public function index(Request $request): JsonResponse

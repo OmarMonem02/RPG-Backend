@@ -154,6 +154,14 @@ class InventoryTagsFilterTest extends TestCase
         $response->assertJsonPath('tags', ['Metallic']);
     }
 
+    public function test_parse_tags_query_param_accepts_comma_string_or_array(): void
+    {
+        $this->assertSame(['track', 'racing'], Product::parseTagsQueryParam('track,racing'));
+        $this->assertSame(['track', 'racing'], Product::parseTagsQueryParam(['track', 'racing']));
+        $this->assertNull(Product::parseTagsQueryParam(''));
+        $this->assertNull(Product::parseTagsQueryParam(null));
+    }
+
     public function test_search_includes_tags(): void
     {
         $productBrand = Brand::create(['name' => 'Product Brand', 'types' => ['products']]);
