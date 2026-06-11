@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CatalogPricingRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,9 +29,10 @@ class SparePartRequest extends FormRequest
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',
             'spare_parts_category_id' => 'required|integer|exists:spare_part_categories,id',
-            'currency_pricing' => ['required', Rule::in(config('currencies.supported'))],
+            'currency_pricing' => ['nullable', Rule::in(config('currencies.supported'))],
             'cost_price' => 'required|numeric|min:0',
-            'sale_price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0',
+            ...CatalogPricingRules::fieldRules(false),
             'brand_id' => 'required|integer|exists:brands,id',
             'max_discount_type' => 'required|in:fixed,percentage',
             'max_discount_value' => 'required|numeric|min:0',
@@ -56,6 +58,12 @@ class SparePartRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function (\Illuminate\Validation\Validator $validator): void {
+            CatalogPricingRules::validateMarginMode($validator);
+
+            if (($this->input('sale_price_mode') ?? 'manual') === 'manual' && ! $this->filled('sale_price')) {
+                $validator->errors()->add('sale_price', 'Sale price is required for manual sale pricing.');
+            }
+
             // Only enforce when client explicitly disables Universal Part
             if (! $this->has('universal') || $this->boolean('universal')) {
                 return;

@@ -385,7 +385,7 @@ class ImportRowProcessor
                 'stock_quantity' => (int) ($row['stock_quantity'] ?? 0),
                 'low_stock_alarm' => (int) ($row['low_stock_alarm'] ?? 0),
                 'products_category_id' => $resolved['products_category_id'] ?? null,
-                'currency_pricing' => $row['currency_pricing'] ?? null,
+                ...$this->pricingAttributes($row),
                 'cost_price' => $row['cost_price'] ?? null,
                 'sale_price' => $row['sale_price'] ?? null,
                 'brand_id' => $resolved['brand_id'] ?? null,
@@ -403,7 +403,7 @@ class ImportRowProcessor
                 'stock_quantity' => (int) ($row['stock_quantity'] ?? 0),
                 'low_stock_alarm' => (int) ($row['low_stock_alarm'] ?? 0),
                 'spare_parts_category_id' => $resolved['spare_parts_category_id'] ?? null,
-                'currency_pricing' => $row['currency_pricing'] ?? null,
+                ...$this->pricingAttributes($row),
                 'cost_price' => $row['cost_price'] ?? null,
                 'sale_price' => $row['sale_price'] ?? null,
                 'brand_id' => $resolved['brand_id'] ?? null,
@@ -427,7 +427,7 @@ class ImportRowProcessor
                 'vin' => $row['vin'],
                 'mileage' => $row['mileage'] ?? null,
                 'status' => $row['status'] ?? null,
-                'currency_pricing' => $row['currency_pricing'] ?? null,
+                ...$this->pricingAttributes($row),
                 'cost_price' => $row['cost_price'] ?? null,
                 'sale_price' => $row['sale_price'] ?? null,
                 'max_discount_type' => $row['max_discount_type'] ?? null,
@@ -648,6 +648,23 @@ class ImportRowProcessor
             'data' => $data,
             'issues' => $issues,
             ...$extra,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pricingAttributes(array $row): array
+    {
+        $legacyCurrency = $row['currency_pricing'] ?? $row['sale_currency'] ?? 'EGP';
+
+        return [
+            'currency_pricing' => $row['sale_currency'] ?? $legacyCurrency,
+            'cost_currency' => $row['cost_currency'] ?? $legacyCurrency,
+            'sale_currency' => $row['sale_currency'] ?? $legacyCurrency,
+            'sale_price_mode' => $row['sale_price_mode'] ?? 'manual',
+            'sale_margin_type' => $row['sale_margin_type'] ?? null,
+            'sale_margin_value' => $row['sale_margin_value'] ?? null,
         ];
     }
 

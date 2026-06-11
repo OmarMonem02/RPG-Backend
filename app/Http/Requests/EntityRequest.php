@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Setting;
 use App\Rules\UniqueNameCaseInsensitive;
+use App\Support\CatalogPricingRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -54,6 +55,7 @@ class EntityRequest extends FormRequest
                 'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
+                ...CatalogPricingRules::fieldRules($isUpdate),
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => ['nullable', 'numeric'],
                 'universal' => ['nullable', 'boolean'],
@@ -76,6 +78,7 @@ class EntityRequest extends FormRequest
                 'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
+                ...CatalogPricingRules::fieldRules($isUpdate),
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => ['nullable', 'numeric'],
                 'universal' => ['nullable', 'boolean'],
@@ -127,6 +130,7 @@ class EntityRequest extends FormRequest
                 'currency_pricing' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
                 'cost_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
                 'sale_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
+                ...CatalogPricingRules::fieldRules($isUpdate),
                 'status' => [$isUpdate ? 'nullable' : 'required', 'string'],
                 'max_discount_type' => [$isUpdate ? 'nullable' : 'required', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
@@ -199,11 +203,15 @@ class EntityRequest extends FormRequest
     {
         $entity = (string) $this->route('entity');
 
-        if ($entity !== 'products') {
-            return;
-        }
+        $validator->after(function (\Illuminate\Validation\Validator $validator) use ($entity): void {
+            if (in_array($entity, ['products', 'spare_parts', 'bike_for_sale'], true)) {
+                CatalogPricingRules::validateMarginMode($validator);
+            }
 
-        $validator->after(function (\Illuminate\Validation\Validator $validator): void {
+            if ($entity !== 'products') {
+                return;
+            }
+
             if (! $this->has('universal') || $this->boolean('universal')) {
                 return;
             }

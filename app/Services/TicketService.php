@@ -462,6 +462,8 @@ class TicketService
             ? (float) $catalog->service_price
             : (float) ($catalog->sale_price ?? 0);
 
-        return $this->convertAmountToEgp($price, (string) ($catalog->currency_pricing ?? 'EGP'));
+        $saleCurrency = (string) ($catalog->sale_currency ?? $catalog->currency_pricing ?? 'EGP');
+
+        return $this->convertAmountToEgp($price, $saleCurrency);
     }
 }

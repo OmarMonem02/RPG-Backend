@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasCatalogPricing;
 use App\Traits\HasInventoryTags;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasInventoryTags, LogsHistory, SoftDeletes;
+    use HasCatalogPricing, HasInventoryTags, LogsHistory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -22,8 +23,13 @@ class Product extends Model
         'low_stock_alarm',
         'products_category_id',
         'currency_pricing',
+        'cost_currency',
+        'sale_currency',
         'cost_price',
         'sale_price',
+        'sale_price_mode',
+        'sale_margin_type',
+        'sale_margin_value',
         'brand_id',
         'max_discount_type',
         'max_discount_value',
@@ -37,6 +43,7 @@ class Product extends Model
         'low_stock_alarm' => 'integer',
         'cost_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
+        'sale_margin_value' => 'decimal:2',
         'max_discount_value' => 'decimal:2',
         'universal' => 'boolean',
         'tags' => 'array',

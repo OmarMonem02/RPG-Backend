@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasCatalogPricing;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BikeForSale extends Model
 {
-    use LogsHistory, SoftDeletes;
+    use HasCatalogPricing, LogsHistory, SoftDeletes;
 
     protected $table = 'bike_for_sale';
 
@@ -18,8 +19,13 @@ class BikeForSale extends Model
         'image',
         'image_public_id',
         'currency_pricing',
+        'cost_currency',
+        'sale_currency',
         'cost_price',
         'sale_price',
+        'sale_price_mode',
+        'sale_margin_type',
+        'sale_margin_value',
         'status',
         'max_discount_type',
         'max_discount_value',

@@ -5,10 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SettingRequest;
 use App\Models\Setting;
+use App\Services\CatalogPricingService;
+use App\Services\ExchangeRatePricingService;
 use Illuminate\Http\JsonResponse;
 
 class SettingController extends Controller
 {
+    public function __construct(
+        private readonly CatalogPricingService $catalogPricing,
+        private readonly ExchangeRatePricingService $exchangeRatePricing,
+    ) {}
     private function formatSettingsPayload(): array
     {
         $settings = Setting::query()
@@ -30,6 +36,9 @@ class SettingController extends Controller
     public function update(SettingRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $oldRates = $this->catalogPricing->exchangeRates();
+        $rateKeys = ['exchange_rate', 'exchange_rate_eur'];
+        $ratesChanging = collect($rateKeys)->contains(fn (string $key) => array_key_exists($key, $validated));
 
         foreach ($validated as $key => $value) {
             Setting::query()->updateOrCreate(
@@ -38,6 +47,17 @@ class SettingController extends Controller
             );
         }
 
-        return response()->json($this->formatSettingsPayload());
+        $payload = $this->formatSettingsPayload();
+
+        if ($ratesChanging) {
+            $newRates = $this->catalogPricing->exchangeRates();
+            $payload['pricing_impact'] = $this->exchangeRatePricing->applyRateChange($newRates);
+            $payload['pricing_impact']['rates_changed'] = [
+                'usd' => ['from' => $oldRates['usd'], 'to' => $newRates['usd']],
+                'eur' => ['from' => $oldRates['eur'], 'to' => $newRates['eur']],
+            ];
+        }
+
+        return response()->json($payload);
     }
 }

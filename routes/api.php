@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\PricingAlarmsController;
 use App\Http\Controllers\Api\ProductBulkController;
 use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
@@ -217,6 +218,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/customers/{id}', [EntityController::class, 'update'])->defaults('entity', 'customers');
         Route::patch('/customers/{id}', [EntityController::class, 'update'])->defaults('entity', 'customers');
         Route::delete('/customers/{id}', [EntityController::class, 'destroy'])->defaults('entity', 'customers');
+
+        Route::get('/inventory/pricing-alarms', [PricingAlarmsController::class, 'index'])
+            ->middleware('any_permission:spare-parts,read,products,read,bikes,read');
+        Route::post('/inventory/pricing-alarms/preview', [PricingAlarmsController::class, 'preview'])
+            ->middleware('any_permission:spare-parts,read,products,read,bikes,read');
+        Route::post('/inventory/pricing-alarms/preview-rate-change', [PricingAlarmsController::class, 'previewRateChange'])
+            ->middleware('role:admin');
+        Route::post('/inventory/pricing-alarms/apply', [PricingAlarmsController::class, 'apply'])
+            ->middleware('any_permission:spare-parts,update,products,update,bikes,update');
 
         Route::get('/settings', [SettingController::class, 'index']);
         Route::put('/settings', [SettingController::class, 'update']);
