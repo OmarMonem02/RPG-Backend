@@ -135,12 +135,11 @@ class SparePartCachingTest extends TestCase
         return SparePart::query()->create([
             'name' => 'Cache Test Part',
             'sku' => $sku,
-            'image' => null,
             'part_number' => "PN-{$sku}",
             'stock_quantity' => $stock,
             'low_stock_alarm' => 3,
             'spare_parts_category_id' => $categoryId,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 100,
             'sale_price' => 120,
             'brand_id' => $brandId,

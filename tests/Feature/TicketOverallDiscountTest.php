@@ -205,7 +205,7 @@ class TicketOverallDiscountTest extends TestCase
         $sector = MaintenanceServiceSector::create(['name' => 'General']);
         $service = MaintenanceService::create([
             'name' => 'Inspection',
-            'currency_pricing' => 'USD',
+            'sale_currency' => 'USD',
             'service_price' => $subtotal,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 0,

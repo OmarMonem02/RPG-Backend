@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\BikeForSale;
+use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -11,7 +12,6 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
@@ -24,7 +24,7 @@ class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function collection()
     {
-        return BikeForSale::query()->with(['bikeBlueprint.brand'])->get();
+        return BikeForSale::query()->with(['bikeBlueprint.brand', 'images'])->get();
     }
 
     public function headings(): array
@@ -37,7 +37,6 @@ class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'VIN',
             'Mileage',
             'Status',
-            'Currency Pricing',
             'Cost Currency',
             'Sale Currency',
             'Cost Price',
@@ -48,12 +47,17 @@ class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'Max Discount Type',
             'Max Discount Value',
             'Notes',
-            'image',
+            'image_1',
+            'image_2',
+            'image_3',
+            'image_4',
         ];
     }
 
     public function map($bike): array
     {
+        $imageHelper = new ImportExportImageHelper();
+
         return [
             $bike->id,
             $bike->bikeBlueprint?->brand?->name,
@@ -62,7 +66,6 @@ class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $bike->vin,
             $bike->mileage,
             $bike->status,
-            $bike->currency_pricing,
             $bike->cost_currency,
             $bike->sale_currency,
             $bike->cost_price,
@@ -73,7 +76,7 @@ class BikesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $bike->max_discount_type,
             $bike->max_discount_value,
             $bike->notes,
-            $bike->image,
+            ...$imageHelper->exportImageColumns($bike->images),
         ];
     }
 

@@ -8,6 +8,7 @@ use App\Models\MaintenanceServiceSector;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SparePartCategory;
+use App\Services\InventoryImageService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
@@ -19,11 +20,19 @@ class ImportRowProcessor
     /** @var array<string, bool> */
     private array $seenDuplicateKeys = [];
 
+    public function __construct(
+        private readonly ImportExportImageHelper $imageHelper = new ImportExportImageHelper(),
+        private readonly InventoryImageService $imageService = new InventoryImageService(),
+    ) {}
+
     public function process(string $entity, array $definition, array $row, int $rowNumber, bool $persist): array
     {
         $row = $this->normalizeKeys($row);
         $row = $this->aliasColumnKeys($row, $definition['columns']);
         $row = $this->normalizeEntityRow($entity, $row);
+        if ($this->supportsImportImages($entity)) {
+            $row = $this->imageHelper->normalizeImportImageRow($row);
+        }
         $row = $this->normalizeRowValues($row, $definition['columns']);
         $issues = $this->validate($definition, $row, $rowNumber);
         $resolved = [];
@@ -72,6 +81,7 @@ class ImportRowProcessor
             $existing->restore();
             $existing->save();
             $this->syncRelated($entity, $existing, $related);
+            $this->syncImportImages($entity, $existing, $row);
 
             return $this->result($rowNumber, 'restored', 'success', $row, [], [
                 'action' => 'restore',
@@ -82,6 +92,7 @@ class ImportRowProcessor
         /** @var Model $created */
         $created = $modelClass::create($attributes);
         $this->syncRelated($entity, $created, $related);
+        $this->syncImportImages($entity, $created, $row);
 
         return $this->result($rowNumber, 'created', 'success', $row, [], [
             'action' => 'create',
@@ -394,7 +405,6 @@ class ImportRowProcessor
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
                 'tags' => $this->parseTagList($row['tags'] ?? null),
-                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'spare_parts' => [
                 'name' => $row['name'],
@@ -412,11 +422,10 @@ class ImportRowProcessor
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
                 'tags' => $this->parseTagList($row['tags'] ?? null),
-                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'maintenance_services' => [
                 'name' => $row['name'],
-                'currency_pricing' => $row['currency_pricing'] ?? null,
+                'sale_currency' => $row['sale_currency'] ?? null,
                 'service_price' => $row['service_price'] ?? null,
                 'max_discount_type' => $row['max_discount_type'] ?? null,
                 'max_discount_value' => $row['max_discount_value'] ?? null,
@@ -433,7 +442,6 @@ class ImportRowProcessor
                 'max_discount_type' => $row['max_discount_type'] ?? null,
                 'max_discount_value' => $row['max_discount_value'] ?? null,
                 'notes' => $row['notes'] ?? null,
-                ...$this->resolveImageAttributes($row['image'] ?? null),
             ],
             'bike_blueprints' => [
                 'brand_id' => $resolved['brand_id'],
@@ -466,6 +474,21 @@ class ImportRowProcessor
         if (in_array($entity, ['products', 'spare_parts'], true) && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
             $model->bikeBlueprints()->sync($related['bike_blueprint_ids']);
         }
+    }
+
+    private function syncImportImages(string $entity, Model $model, array $row): void
+    {
+        if (! $this->supportsImportImages($entity) || ! method_exists($model, 'images')) {
+            return;
+        }
+
+        $images = $this->imageHelper->imagesFromImportRow($row);
+        $this->imageService->syncImages($model, $images);
+    }
+
+    private function supportsImportImages(string $entity): bool
+    {
+        return in_array($entity, ['products', 'spare_parts', 'bikes'], true);
     }
 
     private function normalizeEntityRow(string $entity, array $row): array
@@ -518,51 +541,6 @@ class ImportRowProcessor
         unset($row['id']);
 
         return $row;
-    }
-
-    /** @return array{image: ?string, image_public_id: ?string} */
-    private function resolveImageAttributes(mixed $value): array
-    {
-        if ($value === null || trim((string) $value) === '') {
-            return [
-                'image' => null,
-                'image_public_id' => null,
-            ];
-        }
-
-        $image = trim((string) $value);
-
-        return [
-            'image' => $image,
-            'image_public_id' => $this->extractCloudinaryPublicId($image),
-        ];
-    }
-
-    private function extractCloudinaryPublicId(string $url): ?string
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-
-        if (! is_string($path) || ! str_contains($path, '/image/upload/')) {
-            return null;
-        }
-
-        $segments = explode('/', Str::after($path, '/image/upload/'));
-
-        if ($segments === []) {
-            return null;
-        }
-
-        if (isset($segments[0]) && preg_match('/^v\d+$/', $segments[0])) {
-            array_shift($segments);
-        }
-
-        while (isset($segments[0]) && (str_contains($segments[0], ',') || (str_contains($segments[0], '_') && ! str_contains($segments[0], '.')))) {
-            array_shift($segments);
-        }
-
-        $publicId = preg_replace('/\.[^.]+$/', '', implode('/', $segments));
-
-        return $publicId !== '' ? $publicId : null;
     }
 
     private function normalizeRowValues(array $row, array $columns): array
@@ -656,12 +634,11 @@ class ImportRowProcessor
      */
     private function pricingAttributes(array $row): array
     {
-        $legacyCurrency = $row['currency_pricing'] ?? $row['sale_currency'] ?? 'EGP';
+        $defaultCurrency = $row['sale_currency'] ?? $row['cost_currency'] ?? 'EGP';
 
         return [
-            'currency_pricing' => $row['sale_currency'] ?? $legacyCurrency,
-            'cost_currency' => $row['cost_currency'] ?? $legacyCurrency,
-            'sale_currency' => $row['sale_currency'] ?? $legacyCurrency,
+            'cost_currency' => $row['cost_currency'] ?? $defaultCurrency,
+            'sale_currency' => $row['sale_currency'] ?? $defaultCurrency,
             'sale_price_mode' => $row['sale_price_mode'] ?? 'manual',
             'sale_margin_type' => $row['sale_margin_type'] ?? null,
             'sale_margin_value' => $row['sale_margin_value'] ?? null,

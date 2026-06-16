@@ -404,7 +404,7 @@ class ReportingService
         }
 
         foreach (Product::query()->get() as $product) {
-            $currency = $product->currency_pricing;
+            $currency = $product->sale_currency;
             if (! isset($inventory[$currency])) {
                 continue;
             }
@@ -413,7 +413,7 @@ class ReportingService
         }
 
         foreach (SparePart::query()->get() as $sparePart) {
-            $currency = $sparePart->currency_pricing;
+            $currency = $sparePart->sale_currency;
             if (! isset($inventory[$currency])) {
                 continue;
             }
@@ -422,7 +422,7 @@ class ReportingService
         }
 
         foreach (BikeForSale::query()->where('status', '!=', 'sold')->get() as $bike) {
-            $currency = $bike->currency_pricing;
+            $currency = $bike->sale_currency;
             if (! isset($inventory[$currency])) {
                 continue;
             }
@@ -563,10 +563,10 @@ class ReportingService
     private function resolveItemCurrency(SaleItem $item): ?string
     {
         return match (true) {
-            $item->product !== null => $item->product->currency_pricing,
-            $item->sparePart !== null => $item->sparePart->currency_pricing,
-            $item->maintenanceService !== null => $item->maintenanceService->currency_pricing,
-            $item->bikeForSale !== null => $item->bikeForSale->currency_pricing,
+            $item->product !== null => $item->product->sale_currency,
+            $item->sparePart !== null => $item->sparePart->sale_currency,
+            $item->maintenanceService !== null => $item->maintenanceService->sale_currency,
+            $item->bikeForSale !== null => $item->bikeForSale->sale_currency,
             default => null,
         };
     }

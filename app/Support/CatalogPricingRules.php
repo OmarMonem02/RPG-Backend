@@ -34,8 +34,8 @@ class CatalogPricingRules
             return;
         }
 
-        $costCurrency = strtoupper((string) ($validator->getData()['cost_currency'] ?? $validator->getData()['currency_pricing'] ?? 'EGP'));
-        $saleCurrency = strtoupper((string) ($validator->getData()['sale_currency'] ?? $validator->getData()['currency_pricing'] ?? 'EGP'));
+        $costCurrency = strtoupper((string) ($validator->getData()['cost_currency'] ?? 'EGP'));
+        $saleCurrency = strtoupper((string) ($validator->getData()['sale_currency'] ?? 'EGP'));
 
         if (! in_array($costCurrency, ['USD', 'EUR'], true)) {
             $validator->errors()->add(

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCatalogPricing;
+use App\Traits\HasInventoryImages;
 use App\Traits\HasInventoryTags;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,20 +11,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
 {
-    use HasCatalogPricing, HasInventoryTags, LogsHistory, SoftDeletes;
+    use HasCatalogPricing, HasInventoryImages, HasInventoryTags, LogsHistory, SoftDeletes;
 
     protected $table = 'spare_parts';
 
     protected $fillable = [
         'name',
         'sku',
-        'image',
-        'image_public_id',
         'part_number',
         'stock_quantity',
         'low_stock_alarm',
         'spare_parts_category_id',
-        'currency_pricing',
         'cost_currency',
         'sale_currency',
         'cost_price',
@@ -86,7 +84,7 @@ class SparePart extends Model
             $array['bike_blueprint_ids'] = $this->bikeBlueprints->pluck('id')->values()->all();
         }
 
-        return $array;
+        return $this->appendInventoryImagesToArray($array);
     }
 
     public function saleItems()
@@ -148,7 +146,7 @@ class SparePart extends Model
 
     public function scopeByCurrency($query, ?string $currency)
     {
-        return $currency ? $query->where('currency_pricing', $currency) : $query;
+        return $currency ? $query->where('sale_currency', $currency) : $query;
     }
 
     public function scopeByBikeBrand($query, ?int $bikeBrandId)

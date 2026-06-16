@@ -66,9 +66,9 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Ready",
-                "Helmet B,SKU-200,P-200,4,1,Missing Category,EGP,100,150,{$brand->name},fixed,0,no,Bad reference",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+                "Helmet B,SKU-200,P-200,4,1,Missing Category,EGP,EGP,100,150,{$brand->name},fixed,0,no,Bad reference",
             ])),
         ]);
 
@@ -89,9 +89,9 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Ready",
-                "Helmet B,SKU-200,P-200,4,1,Missing Category,EGP,100,150,{$brand->name},fixed,0,no,Bad reference",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+                "Helmet B,SKU-200,P-200,4,1,Missing Category,EGP,EGP,100,150,{$brand->name},fixed,0,no,Bad reference",
             ])),
         ]);
 
@@ -112,7 +112,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
             'sku' => 'EXPORT-SKU-1',
             'products_category_id' => $category->id,
             'brand_id' => $brand->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 10,
             'sale_price' => 20,
             'max_discount_type' => 'fixed',
@@ -150,18 +150,24 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,tags,image',
-                "Helmet A,SKU-TAGS,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Ready,Matte Black; High Load,https://example.com/helmet.jpg",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,tags,image',
+                "Helmet A,SKU-TAGS,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,Ready,Matte Black; High Load,https://example.com/helmet.jpg",
             ])),
         ]);
 
         $response->assertOk()->assertJsonPath('created_count', 1);
 
-        $product = Product::where('sku', 'SKU-TAGS')->first();
+        $product = Product::with('images')->where('sku', 'SKU-TAGS')->first();
         $this->assertNotNull($product);
         $this->assertSame(['Matte Black', 'High Load'], $product->tags);
         $this->assertSame('https://example.com/helmet.jpg', $product->image);
         $this->assertNull($product->image_public_id);
+        $this->assertDatabaseHas('inventory_images', [
+            'imageable_type' => Product::class,
+            'imageable_id' => $product->id,
+            'url' => 'https://example.com/helmet.jpg',
+            'is_primary' => true,
+        ]);
     }
 
     public function test_spare_parts_import_persists_image_from_export_style_headers(): void
@@ -172,17 +178,23 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/spare_parts/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,image_url',
-                "Brake Pad,SP-IMG-1,P-1,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,no,Ready,{$imageUrl}",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,image_url',
+                "Brake Pad,SP-IMG-1,P-1,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,no,Ready,{$imageUrl}",
             ])),
         ]);
 
         $response->assertOk()->assertJsonPath('created_count', 1);
 
-        $part = SparePart::where('sku', 'SP-IMG-1')->first();
+        $part = SparePart::with('images')->where('sku', 'SP-IMG-1')->first();
         $this->assertNotNull($part);
         $this->assertSame($imageUrl, $part->image);
         $this->assertSame('rpg-system/spare-parts/sample-part', $part->image_public_id);
+        $this->assertDatabaseHas('inventory_images', [
+            'imageable_type' => SparePart::class,
+            'imageable_id' => $part->id,
+            'url' => $imageUrl,
+            'is_primary' => true,
+        ]);
     }
 
     public function test_bike_import_rejects_invalid_status(): void
@@ -192,8 +204,8 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/bikes/parse', [
             'file' => $this->csvUpload(implode("\n", [
-                'brand_name,model,year,vin,mileage,status,currency_pricing,cost_price,sale_price,max_discount_type,max_discount_value,notes',
-                'Yamaha,R1,2024,VIN-INVALID,100,scrapped,EGP,1000,1500,fixed,0,Bad status',
+                'brand_name,model,year,vin,mileage,status,cost_currency,sale_currency,cost_price,sale_price,max_discount_type,max_discount_value,notes',
+                'Yamaha,R1,2024,VIN-INVALID,100,scrapped,EGP,EGP,1000,1500,fixed,0,Bad status',
             ])),
         ]);
 
@@ -303,7 +315,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
             'stock_quantity' => 20,
             'low_stock_alarm' => 1,
             'category_name' => $category->name,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 210,
             'sale_price' => 250,
             'brand_name' => $brand->name,
@@ -340,7 +352,7 @@ class ImportExportProfessionalWorkflowTest extends TestCase
             'stock_quantity' => 1,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $category->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 10,
             'sale_price' => 20,
             'brand_id' => $brand->id,
@@ -395,8 +407,8 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,Missing Brand,fixed,0,yes,Ready",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,Missing Brand,fixed,0,yes,Ready",
             ])),
         ]);
 
@@ -415,8 +427,8 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
             ])),
         ]);
 
@@ -433,8 +445,8 @@ class ImportExportProfessionalWorkflowTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/products/parse', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,Missing Category,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,Missing Category,EGP,EGP,100,150,{$brand->name},fixed,0,yes,Ready",
             ])),
         ]);
 

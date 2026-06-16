@@ -48,7 +48,6 @@ class CatalogPricingTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('sale_price', '550.00');
-        $response->assertJsonPath('currency_pricing', 'EGP');
         $response->assertJsonPath('sale_currency', 'EGP');
     }
 
@@ -61,7 +60,6 @@ class CatalogPricingTest extends TestCase
             'brand_id' => $this->createBrand('products'),
             'stock_quantity' => 1,
             'low_stock_alarm' => 0,
-            'currency_pricing' => 'EGP',
             'cost_currency' => 'USD',
             'sale_currency' => 'EGP',
             'cost_price' => 10,
@@ -94,7 +92,6 @@ class CatalogPricingTest extends TestCase
             'brand_id' => $this->createBrand('products'),
             'stock_quantity' => 1,
             'low_stock_alarm' => 0,
-            'currency_pricing' => 'EGP',
             'cost_currency' => 'USD',
             'sale_currency' => 'EGP',
             'cost_price' => 10,

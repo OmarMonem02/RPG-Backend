@@ -21,6 +21,7 @@ use App\Models\SparePartCategory;
 use App\Models\TicketItem;
 use App\Models\Setting;
 use App\Models\TicketTask;
+use App\Services\InventoryImageService;
 use App\Support\ApiCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -30,6 +31,10 @@ class EntityController extends Controller
 {
     private const LIST_TTL_SECONDS = 1800;
     private const DETAIL_TTL_SECONDS = 3600;
+
+    public function __construct(
+        private readonly InventoryImageService $inventoryImageService,
+    ) {}
 
     private function resolve(string $entity): Model
     {
@@ -126,7 +131,7 @@ class EntityController extends Controller
                         $bikeYearTo ? (int) $bikeYearTo : null
                     );
                 }
-                $query = $query->with(['category', 'brand', 'bikeBlueprints']);
+                $query = $query->with(['category', 'brand', 'bikeBlueprints', 'images']);
                 break;
 
             case 'spare_part_categories':
@@ -150,6 +155,7 @@ class EntityController extends Controller
                 if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($blueprintId) $query = $query->byBlueprint($blueprintId);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
+                $query = $query->with('images');
                 break;
 
             case 'bike_blueprints':
@@ -216,7 +222,18 @@ class EntityController extends Controller
             unset($validated['bike_blueprint_ids']);
         }
 
+        $images = null;
+        if ($this->supportsInventoryImages($entity) && array_key_exists('images', $validated)) {
+            $images = $validated['images'];
+            unset($validated['images']);
+        }
+
         $record = $model->newQuery()->create($validated);
+
+        if ($images !== null) {
+            $this->inventoryImageService->syncImages($record, $images);
+            $record->load('images');
+        }
 
         if ($entity === 'products' && ! empty($bikeBlueprintIds)) {
             $record->bikeBlueprints()->attach($bikeBlueprintIds);
@@ -237,7 +254,8 @@ class EntityController extends Controller
 
         $includes = match ($entity) {
             'customer_bikes' => ['bikeBlueprint.brand'],
-            'products' => ['category', 'brand', 'bikeBlueprints'],
+            'products' => ['category', 'brand', 'bikeBlueprints', 'images'],
+            'bike_for_sale' => ['images'],
             default => [],
         };
 
@@ -285,14 +303,26 @@ class EntityController extends Controller
             unset($data['bike_blueprint_ids']);
         }
 
+        $images = null;
+        if ($this->supportsInventoryImages($entity) && array_key_exists('images', $data)) {
+            $images = $data['images'];
+            unset($data['images']);
+        }
+
         \Illuminate\Support\Facades\Log::info("Updating {$entity} record", ['id' => $record->id, 'data' => $data]);
 
         $record->fill($data);
         $saved = $record->save();
 
+        if ($images !== null) {
+            $this->inventoryImageService->syncImages($record, $images);
+        }
+
         if ($entity === 'products' && $bikeBlueprintIds !== null) {
             $record->bikeBlueprints()->sync($bikeBlueprintIds);
-            $record->load(['category', 'brand', 'bikeBlueprints']);
+            $record->load(['category', 'brand', 'bikeBlueprints', 'images']);
+        } elseif ($this->supportsInventoryImages($entity)) {
+            $record->load('images');
         }
 
         \Illuminate\Support\Facades\Log::info("Save result", ['saved' => $saved, 'changes' => $record->getChanges()]);
@@ -338,6 +368,11 @@ class EntityController extends Controller
             'maintenance_services' => 'services',
             default => null,
         };
+    }
+
+    private function supportsInventoryImages(string $entity): bool
+    {
+        return in_array($entity, ['products', 'bike_for_sale'], true);
     }
 }
 

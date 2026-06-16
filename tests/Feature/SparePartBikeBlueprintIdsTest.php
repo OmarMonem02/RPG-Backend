@@ -25,7 +25,7 @@ class SparePartBikeBlueprintIdsTest extends TestCase
             'sku' => 'SKU-BP-IDS',
             'brand_id' => $spareBrand->id,
             'spare_parts_category_id' => $category->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 10,
             'sale_price' => 20,
             'max_discount_type' => 'fixed',

@@ -55,7 +55,7 @@ class SellerMonthlyHistoryTest extends TestCase
             'products_category_id' => $category->id,
             'stock_quantity' => 100,
             'low_stock_alarm' => 1,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 50,
             'sale_price' => 100,
             'max_discount_type' => 'fixed',

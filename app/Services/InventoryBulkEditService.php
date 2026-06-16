@@ -188,7 +188,7 @@ class InventoryBulkEditService
             'id' => (int) $record->getAttribute('id'),
             'name' => (string) $record->getAttribute('name'),
             'sku' => (string) $record->getAttribute('sku'),
-            'currency_pricing' => (string) $record->getAttribute('currency_pricing'),
+            'sale_currency' => (string) $record->getAttribute('sale_currency'),
             'before' => $before,
             'after' => $after,
             'changed_fields' => $changedFields,

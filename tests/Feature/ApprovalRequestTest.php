@@ -64,7 +64,7 @@ class ApprovalRequestTest extends TestCase
             'stock_quantity' => 10,
             'low_stock_alarm' => 1,
             'products_category_id' => $category->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 100,
             'sale_price' => 200,
             'brand_id' => $brand->id,

@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\SparePart;
+use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -11,7 +12,6 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SparePartsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
@@ -24,7 +24,7 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
 
     public function collection()
     {
-        return SparePart::query()->with(['category', 'brand', 'bikeBlueprints.brand'])->get();
+        return SparePart::query()->with(['category', 'brand', 'bikeBlueprints.brand', 'images'])->get();
     }
 
     public function headings(): array
@@ -37,7 +37,6 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             'Stock Quantity',
             'Low Stock Alarm',
             'Category Name',
-            'Currency Pricing',
             'Cost Currency',
             'Sale Currency',
             'Cost Price',
@@ -52,7 +51,10 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             'Notes',
             'bike_blueprints',
             'tags',
-            'image',
+            'image_1',
+            'image_2',
+            'image_3',
+            'image_4',
         ];
     }
 
@@ -67,6 +69,8 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             ->filter()
             ->implode('; ');
 
+        $imageHelper = new ImportExportImageHelper();
+
         return [
             $part->id,
             $part->name,
@@ -75,7 +79,6 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             $part->stock_quantity,
             $part->low_stock_alarm,
             $part->category?->name,
-            $part->currency_pricing,
             $part->cost_currency,
             $part->sale_currency,
             $part->cost_price,
@@ -90,7 +93,7 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             $part->notes,
             $blueprints,
             $part->tags ? implode('; ', $part->tags) : null,
-            $part->image,
+            ...$imageHelper->exportImageColumns($part->images),
         ];
     }
 

@@ -92,7 +92,6 @@ class ExchangeRatePricingService
                     (string) $item->sale_currency,
                     $newRates,
                 );
-                $item->currency_pricing = $item->sale_currency;
                 $item->save();
                 $marginUpdated++;
 
@@ -158,7 +157,6 @@ class ExchangeRatePricingService
             }
 
             $item->sale_price = $this->pricing->suggestSalePrice($item, $rates);
-            $item->currency_pricing = $item->sale_currency;
             $item->save();
             $count++;
             $updated[] = $this->pricing->itemToAlarmPayload($item, (string) $selection['item_type'], $rates);

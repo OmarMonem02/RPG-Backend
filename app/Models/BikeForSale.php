@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCatalogPricing;
+use App\Traits\HasInventoryImages;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,15 +11,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BikeForSale extends Model
 {
-    use HasCatalogPricing, LogsHistory, SoftDeletes;
+    use HasCatalogPricing, HasInventoryImages, LogsHistory, SoftDeletes;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray()
+    {
+        return $this->appendInventoryImagesToArray(parent::toArray());
+    }
 
     protected $table = 'bike_for_sale';
 
     protected $fillable = [
         'bike_blueprint_id',
-        'image',
-        'image_public_id',
-        'currency_pricing',
         'cost_currency',
         'sale_currency',
         'cost_price',
@@ -76,6 +82,6 @@ class BikeForSale extends Model
 
     public function scopeByCurrency($query, ?string $currency)
     {
-        return $currency ? $query->where('currency_pricing', $currency) : $query;
+        return $currency ? $query->where('sale_currency', $currency) : $query;
     }
 }

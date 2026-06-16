@@ -13,7 +13,7 @@ class MaintenanceService extends Model
 
     protected $fillable = [
         'name',
-        'currency_pricing',
+        'sale_currency',
         'service_price',
         'max_discount_type',
         'max_discount_value',
@@ -54,6 +54,6 @@ class MaintenanceService extends Model
 
     public function scopeByCurrency($query, ?string $currency)
     {
-        return $currency ? $query->where('currency_pricing', $currency) : $query;
+        return $currency ? $query->where('sale_currency', $currency) : $query;
     }
 }

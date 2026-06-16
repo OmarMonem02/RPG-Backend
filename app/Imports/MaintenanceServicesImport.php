@@ -25,7 +25,7 @@ class MaintenanceServicesImport implements ToModel, WithHeadingRow, WithValidati
         ];
         $fillAttributes = [
             'name' => $row['name'] ?? null,
-            'currency_pricing' => $row['currency_pricing'] ?? null,
+            'sale_currency' => $row['sale_currency'] ?? 'EGP',
             'service_price' => $row['service_price'] ?? null,
             'max_discount_type' => $row['max_discount_type'] ?? null,
             'max_discount_value' => $row['max_discount_value'] ?? null,
@@ -64,7 +64,7 @@ class MaintenanceServicesImport implements ToModel, WithHeadingRow, WithValidati
 
         return new MaintenanceService([
             'name'                           => $row['name'] ?? null,
-            'currency_pricing'               => $row['currency_pricing'] ?? null,
+            'sale_currency'                  => $row['sale_currency'] ?? 'EGP',
             'service_price'                  => $row['service_price'] ?? null,
             'max_discount_type'              => $row['max_discount_type'] ?? null,
             'max_discount_value'             => $row['max_discount_value'] ?? null,

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Support\CatalogPricingRules;
+use App\Support\InventoryImageRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,13 +24,10 @@ class SparePartRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'sku' => ['required', 'string', 'max:255', Rule::unique('spare_parts', 'sku')->ignore($id)],
-            'image' => 'nullable|string|url',
-            'image_public_id' => ['nullable', 'string', 'max:255'],
             'part_number' => ['nullable', 'string', 'max:255', Rule::unique('spare_parts', 'part_number')->ignore($id)],
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',
             'spare_parts_category_id' => 'required|integer|exists:spare_part_categories,id',
-            'currency_pricing' => ['nullable', Rule::in(config('currencies.supported'))],
             'cost_price' => 'required|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             ...CatalogPricingRules::fieldRules(false),
@@ -42,6 +40,7 @@ class SparePartRequest extends FormRequest
             'tags.*' => 'string|max:100',
             'bike_blueprint_ids' => 'array|nullable',
             'bike_blueprint_ids.*' => 'integer|exists:bike_blueprints,id',
+            ...InventoryImageRules::fieldRules(),
         ];
     }
 
@@ -59,6 +58,7 @@ class SparePartRequest extends FormRequest
     {
         $validator->after(function (\Illuminate\Validation\Validator $validator): void {
             CatalogPricingRules::validateMarginMode($validator);
+            InventoryImageRules::validatePrimarySelection($validator);
 
             if (($this->input('sale_price_mode') ?? 'manual') === 'manual' && ! $this->filled('sale_price')) {
                 $validator->errors()->add('sale_price', 'Sale price is required for manual sale pricing.');

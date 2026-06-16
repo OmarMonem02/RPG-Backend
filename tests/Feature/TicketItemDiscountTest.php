@@ -52,7 +52,7 @@ class TicketItemDiscountTest extends TestCase
         $sector = MaintenanceServiceSector::create(['name' => 'General']);
         $service = MaintenanceService::create([
             'name' => 'Brake bleed',
-            'currency_pricing' => 'EGP',
+            'sale_currency' => 'EGP',
             'service_price' => 200,
             'max_discount_type' => 'percentage',
             'max_discount_value' => 10,
@@ -109,7 +109,7 @@ class TicketItemDiscountTest extends TestCase
         $sector = MaintenanceServiceSector::create(['name' => 'General']);
         $service = MaintenanceService::create([
             'name' => 'Chain lube',
-            'currency_pricing' => 'EGP',
+            'sale_currency' => 'EGP',
             'service_price' => 50,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 10,
@@ -156,7 +156,7 @@ class TicketItemDiscountTest extends TestCase
         $sector = MaintenanceServiceSector::create(['name' => 'General']);
         $service = MaintenanceService::create([
             'name' => 'Tune up',
-            'currency_pricing' => 'EGP',
+            'sale_currency' => 'EGP',
             'service_price' => 100,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 5,

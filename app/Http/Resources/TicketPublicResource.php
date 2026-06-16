@@ -106,7 +106,7 @@ class TicketPublicResource extends JsonResource
             'unit_price' => (float) $item->price_snapshot,
             'discount' => (float) $item->discount,
             'subtotal' => (float) $item->subtotal,
-            'currency_pricing' => $catalog?->currency_pricing ?? 'EGP',
+            'sale_currency' => $catalog?->sale_currency ?? 'EGP',
             'catalog_unit_price' => $catalogUnitPrice,
         ];
     }

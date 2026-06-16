@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Setting;
 use App\Rules\UniqueNameCaseInsensitive;
 use App\Support\CatalogPricingRules;
+use App\Support\InventoryImageRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -45,14 +46,11 @@ class EntityRequest extends FormRequest
             'products' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
                 'sku' => [$isUpdate ? 'nullable' : 'required', 'string', Rule::unique('products', 'sku')->ignore($id)],
-                'image' => ['nullable', 'url'],
-                'image_public_id' => ['nullable', 'string', 'max:255'],
                 'part_number' => ['nullable', 'string'],
                 'products_category_id' => [$isUpdate ? 'nullable' : 'required', 'exists:product_categories,id'],
                 'brand_id' => [$isUpdate ? 'nullable' : 'required', 'exists:brands,id'],
                 'stock_quantity' => ['nullable', 'numeric'],
                 'low_stock_alarm' => ['nullable', 'numeric'],
-                'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
                 ...CatalogPricingRules::fieldRules($isUpdate),
@@ -64,18 +62,16 @@ class EntityRequest extends FormRequest
                 'tags.*' => ['string', 'max:100'],
                 'bike_blueprint_ids' => ['nullable', 'array'],
                 'bike_blueprint_ids.*' => ['exists:bike_blueprints,id'],
+                ...InventoryImageRules::fieldRules(),
             ],
             'spare_parts' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
                 'sku' => [$isUpdate ? 'nullable' : 'required', 'string', Rule::unique('spare_parts', 'sku')->ignore($id)],
-                'image' => ['nullable', 'url'],
-                'image_public_id' => ['nullable', 'string', 'max:255'],
                 'spare_parts_category_id' => [$isUpdate ? 'nullable' : 'required', 'exists:spare_part_categories,id'],
                 'brand_id' => [$isUpdate ? 'nullable' : 'required', 'exists:brands,id'],
                 'part_number' => ['nullable', 'string'],
                 'stock_quantity' => ['nullable', 'numeric'],
                 'low_stock_alarm' => ['nullable', 'numeric'],
-                'currency_pricing' => ['nullable', 'string', ...$currencyIn],
                 'cost_price' => ['nullable', 'numeric'],
                 'sale_price' => ['nullable', 'numeric'],
                 ...CatalogPricingRules::fieldRules($isUpdate),
@@ -112,7 +108,7 @@ class EntityRequest extends FormRequest
             ],
             'maintenance_services' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
-                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
+                'sale_currency' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
                 'service_price' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
                 'max_discount_type' => [$isUpdate ? 'nullable' : 'required', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
@@ -125,9 +121,6 @@ class EntityRequest extends FormRequest
             ],
             'bike_for_sale' => [
                 'bike_blueprint_id' => [$isUpdate ? 'nullable' : 'required', 'exists:bike_blueprints,id'],
-                'image' => ['nullable', 'url'],
-                'image_public_id' => ['nullable', 'string', 'max:255'],
-                'currency_pricing' => [$isUpdate ? 'nullable' : 'required', 'string', ...$currencyIn],
                 'cost_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
                 'sale_price' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
                 ...CatalogPricingRules::fieldRules($isUpdate),
@@ -137,6 +130,7 @@ class EntityRequest extends FormRequest
                 'vin' => [$isUpdate ? 'nullable' : 'required', Rule::unique('bike_for_sale', 'vin')->ignore($id)],
                 'mileage' => ['nullable', 'integer', 'min:0'],
                 'notes' => ['nullable', 'string'],
+                ...InventoryImageRules::fieldRules(),
             ],
             'customer_bikes' => [
                 'customer_id' => [$isUpdate ? 'nullable' : 'required', 'exists:customers,id'],
@@ -206,6 +200,10 @@ class EntityRequest extends FormRequest
         $validator->after(function (\Illuminate\Validation\Validator $validator) use ($entity): void {
             if (in_array($entity, ['products', 'spare_parts', 'bike_for_sale'], true)) {
                 CatalogPricingRules::validateMarginMode($validator);
+            }
+
+            if (in_array($entity, ['products', 'bike_for_sale'], true)) {
+                InventoryImageRules::validatePrimarySelection($validator);
             }
 
             if ($entity !== 'products') {

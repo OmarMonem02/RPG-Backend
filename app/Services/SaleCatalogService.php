@@ -78,7 +78,7 @@ class SaleCatalogService
         }
 
         if (! empty($filters['currency'])) {
-            $query->where('currency_pricing', strtoupper($filters['currency']));
+            $query->where('sale_currency', strtoupper($filters['currency']));
         }
 
         if (array_key_exists('price_min', $filters) && $filters['price_min'] !== null) {
@@ -113,7 +113,7 @@ class SaleCatalogService
                 'display_name' => $product->name,
                 'sku_or_vin' => $product->sku,
                 'sale_price' => (float) $product->sale_price,
-                'currency_pricing' => $product->currency_pricing,
+                'sale_currency' => $product->sale_currency,
                 'stock_quantity' => (int) $product->stock_quantity,
                 'is_available' => (int) $product->stock_quantity > 0,
                 'brand' => $product->brand ? ['id' => $product->brand->id, 'name' => $product->brand->name] : null,
@@ -156,7 +156,7 @@ class SaleCatalogService
         }
 
         if (! empty($filters['currency'])) {
-            $query->where('currency_pricing', strtoupper($filters['currency']));
+            $query->where('sale_currency', strtoupper($filters['currency']));
         }
 
         if (array_key_exists('price_min', $filters) && $filters['price_min'] !== null) {
@@ -191,7 +191,7 @@ class SaleCatalogService
                 'display_name' => $part->name,
                 'sku_or_vin' => $part->sku,
                 'sale_price' => (float) $part->sale_price,
-                'currency_pricing' => $part->currency_pricing,
+                'sale_currency' => $part->sale_currency,
                 'stock_quantity' => (int) $part->stock_quantity,
                 'is_available' => (int) $part->stock_quantity > 0,
                 'brand' => $part->brand ? ['id' => $part->brand->id, 'name' => $part->brand->name] : null,
@@ -234,7 +234,7 @@ class SaleCatalogService
         }
 
         if (! empty($filters['currency'])) {
-            $query->where('currency_pricing', strtoupper($filters['currency']));
+            $query->where('sale_currency', strtoupper($filters['currency']));
         }
 
         if (! empty($filters['status'])) {
@@ -260,7 +260,7 @@ class SaleCatalogService
                 'display_name' => trim(($bike->bikeBlueprint?->brand?->name ?? '') . ' ' . ($bike->bikeBlueprint?->model ?? 'Bike')),
                 'sku_or_vin' => $bike->vin,
                 'sale_price' => (float) $bike->sale_price,
-                'currency_pricing' => $bike->currency_pricing,
+                'sale_currency' => $bike->sale_currency,
                 'stock_quantity' => 1,
                 'is_available' => $bike->status === 'available',
                 'brand' => $bike->bikeBlueprint?->brand ? ['id' => $bike->bikeBlueprint->brand->id, 'name' => $bike->bikeBlueprint->brand->name] : null,
@@ -295,7 +295,7 @@ class SaleCatalogService
         }
 
         if (! empty($filters['currency'])) {
-            $query->where('currency_pricing', strtoupper($filters['currency']));
+            $query->where('sale_currency', strtoupper($filters['currency']));
         }
 
         if (array_key_exists('price_min', $filters) && $filters['price_min'] !== null) {
@@ -312,7 +312,7 @@ class SaleCatalogService
             'display_name' => $service->name,
             'sku_or_vin' => null,
             'sale_price' => (float) $service->service_price,
-            'currency_pricing' => $service->currency_pricing,
+            'sale_currency' => $service->sale_currency,
             'stock_quantity' => null,
             'is_available' => true,
             'brand' => null,

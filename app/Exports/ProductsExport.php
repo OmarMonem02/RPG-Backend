@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\Product;
+use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -11,7 +12,6 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
@@ -24,7 +24,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function collection()
     {
-        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand'])->get();
+        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand', 'images'])->get();
     }
 
     public function headings(): array
@@ -37,7 +37,6 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Stock Quantity',
             'Low Stock Alarm',
             'Category Name',
-            'Currency Pricing',
             'Cost Currency',
             'Sale Currency',
             'Cost Price',
@@ -52,7 +51,10 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Notes',
             'bike_blueprints',
             'tags',
-            'image',
+            'image_1',
+            'image_2',
+            'image_3',
+            'image_4',
         ];
     }
 
@@ -67,6 +69,8 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             ->filter()
             ->implode('; ');
 
+        $imageHelper = new ImportExportImageHelper();
+
         return [
             $product->id,
             $product->name,
@@ -75,7 +79,6 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $product->stock_quantity,
             $product->low_stock_alarm,
             $product->category?->name,
-            $product->currency_pricing,
             $product->cost_currency,
             $product->sale_currency,
             $product->cost_price,
@@ -90,7 +93,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $product->notes,
             $blueprints,
             $product->tags ? implode('; ', $product->tags) : null,
-            $product->image,
+            ...$imageHelper->exportImageColumns($product->images),
         ];
     }
 

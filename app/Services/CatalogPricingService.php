@@ -76,13 +76,13 @@ class CatalogPricingService
     {
         $costEgp = $this->costInEgp(
             (float) $item->cost_price,
-            (string) ($item->cost_currency ?? $item->currency_pricing ?? 'EGP'),
+            (string) ($item->cost_currency ?? 'EGP'),
             $rates,
         );
 
         $saleEgp = $this->saleInEgp(
             (float) $item->sale_price,
-            (string) ($item->sale_currency ?? $item->currency_pricing ?? 'EGP'),
+            (string) ($item->sale_currency ?? 'EGP'),
             $rates,
         );
 
@@ -94,8 +94,8 @@ class CatalogPricingService
      */
     public function suggestSalePrice(Model $item, ?array $rates = null): float
     {
-        $costCurrency = (string) ($item->cost_currency ?? $item->currency_pricing ?? 'EGP');
-        $saleCurrency = (string) ($item->sale_currency ?? $item->currency_pricing ?? 'EGP');
+        $costCurrency = (string) ($item->cost_currency ?? 'EGP');
+        $saleCurrency = (string) ($item->sale_currency ?? 'EGP');
         $costPrice = (float) $item->cost_price;
 
         if (($item->sale_price_mode ?? 'manual') === 'margin'
@@ -136,21 +136,13 @@ class CatalogPricingService
      */
     public function normalizeModel(Model $item): void
     {
-        $legacyCurrency = (string) ($item->currency_pricing ?? 'EGP');
-
         if (! $item->cost_currency) {
-            $item->cost_currency = $legacyCurrency;
+            $item->cost_currency = (string) ($item->sale_currency ?? 'EGP');
         }
 
         if (! $item->sale_currency) {
-            $item->sale_currency = $legacyCurrency;
+            $item->sale_currency = (string) ($item->cost_currency ?? 'EGP');
         }
-
-        if ($item->currency_pricing && ! $item->sale_currency) {
-            $item->sale_currency = $item->currency_pricing;
-        }
-
-        $item->currency_pricing = $item->sale_currency;
 
         if (($item->sale_price_mode ?? 'manual') === 'margin') {
             $item->sale_price = $this->calculateSaleFromMargin(
@@ -169,8 +161,8 @@ class CatalogPricingService
     public function itemToAlarmPayload(Model $item, string $itemType, ?array $rates = null): array
     {
         $rates ??= $this->exchangeRates();
-        $costCurrency = (string) ($item->cost_currency ?? $item->currency_pricing ?? 'EGP');
-        $saleCurrency = (string) ($item->sale_currency ?? $item->currency_pricing ?? 'EGP');
+        $costCurrency = (string) ($item->cost_currency ?? 'EGP');
+        $saleCurrency = (string) ($item->sale_currency ?? 'EGP');
         $costEgp = $this->costInEgp((float) $item->cost_price, $costCurrency, $rates);
         $saleEgp = $this->saleInEgp((float) $item->sale_price, $saleCurrency, $rates);
         $suggested = $this->suggestSalePrice($item, $rates);

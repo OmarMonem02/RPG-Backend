@@ -74,7 +74,7 @@ class TicketPublicTrackingTest extends TestCase
         $sector = MaintenanceServiceSector::create(['name' => 'Fluids']);
         $service = MaintenanceService::create([
             'name' => 'Engine oil change',
-            'currency_pricing' => 'EGP',
+            'sale_currency' => 'EGP',
             'service_price' => 150,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 0,

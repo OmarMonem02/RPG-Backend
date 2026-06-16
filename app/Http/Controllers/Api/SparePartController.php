@@ -7,6 +7,7 @@ use App\Http\Requests\BulkInventoryEditRequest;
 use App\Http\Requests\SparePartRequest;
 use App\Models\SparePart;
 use App\Services\InventoryBulkEditService;
+use App\Services\InventoryImageService;
 use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class SparePartController extends Controller
 
     public function __construct(
         private readonly InventoryBulkEditService $bulkEditService,
+        private readonly InventoryImageService $inventoryImageService,
     ) {}
 
     /**
@@ -39,7 +41,7 @@ class SparePartController extends Controller
     public function index(Request $request): JsonResponse
     {
         $spareParts = $this->buildSparePartsQuery($request)
-            ->with(['category', 'brand', 'bikeBlueprints'])
+            ->with(['category', 'brand', 'bikeBlueprints', 'images'])
             ->paginate((int) $request->query('per_page', 20));
 
         return response()
@@ -57,7 +59,17 @@ class SparePartController extends Controller
         $bikeBlueprintIds = $validated['bike_blueprint_ids'] ?? [];
         unset($validated['bike_blueprint_ids']);
 
+        $images = null;
+        if (array_key_exists('images', $validated)) {
+            $images = $validated['images'];
+            unset($validated['images']);
+        }
+
         $sparePart = SparePart::create($validated);
+
+        if ($images !== null) {
+            $this->inventoryImageService->syncImages($sparePart, $images);
+        }
 
         if (!empty($bikeBlueprintIds)) {
             $sparePart->bikeBlueprints()->attach($bikeBlueprintIds);
@@ -69,7 +81,7 @@ class SparePartController extends Controller
         }
         ApiCache::invalidateTags($tags);
 
-        return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints']), 201);
+        return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints', 'images']), 201);
     }
 
     /**
@@ -79,7 +91,7 @@ class SparePartController extends Controller
     public function show(SparePart $sparePart): JsonResponse
     {
         return response()
-            ->json($sparePart->load(['category', 'brand', 'bikeBlueprints']))
+            ->json($sparePart->load(['category', 'brand', 'bikeBlueprints', 'images']))
             ->header('X-Cache-Hit', 'false');
     }
 
@@ -94,7 +106,17 @@ class SparePartController extends Controller
         $bikeBlueprintIds = $validated['bike_blueprint_ids'] ?? null;
         unset($validated['bike_blueprint_ids']);
 
+        $images = null;
+        if (array_key_exists('images', $validated)) {
+            $images = $validated['images'];
+            unset($validated['images']);
+        }
+
         $sparePart->update($validated);
+
+        if ($images !== null) {
+            $this->inventoryImageService->syncImages($sparePart, $images);
+        }
 
         if ($bikeBlueprintIds !== null) {
             $sparePart->bikeBlueprints()->sync($bikeBlueprintIds);
@@ -106,7 +128,7 @@ class SparePartController extends Controller
         }
         ApiCache::invalidateTags($tags);
 
-        return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints']));
+        return response()->json($sparePart->load(['category', 'brand', 'bikeBlueprints', 'images']));
     }
 
     /**

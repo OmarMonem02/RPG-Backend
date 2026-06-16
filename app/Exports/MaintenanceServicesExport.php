@@ -32,7 +32,7 @@ class MaintenanceServicesExport implements FromCollection, WithHeadings, WithMap
         return [
             'ID',
             'Name',
-            'Currency Pricing',
+            'Sale Currency',
             'Service Price',
             'Max Discount Type',
             'Max Discount Value',
@@ -45,7 +45,7 @@ class MaintenanceServicesExport implements FromCollection, WithHeadings, WithMap
         return [
             $service->id,
             $service->name,
-            $service->currency_pricing,
+            $service->sale_currency,
             $service->service_price,
             $service->max_discount_type,
             $service->max_discount_value,

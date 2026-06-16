@@ -109,7 +109,7 @@ class ImportExportIdempotencyTest extends TestCase
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/maintenance_services/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,currency_pricing,service_price,max_discount_type,max_discount_value,sector_name',
+                'name,sale_currency,service_price,max_discount_type,max_discount_value,sector_name',
                 "Oil Change,EGP,250,fixed,0,{$sector->name}",
                 "Oil Change,EGP,250,fixed,0,{$sector->name}",
                 "Brake Service,EGP,400,percentage,10,{$sector->name}",
@@ -122,7 +122,7 @@ class ImportExportIdempotencyTest extends TestCase
 
         $second = $this->actingAs($this->admin)->post('/api/import-export/maintenance_services/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,currency_pricing,service_price,max_discount_type,max_discount_value,sector_name',
+                'name,sale_currency,service_price,max_discount_type,max_discount_value,sector_name',
                 "Brake Service,EGP,400,percentage,10,{$sector->name}",
                 "Chain Service,EGP,175,fixed,0,{$sector->name}",
             ])),
@@ -142,10 +142,10 @@ class ImportExportIdempotencyTest extends TestCase
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,First",
-                "Helmet A Duplicate,SKU-100,P-100,5,1,{$category->name},EGP,100,150,{$brand->name},fixed,0,yes,Duplicate",
-                "Helmet B,SKU-200,P-200,4,1,{$category->name},EGP,110,170,{$brand->name},fixed,0,no,Second",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet A,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,First",
+                "Helmet A Duplicate,SKU-100,P-100,5,1,{$category->name},EGP,EGP,100,150,{$brand->name},fixed,0,yes,Duplicate",
+                "Helmet B,SKU-200,P-200,4,1,{$category->name},EGP,EGP,110,170,{$brand->name},fixed,0,no,Second",
             ])),
         ]);
 
@@ -155,9 +155,9 @@ class ImportExportIdempotencyTest extends TestCase
 
         $second = $this->actingAs($this->admin)->post('/api/import-export/products/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
-                "Helmet B Again,SKU-200,P-200,4,1,{$category->name},EGP,110,170,{$brand->name},fixed,0,no,Existing",
-                "Helmet C,SKU-300,P-300,7,2,{$category->name},EGP,120,190,{$brand->name},percentage,5,no,New",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes',
+                "Helmet B Again,SKU-200,P-200,4,1,{$category->name},EGP,EGP,110,170,{$brand->name},fixed,0,no,Existing",
+                "Helmet C,SKU-300,P-300,7,2,{$category->name},EGP,EGP,120,190,{$brand->name},percentage,5,no,New",
             ])),
         ]);
 
@@ -181,10 +181,10 @@ class ImportExportIdempotencyTest extends TestCase
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/spare_parts/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
-                "Brake Pad,SP-100,BP-1,10,2,{$category->name},EGP,50,90,{$brand->name},fixed,0,no,Main,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
-                "Brake Pad Duplicate,SP-100,BP-1,10,2,{$category->name},EGP,50,90,{$brand->name},fixed,0,no,Duplicate,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
-                "Chain,SP-200,CH-1,6,1,{$category->name},EGP,70,120,{$brand->name},fixed,0,yes,Second,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
+                "Brake Pad,SP-100,BP-1,10,2,{$category->name},EGP,EGP,50,90,{$brand->name},fixed,0,no,Main,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                "Brake Pad Duplicate,SP-100,BP-1,10,2,{$category->name},EGP,EGP,50,90,{$brand->name},fixed,0,no,Duplicate,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                "Chain,SP-200,CH-1,6,1,{$category->name},EGP,EGP,70,120,{$brand->name},fixed,0,yes,Second,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
             ])),
         ]);
 
@@ -197,9 +197,9 @@ class ImportExportIdempotencyTest extends TestCase
 
         $second = $this->actingAs($this->admin)->post('/api/import-export/spare_parts/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
-                "Chain Again,SP-200,CH-1,6,1,{$category->name},EGP,70,120,{$brand->name},fixed,0,yes,Existing,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
-                "Filter,SP-300,FT-1,3,1,{$category->name},EGP,30,60,{$brand->name},fixed,0,no,New,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
+                "Chain Again,SP-200,CH-1,6,1,{$category->name},EGP,EGP,70,120,{$brand->name},fixed,0,yes,Existing,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                "Filter,SP-300,FT-1,3,1,{$category->name},EGP,EGP,30,60,{$brand->name},fixed,0,no,New,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
             ])),
         ]);
 
@@ -221,10 +221,10 @@ class ImportExportIdempotencyTest extends TestCase
 
         $first = $this->actingAs($this->admin)->post('/api/import-export/bikes/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'brand_name,model,year,vin,mileage,status,currency_pricing,cost_price,sale_price,max_discount_type,max_discount_value,notes',
-                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-100,1000,available,EGP,100000,120000,fixed,0,First",
-                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-100,1000,available,EGP,100000,120000,fixed,0,Duplicate",
-                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-200,2500,available,EGP,90000,115000,percentage,5,Second",
+                'brand_name,model,year,vin,mileage,status,cost_currency,sale_currency,cost_price,sale_price,max_discount_type,max_discount_value,notes',
+                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-100,1000,available,EGP,EGP,100000,120000,fixed,0,First",
+                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-100,1000,available,EGP,EGP,100000,120000,fixed,0,Duplicate",
+                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-200,2500,available,EGP,EGP,90000,115000,percentage,5,Second",
             ])),
         ]);
 
@@ -234,9 +234,9 @@ class ImportExportIdempotencyTest extends TestCase
 
         $second = $this->actingAs($this->admin)->post('/api/import-export/bikes/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'brand_name,model,year,vin,mileage,status,currency_pricing,cost_price,sale_price,max_discount_type,max_discount_value,notes',
-                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-200,2500,available,EGP,90000,115000,percentage,5,Existing",
-                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-300,0,available,EGP,95000,118000,fixed,0,New",
+                'brand_name,model,year,vin,mileage,status,cost_currency,sale_currency,cost_price,sale_price,max_discount_type,max_discount_value,notes',
+                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-200,2500,available,EGP,EGP,90000,115000,percentage,5,Existing",
+                "{$brand->name},{$blueprint->model},{$blueprint->year},VIN-300,0,available,EGP,EGP,95000,118000,fixed,0,New",
             ])),
         ]);
 
@@ -290,7 +290,7 @@ class ImportExportIdempotencyTest extends TestCase
             'stock_quantity' => 2,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $category->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 20,
             'sale_price' => 30,
             'brand_id' => $brand->id,
@@ -303,8 +303,8 @@ class ImportExportIdempotencyTest extends TestCase
 
         $response = $this->actingAs($this->admin)->post('/api/import-export/spare_parts/import', [
             'file' => $this->csvUpload(implode("\n", [
-                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,currency_pricing,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
-                "Restored Part,RESTORE-100,RP-2,8,2,{$category->name},EGP,25,40,{$brand->name},fixed,0,no,restored,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
+                'name,sku,part_number,stock_quantity,low_stock_alarm,category_name,cost_currency,sale_currency,cost_price,sale_price,brand_name,max_discount_type,max_discount_value,universal,notes,bike_blueprints',
+                "Restored Part,RESTORE-100,RP-2,8,2,{$category->name},EGP,EGP,25,40,{$brand->name},fixed,0,no,restored,{$bikeBrand->name} | {$blueprint->model} | {$blueprint->year}",
             ])),
         ]);
 

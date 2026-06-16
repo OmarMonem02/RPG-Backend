@@ -151,7 +151,7 @@ class TicketProductItemTest extends TestCase
             'sku' => 'SKU-'.uniqid(),
             'brand_id' => $brand->id,
             'products_category_id' => $category->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => $salePrice * 0.5,
             'sale_price' => $salePrice,
             'max_discount_type' => $maxDiscountType,

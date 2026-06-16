@@ -272,7 +272,7 @@ class ReportingApiTest extends TestCase
             'stock_quantity' => 4,
             'low_stock_alarm' => 1,
             'products_category_id' => $productCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 80,
             'sale_price' => 200,
             'brand_id' => $productBrand->id,
@@ -286,7 +286,7 @@ class ReportingApiTest extends TestCase
             'stock_quantity' => 3,
             'low_stock_alarm' => 1,
             'products_category_id' => $productCategory->id,
-            'currency_pricing' => 'USD',
+            'cost_currency' => 'USD', 'sale_currency' => 'USD',
             'cost_price' => 60,
             'sale_price' => 120,
             'brand_id' => $productBrand->id,
@@ -300,7 +300,7 @@ class ReportingApiTest extends TestCase
             'stock_quantity' => 5,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $sparePartCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 40,
             'sale_price' => 100,
             'brand_id' => $sparePartBrand->id,
@@ -310,7 +310,7 @@ class ReportingApiTest extends TestCase
 
         $usdService = MaintenanceService::create([
             'name' => 'Diagnostics',
-            'currency_pricing' => 'USD',
+            'sale_currency' => 'USD',
             'service_price' => 250,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 0,
@@ -319,7 +319,7 @@ class ReportingApiTest extends TestCase
 
         $bike = \App\Models\BikeForSale::create([
             'bike_blueprint_id' => $bikeBlueprint->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 4000,
             'sale_price' => 5000,
             'status' => 'available',

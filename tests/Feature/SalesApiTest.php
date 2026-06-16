@@ -87,7 +87,7 @@ class SalesApiTest extends TestCase
             'stock_quantity' => 10,
             'low_stock_alarm' => 1,
             'products_category_id' => $productCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 100,
             'sale_price' => 200,
             'brand_id' => $productBrand->id,
@@ -101,7 +101,7 @@ class SalesApiTest extends TestCase
             'stock_quantity' => 8,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $spareCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 50,
             'sale_price' => 100,
             'brand_id' => $spareBrand->id,
@@ -116,7 +116,7 @@ class SalesApiTest extends TestCase
             'stock_quantity' => 6,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $spareCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 80,
             'sale_price' => 150,
             'brand_id' => $spareBrand->id,
@@ -131,7 +131,7 @@ class SalesApiTest extends TestCase
             'stock_quantity' => 5,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $spareCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 40,
             'sale_price' => 90,
             'brand_id' => $spareBrand->id,
@@ -146,7 +146,7 @@ class SalesApiTest extends TestCase
             'stock_quantity' => 5,
             'low_stock_alarm' => 1,
             'spare_parts_category_id' => $spareCategory->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 30,
             'sale_price' => 70,
             'brand_id' => $spareBrand->id,
@@ -160,7 +160,7 @@ class SalesApiTest extends TestCase
 
         $this->maintenanceService = MaintenanceService::create([
             'name' => 'Full Tune Up',
-            'currency_pricing' => 'EGP',
+            'sale_currency' => 'EGP',
             'service_price' => 300,
             'max_discount_type' => 'fixed',
             'max_discount_value' => 50,
@@ -169,7 +169,7 @@ class SalesApiTest extends TestCase
 
         $this->bike = \App\Models\BikeForSale::create([
             'bike_blueprint_id' => $this->bikeBlueprint->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 4000,
             'sale_price' => 5000,
             'status' => 'available',
@@ -729,7 +729,7 @@ class SalesApiTest extends TestCase
 
         return \App\Models\BikeForSale::create([
             'bike_blueprint_id' => $this->bikeBlueprint->id,
-            'currency_pricing' => 'EGP',
+            'cost_currency' => 'EGP', 'sale_currency' => 'EGP',
             'cost_price' => 4000,
             'sale_price' => 5000,
             'status' => 'available',
