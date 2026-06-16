@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\LogsHistory;
 
 use Illuminate\Database\Eloquent\Model;
@@ -36,7 +37,9 @@ class Customer extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%")
-            ->orWhere('phone', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            CaseInsensitiveLike::where($q, 'name', $search);
+            CaseInsensitiveLike::orWhere($q, 'phone', $search);
+        });
     }
 }

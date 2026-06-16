@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\LogsHistory;
 
 use Illuminate\Database\Eloquent\Model;
@@ -102,7 +103,7 @@ class BikeBlueprint extends Model
         $brandName = trim($brandName);
 
         return $query->whereHas('brand', function ($brandQuery) use ($brandName) {
-            $brandQuery->where('name', 'like', "%{$brandName}%");
+            CaseInsensitiveLike::where($brandQuery, 'name', $brandName);
         });
     }
 
@@ -112,7 +113,7 @@ class BikeBlueprint extends Model
             return $query;
         }
 
-        return $query->where('model', 'like', '%' . trim($model) . '%');
+        return CaseInsensitiveLike::where($query, 'model', trim($model));
     }
 
     public function scopeByYear($query, ?int $year)
@@ -122,10 +123,10 @@ class BikeBlueprint extends Model
 
     private function applyBlueprintTextOrYearMatch($query, string $term): void
     {
-        $query->where('model', 'like', "%{$term}%")
-            ->orWhereHas('brand', function ($brandQuery) use ($term) {
-                $brandQuery->where('name', 'like', "%{$term}%");
-            });
+        CaseInsensitiveLike::where($query, 'model', $term);
+        $query->orWhereHas('brand', function ($brandQuery) use ($term) {
+            CaseInsensitiveLike::where($brandQuery, 'name', $term);
+        });
 
         if (ctype_digit($term) && strlen($term) === 4) {
             $query->orWhere('year', (int) $term);

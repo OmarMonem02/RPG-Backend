@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\HasCatalogPricing;
 use App\Traits\HasInventoryImages;
 use App\Traits\LogsHistory;
@@ -52,10 +53,15 @@ class BikeForSale extends Model
             return $query;
         }
 
-        return $query->where('vin', 'like', "%{$search}%")
-            ->orWhereHas('bikeBlueprint', function ($q) use ($search) {
-                $q->where('model', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            CaseInsensitiveLike::where($q, 'vin', $search);
+            $q->orWhereHas('bikeBlueprint', function ($bp) use ($search) {
+                CaseInsensitiveLike::where($bp, 'model', $search);
             });
+            $q->orWhereHas('bikeBlueprint.brand', function ($brand) use ($search) {
+                CaseInsensitiveLike::where($brand, 'name', $search);
+            });
+        });
     }
 
     public function scopeByStatus($query, ?string $status)

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Sale;
+use App\Support\CaseInsensitiveLike;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -85,11 +86,15 @@ class SaleQueryService
         }
 
         if (! empty($filters['customer_name'])) {
-            $query->whereHas('customer', fn (Builder $customer) => $customer->where('name', 'like', '%' . $filters['customer_name'] . '%'));
+            $query->whereHas('customer', function (Builder $customer) use ($filters) {
+                CaseInsensitiveLike::where($customer, 'name', $filters['customer_name']);
+            });
         }
 
         if (! empty($filters['customer_phone'])) {
-            $query->whereHas('customer', fn (Builder $customer) => $customer->where('phone', 'like', '%' . $filters['customer_phone'] . '%'));
+            $query->whereHas('customer', function (Builder $customer) use ($filters) {
+                CaseInsensitiveLike::where($customer, 'phone', $filters['customer_phone']);
+            });
         }
 
         foreach (['user_id', 'seller_id', 'payment_method_id', 'type', 'status', 'delivery_status'] as $field) {
@@ -138,24 +143,33 @@ class SaleQueryService
                 $relationMethod = $hasStarted ? 'orWhereHas' : 'whereHas';
 
                 $saleQuery
-                    ->{$relationMethod}('customer', fn (Builder $customer) => $customer
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('phone', 'like', '%' . $search . '%'))
-                    ->orWhereHas('seller', fn (Builder $seller) => $seller
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('phone', 'like', '%' . $search . '%'))
-                    ->orWhereHas('items.product', fn (Builder $product) => $product
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('sku', 'like', '%' . $search . '%')
-                        ->orWhere('part_number', 'like', '%' . $search . '%'))
-                    ->orWhereHas('items.sparePart', fn (Builder $part) => $part
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('sku', 'like', '%' . $search . '%')
-                        ->orWhere('part_number', 'like', '%' . $search . '%'))
-                    ->orWhereHas('items.maintenanceService', fn (Builder $service) => $service->where('name', 'like', '%' . $search . '%'))
-                    ->orWhereHas('items.bikeForSale', fn (Builder $bike) => $bike
-                        ->where('vin', 'like', '%' . $search . '%')
-                        ->orWhereHas('bikeBlueprint', fn (Builder $blueprint) => $blueprint->where('model', 'like', '%' . $search . '%')));
+                    ->{$relationMethod}('customer', function (Builder $customer) use ($search) {
+                        CaseInsensitiveLike::where($customer, 'name', $search);
+                        CaseInsensitiveLike::orWhere($customer, 'phone', $search);
+                    })
+                    ->orWhereHas('seller', function (Builder $seller) use ($search) {
+                        CaseInsensitiveLike::where($seller, 'name', $search);
+                        CaseInsensitiveLike::orWhere($seller, 'phone', $search);
+                    })
+                    ->orWhereHas('items.product', function (Builder $product) use ($search) {
+                        CaseInsensitiveLike::where($product, 'name', $search);
+                        CaseInsensitiveLike::orWhere($product, 'sku', $search);
+                        CaseInsensitiveLike::orWhere($product, 'part_number', $search);
+                    })
+                    ->orWhereHas('items.sparePart', function (Builder $part) use ($search) {
+                        CaseInsensitiveLike::where($part, 'name', $search);
+                        CaseInsensitiveLike::orWhere($part, 'sku', $search);
+                        CaseInsensitiveLike::orWhere($part, 'part_number', $search);
+                    })
+                    ->orWhereHas('items.maintenanceService', function (Builder $service) use ($search) {
+                        CaseInsensitiveLike::where($service, 'name', $search);
+                    })
+                    ->orWhereHas('items.bikeForSale', function (Builder $bike) use ($search) {
+                        CaseInsensitiveLike::where($bike, 'vin', $search);
+                        $bike->orWhereHas('bikeBlueprint', function (Builder $blueprint) use ($search) {
+                            CaseInsensitiveLike::where($blueprint, 'model', $search);
+                        });
+                    });
             });
         }
     }

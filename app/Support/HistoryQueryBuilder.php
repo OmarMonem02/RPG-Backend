@@ -18,7 +18,7 @@ class HistoryQueryBuilder
                 $query->where('model_type', $modelClass);
             }
         } elseif (! empty($filters['model_type'])) {
-            $query->where('model_type', 'like', '%' . $filters['model_type'] . '%');
+            CaseInsensitiveLike::where($query, 'model_type', $filters['model_type']);
         }
 
         if (! empty($filters['action'])) {
@@ -49,9 +49,8 @@ class HistoryQueryBuilder
                 }
 
                 $builder->orWhereHas('user', function (Builder $userQuery) use ($search) {
-                    $userQuery
-                        ->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('email', 'like', '%' . $search . '%');
+                    CaseInsensitiveLike::where($userQuery, 'name', $search);
+                    CaseInsensitiveLike::orWhere($userQuery, 'email', $search);
                 });
             });
         }

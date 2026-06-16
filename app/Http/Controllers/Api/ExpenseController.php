@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
+use App\Support\CaseInsensitiveLike;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -48,8 +49,8 @@ class ExpenseController extends Controller
         if (! empty($validated['search'])) {
             $search = $validated['search'];
             $query->where(function ($inner) use ($search) {
-                $inner->where('title', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%");
+                CaseInsensitiveLike::where($inner, 'title', $search);
+                CaseInsensitiveLike::orWhere($inner, 'notes', $search);
             });
         }
 

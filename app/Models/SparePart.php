@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\HasCatalogPricing;
 use App\Traits\HasInventoryImages;
 use App\Traits\HasInventoryTags;
@@ -110,9 +111,9 @@ class SparePart extends Model
         }
 
         return $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-                ->orWhere('sku', 'like', "%{$search}%")
-                ->orWhere('part_number', 'like', "%{$search}%");
+            CaseInsensitiveLike::where($q, 'name', $search);
+            CaseInsensitiveLike::orWhere($q, 'sku', $search);
+            CaseInsensitiveLike::orWhere($q, 'part_number', $search);
             $this->scopeSearchTags($q, $search);
         });
     }
@@ -170,7 +171,7 @@ class SparePart extends Model
 
         return $query->where(function ($q) use ($bikeModel) {
             $q->whereHas('bikeBlueprints', function ($bp) use ($bikeModel) {
-                $bp->where('model', 'like', "%{$bikeModel}%");
+                CaseInsensitiveLike::where($bp, 'model', $bikeModel);
             })->orWhere('universal', true);
         });
     }

@@ -60,13 +60,7 @@ class SaleCatalogService
         $query = Product::query()->with(['brand', 'category', 'bikeBlueprints.brand']);
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $product) use ($search): void {
-                $product
-                    ->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('sku', 'like', '%' . $search . '%')
-                    ->orWhere('part_number', 'like', '%' . $search . '%');
-            });
+            $query->search($filters['search']);
         }
 
         if (! empty($filters['brand_id'])) {
@@ -138,13 +132,7 @@ class SaleCatalogService
         $query = SparePart::query()->with(['brand', 'category', 'bikeBlueprints.brand']);
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $part) use ($search): void {
-                $part
-                    ->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('sku', 'like', '%' . $search . '%')
-                    ->orWhere('part_number', 'like', '%' . $search . '%');
-            });
+            $query->search($filters['search']);
         }
 
         if (! empty($filters['brand_id'])) {
@@ -216,13 +204,7 @@ class SaleCatalogService
         $query = BikeForSale::query()->with(['bikeBlueprint.brand']);
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $bike) use ($search): void {
-                $bike
-                    ->where('vin', 'like', '%' . $search . '%')
-                    ->orWhereHas('bikeBlueprint', fn (Builder $blueprint) => $blueprint->where('model', 'like', '%' . $search . '%'))
-                    ->orWhereHas('bikeBlueprint.brand', fn (Builder $brand) => $brand->where('name', 'like', '%' . $search . '%'));
-            });
+            $query->search($filters['search']);
         }
 
         if (! empty($filters['brand_id'])) {
@@ -282,12 +264,7 @@ class SaleCatalogService
         $query = MaintenanceService::query()->with('sector');
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $service) use ($search): void {
-                $service
-                    ->where('name', 'like', '%' . $search . '%')
-                    ->orWhereHas('sector', fn (Builder $sector) => $sector->where('name', 'like', '%' . $search . '%'));
-            });
+            $query->search($filters['search']);
         }
 
         if (! empty($filters['sector_id'])) {

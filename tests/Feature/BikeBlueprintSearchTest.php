@@ -60,6 +60,30 @@ class BikeBlueprintSearchTest extends TestCase
         $this->assertContains($blueprint->id, $ids);
     }
 
+    public function test_index_search_is_case_insensitive_for_brand_and_model(): void
+    {
+        $brand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
+        $blueprint = BikeBlueprint::create([
+            'brand_id' => $brand->id,
+            'model' => 'CBR600RR',
+            'year' => 2023,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/bike_blueprints?search=honda');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($blueprint->id, $ids);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/bike_blueprints?search=cbr600rr');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($blueprint->id, $ids);
+    }
+
     public function test_index_search_matches_year(): void
     {
         $brand = Brand::create(['name' => 'Kawasaki', 'types' => ['bikes']]);

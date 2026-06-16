@@ -57,6 +57,23 @@ class CustomerWorkspaceApiTest extends TestCase
             ->assertJsonPath('data.0.name', 'Alpha');
     }
 
+    public function test_customers_search_is_case_insensitive(): void
+    {
+        $user = User::factory()->create([
+            'role' => User::ROLE_STAFF,
+            'permissions_override' => $this->matrix([
+                'sales' => ['read'],
+            ]),
+        ]);
+
+        Customer::create(['name' => 'Omar Monem', 'phone' => '01009998877']);
+
+        $this->actingAs($user)
+            ->getJson('/api/customers?search=omar monem')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Omar Monem');
+    }
+
     public function test_workspace_allowed_with_maintenance_read_and_returns_sections(): void
     {
         $user = User::factory()->create([

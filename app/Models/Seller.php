@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,9 +32,8 @@ class Seller extends Model
         }
 
         return $query->where(function ($query) use ($term) {
-            $query
-                ->where('name', 'like', "%{$term}%")
-                ->orWhere('phone', 'like', "%{$term}%");
+            CaseInsensitiveLike::where($query, 'name', $term);
+            CaseInsensitiveLike::orWhere($query, 'phone', $term);
 
             if (ctype_digit($term)) {
                 $query->orWhere('id', (int) $term);

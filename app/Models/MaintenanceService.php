@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,7 +33,12 @@ class MaintenanceService extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%");
+        return $query->where(function ($q) use ($search) {
+            CaseInsensitiveLike::where($q, 'name', $search);
+            $q->orWhereHas('sector', function ($sector) use ($search) {
+                CaseInsensitiveLike::where($sector, 'name', $search);
+            });
+        });
     }
 
     public function scopeBySector($query, ?int $sectorId)

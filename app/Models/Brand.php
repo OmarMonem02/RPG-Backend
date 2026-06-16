@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CaseInsensitiveLike;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -75,7 +76,7 @@ class Brand extends Model
             return $query;
         }
 
-        return $query->where('name', 'like', "%{$search}%");
+        return CaseInsensitiveLike::where($query, 'name', $search);
     }
 
     public function scopeByType($query, ?string $type)
