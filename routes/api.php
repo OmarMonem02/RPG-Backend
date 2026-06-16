@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\EntityController;
+use App\Http\Controllers\Api\ExportColumnController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\ImageController;
@@ -173,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete("/{$entity}/{id}", [EntityController::class, 'destroy'])->defaults('entity', $entity)->middleware("permission:{$page},delete");
     }
 
+    Route::get('/export-columns', [ExportColumnController::class, 'index'])->middleware('permission:import-export,read');
     Route::get('/import-export/entities', [ImportExportController::class, 'entities'])->middleware('permission:import-export,read');
     Route::prefix('import-export/{entity}')->group(function () {
         Route::get('/export', [ImportExportController::class, 'export'])->middleware('permission:import-export,export');

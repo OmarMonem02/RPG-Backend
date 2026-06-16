@@ -2,20 +2,29 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\MaintenanceServiceSector;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class MaintenanceServiceSectorsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
+    use HasOrderedExportColumns;
     use StylesProfessionalSheets;
+
+    /**
+     * @param  list<string>|null  $columnKeys
+     */
+    public function __construct(?array $columnKeys = null)
+    {
+        $this->columnKeys = $columnKeys;
+    }
 
     public function title(): string
     {
@@ -27,20 +36,21 @@ class MaintenanceServiceSectorsExport implements FromCollection, WithHeadings, W
         return MaintenanceServiceSector::query()->get();
     }
 
-    public function headings(): array
+    protected function exportColumnMap(): array
     {
         return [
-            'ID',
-            'Name',
+            'id' => 'ID',
+            'name' => 'Name',
         ];
     }
 
-    public function map($sector): array
+    protected function mapColumn(string $key, mixed $sector): mixed
     {
-        return [
-            $sector->id,
-            $sector->name,
-        ];
+        /** @var MaintenanceServiceSector $sector */
+        return match ($key) {
+            'id' => $sector->id,
+            'name' => $sector->name,
+            default => null,
+        };
     }
-
 }

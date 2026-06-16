@@ -19,6 +19,8 @@ class StocktakeExportRequest extends FormRequest
             'items.*.type' => ['required', 'string', Rule::in(['product', 'spare_part'])],
             'items.*.id' => ['required', 'integer', 'min:1'],
             'items.*.counted' => ['required', 'integer', 'min:0'],
+            'columns' => ['sometimes', 'array', 'min:1'],
+            'columns.*' => ['required', 'string'],
         ];
     }
 }

@@ -2,20 +2,29 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\BikeBlueprint;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class BikeBlueprintsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
+    use HasOrderedExportColumns;
     use StylesProfessionalSheets;
+
+    /**
+     * @param  list<string>|null  $columnKeys
+     */
+    public function __construct(?array $columnKeys = null)
+    {
+        $this->columnKeys = $columnKeys;
+    }
 
     public function title(): string
     {
@@ -27,24 +36,25 @@ class BikeBlueprintsExport implements FromCollection, WithHeadings, WithMapping,
         return BikeBlueprint::query()->with(['brand'])->get();
     }
 
-    public function headings(): array
+    protected function exportColumnMap(): array
     {
         return [
-            'ID',
-            'Brand Name',
-            'Model',
-            'Year',
+            'id' => 'ID',
+            'brand_name' => 'Brand Name',
+            'model' => 'Model',
+            'year' => 'Year',
         ];
     }
 
-    public function map($blueprint): array
+    protected function mapColumn(string $key, mixed $blueprint): mixed
     {
-        return [
-            $blueprint->id,
-            $blueprint->brand?->name,
-            $blueprint->model,
-            $blueprint->year,
-        ];
+        /** @var BikeBlueprint $blueprint */
+        return match ($key) {
+            'id' => $blueprint->id,
+            'brand_name' => $blueprint->brand?->name,
+            'model' => $blueprint->model,
+            'year' => $blueprint->year,
+            default => null,
+        };
     }
-
 }

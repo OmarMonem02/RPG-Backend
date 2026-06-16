@@ -6,6 +6,7 @@ use App\Exports\TemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\ParseImport;
 use App\Imports\ProfessionalImport;
+use App\Support\Export\ExportColumnResolver;
 use App\Support\ImportExport\ImportExportDefinitions;
 use App\Support\ImportExport\ImportRowProcessor;
 use Illuminate\Http\JsonResponse;
@@ -16,18 +17,28 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ImportExportController extends Controller
 {
-    public function __construct(private readonly ImportExportDefinitions $definitions) {}
+    public function __construct(
+        private readonly ImportExportDefinitions $definitions,
+        private readonly ExportColumnResolver $columnResolver,
+    ) {}
 
     public function export(Request $request, string $entity)
     {
         $config = $this->definitions->get($entity);
         $format = $this->resolveFormat($request->query('format', 'xlsx'));
+        $columnKeys = $this->columnResolver->resolve(
+            'import_export',
+            $request->query('columns'),
+            $entity,
+            includeExportOnly: true,
+        );
 
         $filename = strtolower(str_replace(' ', '_', $config['label']))
             . '_' . now()->format('Ymd_His')
             . ($format === ExcelFormat::CSV ? '.csv' : '.xlsx');
 
-        $content = Excel::raw(new $config['export'](), $format);
+        $exportClass = $config['export'];
+        $content = Excel::raw(new $exportClass($columnKeys), $format);
 
         return response($content, Response::HTTP_OK, $this->downloadHeaders($filename, $format));
     }
@@ -43,8 +54,10 @@ class ImportExportController extends Controller
 
         $this->runExcelImport($importer, $request);
 
+        $columns = $this->resolvedResponseColumns($request, $entity, $config['columns']);
+
         return response()->json(
-            $importer->response("Import completed for {$config['label']}.", $config['columns']),
+            $importer->response("Import completed for {$config['label']}.", $columns),
             200,
         );
     }
@@ -65,11 +78,12 @@ class ImportExportController extends Controller
         }
 
         $summary = $processor->summarize($rows, "Preview completed for {$config['label']}.");
+        $columns = $this->resolvedResponseColumns($request, $entity, $config['columns']);
 
         return response()->json([
             'message' => $summary['message'],
             'summary' => $summary,
-            'columns' => $config['columns'],
+            'columns' => $columns,
             'rows' => $rows,
             'errors' => collect($rows)->where('severity', 'error')->flatMap(fn ($row) => $row['issues'])->values()->all(),
             'warnings' => collect($rows)->where('severity', 'warning')->flatMap(fn ($row) => $row['issues'])->values()->all(),
@@ -83,11 +97,19 @@ class ImportExportController extends Controller
     {
         $config = $this->definitions->get($entity);
         $format = $this->resolveFormat($request->query('format', 'xlsx'));
+        $columnKeys = $this->columnResolver->resolve(
+            'import_export',
+            $request->query('columns'),
+            $entity,
+            includeExportOnly: false,
+        );
+        $columns = $this->columnResolver->reorderColumns($config['columns'], $columnKeys);
+
         $filename = strtolower(str_replace(' ', '_', $config['label']))
             . '_template'
             . ($format === ExcelFormat::CSV ? '.csv' : '.xlsx');
 
-        $content = Excel::raw(new TemplateExport($config['label'], $config['columns'], $entity), $format);
+        $content = Excel::raw(new TemplateExport($config['label'], $columns, $entity), $format);
 
         return response($content, Response::HTTP_OK, $this->downloadHeaders($filename, $format));
     }
@@ -95,6 +117,22 @@ class ImportExportController extends Controller
     public function entities(): JsonResponse
     {
         return response()->json($this->definitions->publicList());
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $columns
+     * @return list<array<string, mixed>>
+     */
+    private function resolvedResponseColumns(Request $request, string $entity, array $columns): array
+    {
+        $columnKeys = $this->columnResolver->resolve(
+            'import_export',
+            $request->input('columns', $request->query('columns')),
+            $entity,
+            includeExportOnly: false,
+        );
+
+        return $this->columnResolver->reorderColumns($columns, $columnKeys);
     }
 
     private function resolveFormat(string $format): string

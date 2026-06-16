@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -17,12 +18,18 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 
 class SalesListExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
+    use HasOrderedExportColumns;
     use StylesProfessionalSheets;
 
+  /**
+   * @param  list<string>|null  $columnKeys
+   */
     public function __construct(
         private readonly Builder $query,
         private readonly SaleInventoryService $inventory,
+        ?array $columnKeys = null,
     ) {
+        $this->columnKeys = $columnKeys;
     }
 
     public function title(): string
@@ -35,58 +42,55 @@ class SalesListExport implements FromQuery, WithHeadings, WithMapping, WithStyle
         return $this->query;
     }
 
-    public function headings(): array
+    protected function exportColumnMap(): array
     {
         return [
-            'Sale ID',
-            'Created at',
-            'Customer name',
-            'Customer phone',
-            'Channel',
-            'Status',
-            'Delivery status',
-            'Payment method',
-            'Seller',
-            'Cashier',
-            'Discount',
-            'Shipping fee',
-            'Total',
-            'Maintenance sale',
-            'Line item count',
-            'Line items summary',
+            'sale_id' => 'Sale ID',
+            'created_at' => 'Created at',
+            'customer_name' => 'Customer name',
+            'customer_phone' => 'Customer phone',
+            'channel' => 'Channel',
+            'status' => 'Status',
+            'delivery_status' => 'Delivery status',
+            'payment_method' => 'Payment method',
+            'seller' => 'Seller',
+            'cashier' => 'Cashier',
+            'discount' => 'Discount',
+            'shipping_fee' => 'Shipping fee',
+            'total' => 'Total',
+            'maintenance_sale' => 'Maintenance sale',
+            'line_item_count' => 'Line item count',
+            'line_items_summary' => 'Line items summary',
         ];
     }
 
-    /**
-     * @param  Sale  $sale
-     */
-    public function map($sale): array
+    protected function mapColumn(string $key, mixed $sale): mixed
     {
-        $summary = $sale->items
-            ->map(function (SaleItem $item): string {
-                $label = $this->inventory->describeSaleItem($item);
+        /** @var Sale $sale */
+        return match ($key) {
+            'sale_id' => $sale->id,
+            'created_at' => $sale->created_at?->format('Y-m-d H:i:s') ?? '',
+            'customer_name' => $sale->customer?->name ?? '',
+            'customer_phone' => $sale->customer?->phone ?? '',
+            'channel' => $sale->type,
+            'status' => $sale->status,
+            'delivery_status' => $sale->delivery_status ?? '',
+            'payment_method' => $sale->paymentMethod?->name ?? '',
+            'seller' => $sale->seller?->name ?? '',
+            'cashier' => $sale->user?->name ?? '',
+            'discount' => (float) $sale->discount,
+            'shipping_fee' => (float) $sale->shipping_fee,
+            'total' => (float) $sale->total,
+            'maintenance_sale' => $sale->is_maintenance ? 'Yes' : 'No',
+            'line_item_count' => $sale->items->count(),
+            'line_items_summary' => $sale->items
+                ->map(function (SaleItem $item): string {
+                    $label = $this->inventory->describeSaleItem($item);
 
-                return (string) $item->qty . ' × ' . $label;
-            })
-            ->implode('; ');
-
-        return [
-            $sale->id,
-            $sale->created_at?->format('Y-m-d H:i:s') ?? '',
-            $sale->customer?->name ?? '',
-            $sale->customer?->phone ?? '',
-            $sale->type,
-            $sale->status,
-            $sale->delivery_status ?? '',
-            $sale->paymentMethod?->name ?? '',
-            $sale->seller?->name ?? '',
-            $sale->user?->name ?? '',
-            (float) $sale->discount,
-            (float) $sale->shipping_fee,
-            (float) $sale->total,
-            $sale->is_maintenance ? 'Yes' : 'No',
-            $sale->items->count(),
-            $summary,
-        ];
+                    return (string) $item->qty . ' × ' . $label;
+                })
+                ->implode('; '),
+            default => null,
+        };
     }
 }

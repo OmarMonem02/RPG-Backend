@@ -16,6 +16,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\SaleInventoryService;
 use App\Services\SaleService;
+use App\Support\Export\ExportColumnResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -24,8 +25,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SaleController extends Controller
 {
-    public function __construct(private readonly SaleService $saleService)
-    {
+    public function __construct(
+        private readonly SaleService $saleService,
+        private readonly ExportColumnResolver $columnResolver,
+    ) {
     }
 
     public function index(SaleFilterRequest $request): JsonResponse
@@ -56,8 +59,10 @@ class SaleController extends Controller
         $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
         $filename = 'sales_export_' . now()->format('Ymd_His') . $suffix;
 
+        $columnKeys = $this->columnResolver->resolve('sales', $request->query('columns'));
+
         return Excel::download(
-            new SalesListExport($query, $inventory),
+            new SalesListExport($query, $inventory, $columnKeys),
             $filename,
             $format,
         );
