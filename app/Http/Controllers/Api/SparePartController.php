@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AppliesCatalogItemFilters;
 use App\Http\Requests\BulkInventoryEditRequest;
 use App\Http\Requests\SparePartRequest;
 use App\Models\SparePart;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class SparePartController extends Controller
 {
+    use AppliesCatalogItemFilters;
+
     private const TAGS = ['spare_parts'];
 
     public function __construct(
@@ -337,6 +340,8 @@ class SparePartController extends Controller
         if ($request->boolean('low_stock')) {
             $query->lowStock();
         }
+
+        $query = $this->applyCatalogItemFilters($query, $request);
 
         return $query;
     }

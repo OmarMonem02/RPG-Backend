@@ -67,4 +67,16 @@ class MaintenanceService extends Model
     {
         return $currency ? $query->where('sale_currency', $currency) : $query;
     }
+
+    public function scopeByMaxDiscount($query, ?float $min = null, ?float $max = null)
+    {
+        if ($min !== null) {
+            $query = $query->where('max_discount_value', '>=', $min);
+        }
+        if ($max !== null) {
+            $query = $query->where('max_discount_value', '<=', $max);
+        }
+
+        return $query;
+    }
 }

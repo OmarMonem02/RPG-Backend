@@ -52,7 +52,7 @@ class SaleFilterRequest extends FormRequest
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'total_min' => ['nullable', 'numeric', 'min:0'],
             'total_max' => ['nullable', 'numeric', 'gte:total_min'],
-            'item_type' => ['nullable', Rule::in(['product', 'spare_part', 'maintenance_service', 'bike'])],
+            'item_type' => ['nullable', Rule::in(['product', 'spare_part', 'maintenance_part', 'maintenance_service', 'bike'])],
             'search' => ['nullable', 'string'],
             'sort' => ['nullable', Rule::in(['newest', 'oldest', 'highest', 'lowest'])],
             'page' => ['nullable', 'integer', 'min:1'],

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AppliesCatalogItemFilters;
 use App\Http\Requests\EntityRequest;
 use App\Models\BikeForSale;
 use App\Models\Brand;
@@ -30,6 +31,8 @@ use Illuminate\Http\Request;
 
 class EntityController extends Controller
 {
+    use AppliesCatalogItemFilters;
+
     private const LIST_TTL_SECONDS = 1800;
     private const DETAIL_TTL_SECONDS = 3600;
 
@@ -121,7 +124,6 @@ class EntityController extends Controller
                 if ($tags) $query = $query->byTags($tags);
                 if ($categoryId) $query = $query->byCategory($categoryId);
                 if ($brandId) $query = $query->byBrand($brandId);
-                if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
                 if ($lowStock) $query = $query->lowStock();
                 if ($bikeBrandId) $query = $query->byBikeBrand((int) $bikeBrandId);
@@ -133,6 +135,7 @@ class EntityController extends Controller
                         $bikeYearTo ? (int) $bikeYearTo : null
                     );
                 }
+                $query = $this->applyCatalogItemFilters($query, $request);
                 $query = $query->with(['category', 'brand', 'bikeBlueprints', 'images']);
                 break;
 
@@ -150,14 +153,21 @@ class EntityController extends Controller
             case 'brands':
                 if ($search) $query = $query->search($search);
                 if ($type) $query = $query->byType($type);
+                $query = $query->byCreatedRange(
+                    $request->query('created_from'),
+                    $request->query('created_to'),
+                );
                 break;
 
             case 'bike_for_sale':
                 if ($search) $query = $query->search($search);
                 if ($status) $query = $query->byStatus($status);
-                if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($blueprintId) $query = $query->byBlueprint($blueprintId);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
+                if ($minPrice !== null || $maxPrice !== null) {
+                    $query = $query->byPrice($minPrice, $maxPrice);
+                }
+                $query = $this->applyBikeForSaleFilters($query, $request);
                 $query = $query->with('images');
                 break;
 
@@ -170,8 +180,11 @@ class EntityController extends Controller
             case 'maintenance_services':
                 if ($search) $query = $query->search($search);
                 if ($sectorId) $query = $query->bySector($sectorId);
-                if ($minPrice !== null || $maxPrice !== null) $query = $query->byPrice($minPrice, $maxPrice);
                 if ($currency) $query = $query->byCurrency(strtoupper($currency));
+                if ($minPrice !== null || $maxPrice !== null) {
+                    $query = $query->byPrice($minPrice, $maxPrice);
+                }
+                $query = $this->applyMaintenanceServiceFilters($query, $request);
                 break;
 
             case 'customers':

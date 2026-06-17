@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\CaseInsensitiveLike;
+use App\Support\SqlExpressions;
 use App\Traits\HasCatalogPricing;
 use App\Traits\HasInventoryImages;
 use App\Traits\LogsHistory;
@@ -94,5 +95,80 @@ class BikeForSale extends Model
     public function scopeByCurrency($query, ?string $currency)
     {
         return $currency ? $query->where('sale_currency', $currency) : $query;
+    }
+
+    public function scopeByBlueprintBrand($query, ?int $brandId)
+    {
+        if (! $brandId) {
+            return $query;
+        }
+
+        return $query->whereHas('bikeBlueprint', function ($bp) use ($brandId) {
+            $bp->where('brand_id', $brandId);
+        });
+    }
+
+    public function scopeByMileage($query, ?int $min = null, ?int $max = null)
+    {
+        if ($min !== null) {
+            $query = $query->where('mileage', '>=', $min);
+        }
+        if ($max !== null) {
+            $query = $query->where('mileage', '<=', $max);
+        }
+
+        return $query;
+    }
+
+    public function scopeByCostPrice($query, ?float $minPrice = null, ?float $maxPrice = null)
+    {
+        if ($minPrice !== null) {
+            $query = $query->where('cost_price', '>=', $minPrice);
+        }
+        if ($maxPrice !== null) {
+            $query = $query->where('cost_price', '<=', $maxPrice);
+        }
+
+        return $query;
+    }
+
+    public function scopeByMaxDiscount($query, ?float $min = null, ?float $max = null)
+    {
+        if ($min !== null) {
+            $query = $query->where('max_discount_value', '>=', $min);
+        }
+        if ($max !== null) {
+            $query = $query->where('max_discount_value', '<=', $max);
+        }
+
+        return $query;
+    }
+
+    public function scopeByProfitRange($query, ?float $min = null, ?float $max = null)
+    {
+        $profitSql = SqlExpressions::profitAmount();
+
+        if ($min !== null) {
+            $query = $query->whereRaw("{$profitSql} >= ?", [$min]);
+        }
+        if ($max !== null) {
+            $query = $query->whereRaw("{$profitSql} <= ?", [$max]);
+        }
+
+        return $query;
+    }
+
+    public function scopeByProfitPercentRange($query, ?float $min = null, ?float $max = null)
+    {
+        $expression = SqlExpressions::profitPercent();
+
+        if ($min !== null) {
+            $query = $query->whereRaw("({$expression}) >= ?", [$min]);
+        }
+        if ($max !== null) {
+            $query = $query->whereRaw("({$expression}) <= ?", [$max]);
+        }
+
+        return $query;
     }
 }

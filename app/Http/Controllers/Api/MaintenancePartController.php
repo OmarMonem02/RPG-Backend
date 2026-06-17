@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AppliesCatalogItemFilters;
 use App\Http\Requests\BulkInventoryEditRequest;
 use App\Http\Requests\MaintenancePartRequest;
 use App\Models\MaintenancePart;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class MaintenancePartController extends Controller
 {
+    use AppliesCatalogItemFilters;
+
     private const TAGS = ['maintenance_parts'];
 
     public function __construct(
@@ -337,6 +340,8 @@ class MaintenancePartController extends Controller
         if ($request->boolean('low_stock')) {
             $query->lowStock();
         }
+
+        $query = $this->applyCatalogItemFilters($query, $request);
 
         return $query;
     }

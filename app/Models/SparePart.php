@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FiltersCatalogItems;
 use App\Support\CaseInsensitiveLike;
 use App\Support\ItemStatus;
 use App\Traits\HasCatalogPricing;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SparePart extends Model
 {
-    use HasCatalogPricing, HasInventoryImages, HasInventoryTags, LogsHistory, SoftDeletes;
+    use FiltersCatalogItems, HasCatalogPricing, HasInventoryImages, HasInventoryTags, LogsHistory, SoftDeletes;
 
     protected $table = 'spare_parts';
 

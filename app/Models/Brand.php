@@ -12,7 +12,7 @@ class Brand extends Model
 {
     use SoftDeletes, LogsHistory;
 
-    public const VALID_TYPES = ['spare_parts', 'products', 'bikes'];
+    public const VALID_TYPES = ['spare_parts', 'products', 'bikes', 'maintenance_parts'];
 
     protected $fillable = ['name', 'types'];
 
@@ -82,5 +82,17 @@ class Brand extends Model
     public function scopeByType($query, ?string $type)
     {
         return $type ? $query->whereJsonContains('types', $type) : $query;
+    }
+
+    public function scopeByCreatedRange($query, ?string $from, ?string $to)
+    {
+        if ($from) {
+            $query = $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to) {
+            $query = $query->whereDate('created_at', '<=', $to);
+        }
+
+        return $query;
     }
 }
