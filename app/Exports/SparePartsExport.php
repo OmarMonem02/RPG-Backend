@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\SparePart;
+use App\Support\ImportExport\BikeBlueprintReferenceFormatter;
 use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -100,14 +101,7 @@ class SparePartsExport implements FromCollection, WithHeadings, WithMapping, Wit
             'max_discount_value' => $part->max_discount_value,
             'universal' => $part->universal ? 'Yes' : 'No',
             'notes' => $part->notes,
-            'bike_blueprints' => $part->bikeBlueprints
-                ->map(fn ($bp) => trim(implode(' | ', array_filter([
-                    $bp->brand?->name,
-                    $bp->model,
-                    $bp->year,
-                ]))))
-                ->filter()
-                ->implode('; '),
+            'bike_blueprints' => (new BikeBlueprintReferenceFormatter())->formatCollection($part->bikeBlueprints),
             'tags' => $part->tags ? implode('; ', $part->tags) : null,
             'image_1' => $images[0] ?? null,
             'image_2' => $images[1] ?? null,

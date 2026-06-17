@@ -371,6 +371,156 @@ class ImportExportProfessionalWorkflowTest extends TestCase
         $this->assertSame('Bike Brand | Export Model | 2025', $row[$blueprintIndex]);
     }
 
+    public function test_spare_parts_parse_accepts_bike_blueprint_year_range(): void
+    {
+        $brand = Brand::create(['name' => 'LS2', 'types' => ['spare_parts']]);
+        $category = SparePartCategory::create(['name' => 'Brakes']);
+        $bikeBrand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
+
+        foreach (range(2020, 2025) as $year) {
+            BikeBlueprint::create(['brand_id' => $bikeBrand->id, 'model' => 'YZF-R1', 'year' => $year]);
+        }
+
+        $definition = (new ImportExportDefinitions())->get('spare_parts');
+        $processor = new ImportRowProcessor();
+
+        $result = $processor->process('spare_parts', $definition, [
+            'name' => 'Range Spare Part',
+            'sku' => 'RANGE-001',
+            'part_number' => 'RSP-1',
+            'stock_quantity' => 10,
+            'low_stock_alarm' => 1,
+            'category_name' => $category->name,
+            'cost_currency' => 'EGP',
+            'sale_currency' => 'EGP',
+            'cost_price' => 100,
+            'sale_price' => 150,
+            'brand_name' => $brand->name,
+            'max_discount_type' => 'percentage',
+            'max_discount_value' => 5,
+            'universal' => false,
+            'notes' => 'Range test',
+            'bike_blueprints' => 'Yamaha | YZF-R1 | (2020-2025)',
+        ], 2, true);
+
+        $this->assertSame('created', $result['status']);
+        $this->assertSame([], $result['issues']);
+
+        $sparePart = SparePart::query()->where('sku', 'RANGE-001')->first();
+        $this->assertNotNull($sparePart);
+        $this->assertSame(6, $sparePart->bikeBlueprints()->count());
+    }
+
+    public function test_spare_parts_parse_missing_year_range_offers_bulk_create_action(): void
+    {
+        $brand = Brand::create(['name' => 'LS2', 'types' => ['spare_parts']]);
+        $category = SparePartCategory::create(['name' => 'Brakes']);
+        $bikeBrand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
+
+        $definition = (new ImportExportDefinitions())->get('spare_parts');
+        $processor = new ImportRowProcessor();
+
+        $result = $processor->process('spare_parts', $definition, [
+            'name' => 'Missing Range Spare Part',
+            'sku' => 'RANGE-002',
+            'part_number' => 'RSP-2',
+            'stock_quantity' => 10,
+            'low_stock_alarm' => 1,
+            'category_name' => $category->name,
+            'cost_currency' => 'EGP',
+            'sale_currency' => 'EGP',
+            'cost_price' => 100,
+            'sale_price' => 150,
+            'brand_name' => $brand->name,
+            'max_discount_type' => 'percentage',
+            'max_discount_value' => 5,
+            'universal' => false,
+            'notes' => 'Missing range test',
+            'bike_blueprints' => 'Yamaha | YZF-R1 | (2020-2025)',
+        ], 2, false);
+
+        $this->assertSame('invalid', $result['status']);
+        $this->assertSame('create_bike_blueprint_range', $result['issues'][0]['action']['type'] ?? null);
+        $this->assertSame($bikeBrand->id, $result['issues'][0]['action']['brand_id'] ?? null);
+        $this->assertSame('YZF-R1', $result['issues'][0]['action']['model'] ?? null);
+        $this->assertSame(2020, $result['issues'][0]['action']['year_from'] ?? null);
+        $this->assertSame(2025, $result['issues'][0]['action']['year_to'] ?? null);
+    }
+
+    public function test_spare_parts_parse_rejects_invalid_year_range(): void
+    {
+        $brand = Brand::create(['name' => 'LS2', 'types' => ['spare_parts']]);
+        $category = SparePartCategory::create(['name' => 'Brakes']);
+        Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
+
+        $definition = (new ImportExportDefinitions())->get('spare_parts');
+        $processor = new ImportRowProcessor();
+
+        $result = $processor->process('spare_parts', $definition, [
+            'name' => 'Invalid Range Spare Part',
+            'sku' => 'RANGE-003',
+            'part_number' => 'RSP-3',
+            'stock_quantity' => 10,
+            'low_stock_alarm' => 1,
+            'category_name' => $category->name,
+            'cost_currency' => 'EGP',
+            'sale_currency' => 'EGP',
+            'cost_price' => 100,
+            'sale_price' => 150,
+            'brand_name' => $brand->name,
+            'max_discount_type' => 'percentage',
+            'max_discount_value' => 5,
+            'universal' => false,
+            'notes' => 'Invalid range test',
+            'bike_blueprints' => 'Yamaha | YZF-R1 | (2025-2020)',
+        ], 2, false);
+
+        $this->assertSame('invalid', $result['status']);
+        $this->assertStringContainsString('invalid', strtolower($result['issues'][0]['message'] ?? ''));
+    }
+
+    public function test_spare_parts_export_collapses_consecutive_blueprint_years(): void
+    {
+        $brand = Brand::create(['name' => 'Part Brand', 'types' => ['spare_parts']]);
+        $category = SparePartCategory::create(['name' => 'Export Category']);
+        $bikeBrand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
+        $blueprintIds = [];
+
+        foreach (range(2020, 2025) as $year) {
+            $blueprintIds[] = BikeBlueprint::create([
+                'brand_id' => $bikeBrand->id,
+                'model' => 'YZF-R1',
+                'year' => $year,
+            ])->id;
+        }
+
+        $part = SparePart::create([
+            'name' => 'Range Export Part',
+            'sku' => 'EXPORT-RANGE',
+            'part_number' => 'ERP-1',
+            'stock_quantity' => 1,
+            'low_stock_alarm' => 1,
+            'spare_parts_category_id' => $category->id,
+            'cost_currency' => 'EGP',
+            'sale_currency' => 'EGP',
+            'cost_price' => 10,
+            'sale_price' => 20,
+            'brand_id' => $brand->id,
+            'max_discount_type' => 'fixed',
+            'max_discount_value' => 0,
+            'universal' => false,
+        ]);
+        $part->bikeBlueprints()->sync($blueprintIds);
+        $part->load(['category', 'brand', 'bikeBlueprints.brand']);
+
+        $row = (new SparePartsExport())->map($part);
+        $headings = (new SparePartsExport())->headings();
+        $blueprintIndex = array_search('bike_blueprints', $headings, true);
+
+        $this->assertNotFalse($blueprintIndex);
+        $this->assertSame('Yamaha | YZF-R1 | (2020-2025)', $row[$blueprintIndex]);
+    }
+
     public function test_product_category_name_must_be_unique_case_insensitive(): void
     {
         ProductCategory::create(['name' => 'Helmets']);

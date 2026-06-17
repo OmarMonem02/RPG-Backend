@@ -24,6 +24,7 @@ class ImportRowProcessor
     public function __construct(
         private readonly ImportExportImageHelper $imageHelper = new ImportExportImageHelper(),
         private readonly InventoryImageService $imageService = new InventoryImageService(),
+        private readonly BikeBlueprintReferenceFormatter $blueprintFormatter = new BikeBlueprintReferenceFormatter(),
     ) {}
 
     public function process(string $entity, array $definition, array $row, int $rowNumber, bool $persist): array
@@ -345,16 +346,82 @@ class ImportRowProcessor
         foreach (array_filter(array_map('trim', explode(';', $value))) as $item) {
             $parts = array_map('trim', explode('|', $item));
             if (count($parts) !== 3) {
-                $issues[] = $this->issue($rowNumber, 'reference', "Bike blueprint '{$item}' must be written as Brand | Model | Year.");
+                $issues[] = $this->issue(
+                    $rowNumber,
+                    'reference',
+                    "Bike blueprint '{$item}' must be written as Brand | Model | Year or Brand | Model | (YearFrom-YearTo).",
+                );
                 continue;
             }
 
             $brandId = $this->resolveBrand($parts[0], 'bikes', $rowNumber, $issues);
-            if ($brandId) {
-                $id = $this->resolveBlueprint($brandId, $parts[1], $parts[2], $rowNumber, $issues);
-                if ($id) {
-                    $ids[] = $id;
+            if (! $brandId) {
+                continue;
+            }
+
+            $parseResult = $this->blueprintFormatter->tryParseYearPart($parts[2]);
+            if (! $parseResult['ok']) {
+                $issues[] = $this->issue($rowNumber, 'reference', $parseResult['message']);
+                continue;
+            }
+
+            $years = $parseResult['years'];
+            $model = trim($parts[1]);
+            $isRange = count($years) > 1;
+
+            if ($isRange) {
+                $entryIds = [];
+                $hasMissing = false;
+                $hasAmbiguous = false;
+
+                foreach ($years as $year) {
+                    $query = BikeBlueprint::query()
+                        ->where('brand_id', $brandId)
+                        ->whereRaw('LOWER(model) = ?', [Str::lower($model)])
+                        ->where('year', $year);
+                    $count = (clone $query)->count();
+
+                    if ($count === 1) {
+                        $entryIds[] = $query->value('id');
+                    } elseif ($count === 0) {
+                        $hasMissing = true;
+                    } else {
+                        $hasAmbiguous = true;
+                    }
                 }
+
+                if ($hasAmbiguous) {
+                    $issues[] = $this->issue(
+                        $rowNumber,
+                        'reference',
+                        "Bike blueprint '{$model}' is ambiguous for one or more years in range ({$years[0]}-{$years[array_key_last($years)]}) for the selected brand.",
+                    );
+                    continue;
+                }
+
+                if ($hasMissing) {
+                    $issues[] = $this->issue(
+                        $rowNumber,
+                        'reference',
+                        "Bike blueprint '{$model}' was not found for all years in range ({$years[0]}-{$years[array_key_last($years)]}) for the selected brand.",
+                        [
+                            'type' => 'create_bike_blueprint_range',
+                            'brand_id' => $brandId,
+                            'model' => $model,
+                            'year_from' => $years[0],
+                            'year_to' => $years[array_key_last($years)],
+                        ],
+                    );
+                    continue;
+                }
+
+                array_push($ids, ...$entryIds);
+                continue;
+            }
+
+            $id = $this->resolveBlueprint($brandId, $model, $years[0], $rowNumber, $issues);
+            if ($id) {
+                $ids[] = $id;
             }
         }
 

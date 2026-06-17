@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
 use App\Models\Product;
+use App\Support\ImportExport\BikeBlueprintReferenceFormatter;
 use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -100,14 +101,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'max_discount_value' => $product->max_discount_value,
             'universal' => $product->universal ? 'Yes' : 'No',
             'notes' => $product->notes,
-            'bike_blueprints' => $product->bikeBlueprints
-                ->map(fn ($bp) => trim(implode(' | ', array_filter([
-                    $bp->brand?->name,
-                    $bp->model,
-                    $bp->year,
-                ]))))
-                ->filter()
-                ->implode('; '),
+            'bike_blueprints' => (new BikeBlueprintReferenceFormatter())->formatCollection($product->bikeBlueprints),
             'tags' => $product->tags ? implode('; ', $product->tags) : null,
             'image_1' => $images[0] ?? null,
             'image_2' => $images[1] ?? null,
