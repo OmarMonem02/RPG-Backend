@@ -10,6 +10,7 @@ use App\Models\PaymentMethod;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\SellerTestFactory;
 use Tests\TestCase;
 
 class MaintenancePartTest extends TestCase
@@ -81,7 +82,7 @@ class MaintenancePartTest extends TestCase
         ]);
 
         $customer = Customer::query()->create(['name' => 'Buyer', 'phone' => '01011112222']);
-        $seller = Seller::query()->create(['name' => 'Seller', 'phone' => '01033334444', 'commission_rate' => 0]);
+        $seller = SellerTestFactory::create(['name' => 'Seller', 'phone' => '01033334444', 'commission_rate' => 0]);
         $paymentMethod = PaymentMethod::query()->create(['name' => 'Cash']);
 
         $this->actingAs($admin)->postJson('/api/sales', [

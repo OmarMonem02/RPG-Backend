@@ -35,7 +35,11 @@ class EntityRequest extends FormRequest
             'sellers' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string'],
                 'phone' => [$isUpdate ? 'nullable' : 'required', 'string'],
-                'commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
+                'products_commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
+                'spare_parts_commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
+                'maintenance_parts_commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
+                'bikes_for_sale_commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
+                'maintenance_services_commission_rate' => [$isUpdate ? 'nullable' : 'required', 'numeric', 'min:0'],
             ],
             'customers' => [
                 'name' => [$isUpdate ? 'nullable' : 'required', 'string', 'max:255'],
@@ -58,6 +62,7 @@ class EntityRequest extends FormRequest
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => ['nullable', 'numeric'],
                 'universal' => ['nullable', 'boolean'],
+                'have_commission' => ['nullable', 'boolean'],
                 'notes' => ['nullable', 'string'],
                 'tags' => ['nullable', 'array'],
                 'tags.*' => ['string', 'max:100'],
@@ -80,6 +85,7 @@ class EntityRequest extends FormRequest
                 'max_discount_type' => ['nullable', 'string', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => ['nullable', 'numeric'],
                 'universal' => ['nullable', 'boolean'],
+                'have_commission' => ['nullable', 'boolean'],
                 'notes' => ['nullable', 'string'],
                 'tags' => ['nullable', 'array'],
                 'tags.*' => ['string', 'max:100'],
@@ -119,6 +125,7 @@ class EntityRequest extends FormRequest
                 'max_discount_type' => [$isUpdate ? 'nullable' : 'required', Rule::in(['fixed', 'percentage'])],
                 'max_discount_value' => [$isUpdate ? 'nullable' : 'required', 'numeric'],
                 'maintenance_service_sector_id' => [$isUpdate ? 'nullable' : 'required', 'exists:maintenance_service_sectors,id'],
+                'have_commission' => ['nullable', 'boolean'],
             ],
             'bike_blueprints' => [
                 'brand_id' => [$isUpdate ? 'nullable' : 'required', 'exists:brands,id'],
@@ -136,6 +143,7 @@ class EntityRequest extends FormRequest
                 'vin' => [$isUpdate ? 'nullable' : 'required', Rule::unique('bike_for_sale', 'vin')->ignore($id)],
                 'mileage' => ['nullable', 'integer', 'min:0'],
                 'notes' => ['nullable', 'string'],
+                'have_commission' => ['nullable', 'boolean'],
                 ...InventoryImageRules::fieldRules(),
             ],
             'customer_bikes' => [

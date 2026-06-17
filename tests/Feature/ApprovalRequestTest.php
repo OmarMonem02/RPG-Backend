@@ -11,6 +11,7 @@ use App\Models\Seller;
 use App\Models\User;
 use App\Models\Brand;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\SellerTestFactory;
 use Tests\TestCase;
 
 class ApprovalRequestTest extends TestCase
@@ -47,7 +48,7 @@ class ApprovalRequestTest extends TestCase
             'phone' => '01000000001',
         ]);
 
-        $this->seller = Seller::create([
+        $this->seller = SellerTestFactory::create([
             'name' => 'Seller One',
             'phone' => '01111111111',
             'commission_rate' => 5,

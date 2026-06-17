@@ -36,6 +36,7 @@ class SparePartRequest extends FormRequest
             'max_discount_type' => 'required|in:fixed,percentage',
             'max_discount_value' => 'required|numeric|min:0',
             'universal' => 'boolean',
+            'have_commission' => 'boolean',
             'notes' => 'nullable|string',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:100',

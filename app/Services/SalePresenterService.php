@@ -31,8 +31,10 @@ class SalePresenterService
         'adjustments.user',
     ];
 
-    public function __construct(private readonly SaleInventoryService $inventory)
-    {
+    public function __construct(
+        private readonly SaleInventoryService $inventory,
+        private readonly SaleCommissionService $commissionService,
+    ) {
     }
 
     public function loadSaleRelations(Sale $sale): Sale
@@ -43,6 +45,8 @@ class SalePresenterService
     public function serializeSale(Sale $sale): array
     {
         $sale = $this->loadSaleRelations($sale);
+        $commissionTotals = $this->commissionService->saleCommissionTotals($sale);
+        $lineCommissionMap = collect($commissionTotals['lines'])->keyBy('sale_item_id');
 
         return [
             'id' => $sale->id,
@@ -58,6 +62,8 @@ class SalePresenterService
             'delivery_status' => $sale->delivery_status,
             'shipping_fee' => (float) $sale->shipping_fee,
             'is_maintenance' => (bool) $sale->is_maintenance,
+            'commission_base' => $commissionTotals['commission_base'],
+            'commission_amount' => $commissionTotals['commission_amount'],
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
             'customer' => $this->serializeSaleCustomer($sale),
@@ -68,7 +74,10 @@ class SalePresenterService
             'seller' => $sale->seller,
             'payment_method' => $sale->paymentMethod,
             'items' => $sale->items
-                ->map(fn (SaleItem $item) => $this->serializeSaleItem($item))
+                ->map(fn (SaleItem $item) => $this->serializeSaleItem(
+                    $item,
+                    $lineCommissionMap->get($item->id),
+                ))
                 ->values()
                 ->all(),
             'adjustments' => $sale->relationLoaded('adjustments')
@@ -91,7 +100,7 @@ class SalePresenterService
         ];
     }
 
-    public function serializeSaleItem(SaleItem $item): array
+    public function serializeSaleItem(SaleItem $item, ?array $commission = null): array
     {
         $item = $item->loadMissing('product.brand', 'product.category', 'sparePart.brand', 'sparePart.category', 'maintenancePart.brand', 'maintenancePart.category', 'maintenanceService.sector', 'bikeForSale.bikeBlueprint.brand');
         [$type, $resolvedItem] = $this->resolveSellableForSerialization($item);
@@ -114,6 +123,8 @@ class SalePresenterService
             'item_type' => $type,
             'item_label' => $this->inventory->describeSaleItem($item),
             'resolved_item' => $resolvedItem,
+            'commission_base' => (float) ($commission['commission_base'] ?? 0),
+            'commission_amount' => (float) ($commission['commission_amount'] ?? 0),
             'created_at' => $item->created_at,
             'updated_at' => $item->updated_at,
         ];

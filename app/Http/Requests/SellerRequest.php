@@ -13,10 +13,16 @@ class SellerRequest extends FormRequest
 
     public function rules(): array
     {
+        $rateRules = ['required', 'numeric', 'min:0'];
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
-            'commission_rate' => ['required', 'numeric', 'min:0'],
+            'products_commission_rate' => $rateRules,
+            'spare_parts_commission_rate' => $rateRules,
+            'maintenance_parts_commission_rate' => $rateRules,
+            'bikes_for_sale_commission_rate' => $rateRules,
+            'maintenance_services_commission_rate' => $rateRules,
         ];
     }
 }

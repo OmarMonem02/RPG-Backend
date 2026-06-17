@@ -39,6 +39,11 @@ class BikeForSale extends Model
         'vin',
         'mileage',
         'notes',
+        'have_commission',
+    ];
+
+    protected $casts = [
+        'have_commission' => 'boolean',
     ];
 
     public function bikeBlueprint(): BelongsTo

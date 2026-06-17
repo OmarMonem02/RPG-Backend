@@ -42,7 +42,11 @@ class SellerMonthlyHistoryTest extends TestCase
         $this->seller = Seller::query()->create([
             'name' => 'History Seller',
             'phone' => '01111112222',
-            'commission_rate' => 10,
+            'products_commission_rate' => 10,
+            'spare_parts_commission_rate' => 10,
+            'maintenance_parts_commission_rate' => 10,
+            'bikes_for_sale_commission_rate' => 10,
+            'maintenance_services_commission_rate' => 10,
         ]);
         $this->paymentMethod = PaymentMethod::query()->create(['name' => 'Cash']);
 
@@ -110,6 +114,21 @@ class SellerMonthlyHistoryTest extends TestCase
             ->assertJsonPath('year_totals.completed_sales_count', 2)
             ->assertJsonPath('year_totals.commission_base', 600)
             ->assertJsonPath('year_totals.commission_amount', 60);
+    }
+
+    public function test_monthly_history_excludes_lines_without_have_commission(): void
+    {
+        $this->product->update(['have_commission' => false]);
+
+        $this->createCompletedSale(200, 1, '2026-03-05 10:00:00');
+
+        $response = $this->actingAs($this->admin)->getJson(
+            "/api/sellers/{$this->seller->id}/monthly-history?year=2026"
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('months.2.commission_base', 0)
+            ->assertJsonPath('months.2.commission_amount', 0);
     }
 
     public function test_monthly_history_rejects_invalid_year(): void

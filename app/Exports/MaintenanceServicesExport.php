@@ -46,6 +46,7 @@ class MaintenanceServicesExport implements FromCollection, WithHeadings, WithMap
             'max_discount_type' => 'Max Discount Type',
             'max_discount_value' => 'Max Discount Value',
             'sector_name' => 'Sector Name',
+            'have_commission' => 'Have Commission',
         ];
     }
 
@@ -60,6 +61,7 @@ class MaintenanceServicesExport implements FromCollection, WithHeadings, WithMap
             'max_discount_type' => $service->max_discount_type,
             'max_discount_value' => $service->max_discount_value,
             'sector_name' => $service->sector?->name,
+            'have_commission' => $service->have_commission ? 'Yes' : 'No',
             default => null,
         };
     }

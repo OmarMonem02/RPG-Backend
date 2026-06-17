@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Support\UserPermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\SellerTestFactory;
 use Tests\TestCase;
 
 class ItemDiscountApprovalTest extends TestCase
@@ -51,7 +52,7 @@ class ItemDiscountApprovalTest extends TestCase
             'phone' => '01001234567',
         ]);
 
-        $this->seller = Seller::create([
+        $this->seller = SellerTestFactory::create([
             'name' => 'Seller',
             'phone' => '01112223333',
             'commission_rate' => 5,

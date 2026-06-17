@@ -19,6 +19,7 @@ use App\Models\SparePart;
 use App\Models\SparePartCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\SellerTestFactory;
 use Tests\TestCase;
 
 class SalesApiTest extends TestCase
@@ -60,7 +61,7 @@ class SalesApiTest extends TestCase
             'phone' => '01000000002',
         ]);
 
-        $this->seller = Seller::create([
+        $this->seller = SellerTestFactory::create([
             'name' => 'Main Seller',
             'phone' => '01111111111',
             'commission_rate' => 5,
@@ -255,7 +256,7 @@ class SalesApiTest extends TestCase
 
     public function test_sales_list_supports_customer_seller_search_and_global_sort(): void
     {
-        $secondarySeller = Seller::create([
+        $secondarySeller = SellerTestFactory::create([
             'name' => 'Night Shift Seller',
             'phone' => '01222222222',
             'commission_rate' => 7,

@@ -12,10 +12,22 @@ class Seller extends Model
 {
     use LogsHistory, SoftDeletes;
 
-    protected $fillable = ['name', 'phone', 'commission_rate'];
+    protected $fillable = [
+        'name',
+        'phone',
+        'products_commission_rate',
+        'spare_parts_commission_rate',
+        'maintenance_parts_commission_rate',
+        'bikes_for_sale_commission_rate',
+        'maintenance_services_commission_rate',
+    ];
 
     protected $casts = [
-        'commission_rate' => 'decimal:2',
+        'products_commission_rate' => 'decimal:2',
+        'spare_parts_commission_rate' => 'decimal:2',
+        'maintenance_parts_commission_rate' => 'decimal:2',
+        'bikes_for_sale_commission_rate' => 'decimal:2',
+        'maintenance_services_commission_rate' => 'decimal:2',
     ];
 
     public function sales(): HasMany

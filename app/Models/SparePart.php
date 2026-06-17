@@ -38,6 +38,7 @@ class SparePart extends Model
         'max_discount_type',
         'max_discount_value',
         'universal',
+        'have_commission',
         'notes',
         'tags',
     ];
@@ -50,6 +51,7 @@ class SparePart extends Model
         'sale_margin_value' => 'decimal:2',
         'max_discount_value' => 'decimal:2',
         'universal' => 'boolean',
+        'have_commission' => 'boolean',
         'tags' => 'array',
         'item_status' => ItemStatus::class,
     ];

@@ -19,6 +19,11 @@ class MaintenanceService extends Model
         'max_discount_type',
         'max_discount_value',
         'maintenance_service_sector_id',
+        'have_commission',
+    ];
+
+    protected $casts = [
+        'have_commission' => 'boolean',
     ];
 
     public function sector(): BelongsTo

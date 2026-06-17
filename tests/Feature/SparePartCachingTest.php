@@ -11,6 +11,7 @@ use App\Models\SparePartCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Support\SellerTestFactory;
 use Tests\TestCase;
 
 class SparePartCachingTest extends TestCase
@@ -72,7 +73,7 @@ class SparePartCachingTest extends TestCase
             'name' => 'Sale Customer',
             'phone' => '01099998888',
         ]);
-        $seller = Seller::query()->create([
+        $seller = SellerTestFactory::create([
             'name' => 'Sale Seller',
             'phone' => '01199998888',
             'commission_rate' => 5,
