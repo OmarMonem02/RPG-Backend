@@ -4,6 +4,7 @@ namespace App\Support\ImportExport;
 
 use App\Models\BikeBlueprint;
 use App\Models\Brand;
+use App\Models\MaintenancePartCategory;
 use App\Models\MaintenanceServiceSector;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -169,16 +170,26 @@ class ImportRowProcessor
         $related = [];
         $issues = [];
 
-        if (in_array($entity, ['products', 'spare_parts'], true)) {
-            $brandType = $entity === 'products' ? 'products' : 'spare_parts';
+        if (in_array($entity, ['products', 'spare_parts', 'maintenance_parts'], true)) {
+            $brandType = match ($entity) {
+                'products' => 'products',
+                'spare_parts' => 'spare_parts',
+                default => 'maintenance_parts',
+            };
             if ($row['brand_name'] ?? null) {
                 $resolved['brand_id'] = $this->resolveBrand($row['brand_name'], $brandType, $rowNumber, $issues);
             }
 
             if ($row['category_name'] ?? null) {
-                $resolved[$entity === 'products' ? 'products_category_id' : 'spare_parts_category_id'] = $entity === 'products'
-                    ? $this->resolveByName(ProductCategory::class, $row['category_name'], 'product category', $rowNumber, $issues, 'create_product_category')
-                    : $this->resolveByName(SparePartCategory::class, $row['category_name'], 'spare part category', $rowNumber, $issues, 'create_spare_part_category');
+                $resolved[match ($entity) {
+                    'products' => 'products_category_id',
+                    'spare_parts' => 'spare_parts_category_id',
+                    default => 'maintenance_parts_category_id',
+                }] = match ($entity) {
+                    'products' => $this->resolveByName(ProductCategory::class, $row['category_name'], 'product category', $rowNumber, $issues, 'create_product_category'),
+                    'spare_parts' => $this->resolveByName(SparePartCategory::class, $row['category_name'], 'spare part category', $rowNumber, $issues, 'create_spare_part_category'),
+                    default => $this->resolveByName(MaintenancePartCategory::class, $row['category_name'], 'maintenance part category', $rowNumber, $issues, 'create_maintenance_part_category'),
+                };
             }
         }
 
@@ -201,7 +212,7 @@ class ImportRowProcessor
             $resolved['bike_blueprint_id'] = $this->resolveBlueprint($resolved['brand_id'], $row['model'] ?? null, $row['year'] ?? null, $rowNumber, $issues);
         }
 
-        if (in_array($entity, ['products', 'spare_parts'], true) && ($row['bike_blueprints'] ?? null)) {
+        if (in_array($entity, ['products', 'spare_parts', 'maintenance_parts'], true) && ($row['bike_blueprints'] ?? null)) {
             $related['bike_blueprint_ids'] = $this->resolveBlueprintList($row['bike_blueprints'], $rowNumber, $issues);
         }
 
@@ -352,7 +363,7 @@ class ImportRowProcessor
 
     private function findExistingRecord(string $entity, string $modelClass, array $lookup, array $row): ?Model
     {
-        if (in_array($entity, ['brands', 'product_categories', 'spare_part_categories', 'maintenance_service_sectors'], true)) {
+        if (in_array($entity, ['brands', 'product_categories', 'spare_part_categories', 'maintenance_part_categories', 'maintenance_service_sectors'], true)) {
             $name = $row['name'] ?? $lookup['name'] ?? null;
 
             if (! is_string($name) || trim($name) === '') {
@@ -370,7 +381,7 @@ class ImportRowProcessor
     private function lookupAttributes(string $entity, array $row, array $resolved): array
     {
         return match ($entity) {
-            'products', 'spare_parts' => ['sku' => $row['sku']],
+            'products', 'spare_parts', 'maintenance_parts' => ['sku' => $row['sku']],
             'maintenance_services' => [
                 'name' => $row['name'],
                 'maintenance_service_sector_id' => $resolved['maintenance_service_sector_id'] ?? null,
@@ -382,7 +393,7 @@ class ImportRowProcessor
                 'year' => (int) $row['year'],
             ],
             'brands' => ['name' => $row['name']],
-            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => ['name' => $row['name']],
+            'product_categories', 'spare_part_categories', 'maintenance_part_categories', 'maintenance_service_sectors' => ['name' => $row['name']],
         };
     }
 
@@ -405,6 +416,7 @@ class ImportRowProcessor
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
                 'tags' => $this->parseTagList($row['tags'] ?? null),
+                ...$this->catalogItemAttributesFromRow($row),
             ],
             'spare_parts' => [
                 'name' => $row['name'],
@@ -422,6 +434,25 @@ class ImportRowProcessor
                 'universal' => $this->boolean($row['universal'] ?? null),
                 'notes' => $row['notes'] ?? null,
                 'tags' => $this->parseTagList($row['tags'] ?? null),
+                ...$this->catalogItemAttributesFromRow($row),
+            ],
+            'maintenance_parts' => [
+                'name' => $row['name'],
+                'sku' => $row['sku'],
+                'part_number' => $row['part_number'] ?? null,
+                'stock_quantity' => (int) ($row['stock_quantity'] ?? 0),
+                'low_stock_alarm' => (int) ($row['low_stock_alarm'] ?? 0),
+                'maintenance_parts_category_id' => $resolved['maintenance_parts_category_id'] ?? null,
+                ...$this->pricingAttributes($row),
+                'cost_price' => $row['cost_price'] ?? null,
+                'sale_price' => $row['sale_price'] ?? null,
+                'brand_id' => $resolved['brand_id'] ?? null,
+                'max_discount_type' => $row['max_discount_type'] ?? null,
+                'max_discount_value' => $row['max_discount_value'] ?? null,
+                'universal' => $this->boolean($row['universal'] ?? null),
+                'notes' => $row['notes'] ?? null,
+                'tags' => $this->parseTagList($row['tags'] ?? null),
+                ...$this->catalogItemAttributesFromRow($row),
             ],
             'maintenance_services' => [
                 'name' => $row['name'],
@@ -452,7 +483,7 @@ class ImportRowProcessor
                 'name' => $row['name'],
                 'types' => Brand::parseTypes($row['types'] ?? $row['type'] ?? null),
             ],
-            'product_categories', 'spare_part_categories', 'maintenance_service_sectors' => [
+            'product_categories', 'spare_part_categories', 'maintenance_part_categories', 'maintenance_service_sectors' => [
                 'name' => $row['name'],
             ],
         };
@@ -471,7 +502,7 @@ class ImportRowProcessor
 
     private function syncRelated(string $entity, Model $model, array $related): void
     {
-        if (in_array($entity, ['products', 'spare_parts'], true) && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
+        if (in_array($entity, ['products', 'spare_parts', 'maintenance_parts'], true) && Arr::has($related, 'bike_blueprint_ids') && method_exists($model, 'bikeBlueprints')) {
             $model->bikeBlueprints()->sync($related['bike_blueprint_ids']);
         }
     }
@@ -488,7 +519,7 @@ class ImportRowProcessor
 
     private function supportsImportImages(string $entity): bool
     {
-        return in_array($entity, ['products', 'spare_parts', 'bikes'], true);
+        return in_array($entity, ['products', 'spare_parts', 'maintenance_parts', 'bikes'], true);
     }
 
     private function normalizeEntityRow(string $entity, array $row): array
@@ -626,6 +657,18 @@ class ImportRowProcessor
             'data' => $data,
             'issues' => $issues,
             ...$extra,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function catalogItemAttributesFromRow(array $row): array
+    {
+        return [
+            'size' => $row['size'] ?? null,
+            'color' => $row['color'] ?? null,
+            'item_status' => $row['item_status'] ?? 'new',
         ];
     }
 

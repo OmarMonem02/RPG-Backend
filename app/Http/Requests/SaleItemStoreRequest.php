@@ -20,6 +20,7 @@ class SaleItemStoreRequest extends FormRequest
         return [
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'spare_part_id' => ['nullable', 'integer', 'exists:spare_parts,id'],
+            'maintenance_part_id' => ['nullable', 'integer', 'exists:maintenance_parts,id'],
             'maintenance_service_id' => ['nullable', 'integer', 'exists:maintenance_services,id'],
             'bike_for_sale_id' => ['nullable', 'integer', 'exists:bike_for_sale,id'],
             'selling_price' => ['required', 'numeric', 'min:0'],

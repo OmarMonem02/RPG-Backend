@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MaintenancePart;
 use App\Models\Product;
 use App\Models\SparePart;
 
@@ -21,6 +22,7 @@ class StocktakeService
     {
         $productIds = [];
         $sparePartIds = [];
+        $maintenancePartIds = [];
         $countedByKey = [];
 
         foreach ($items as $item) {
@@ -32,6 +34,8 @@ class StocktakeService
 
             if ($type === 'product') {
                 $productIds[] = $id;
+            } elseif ($type === 'maintenance_part') {
+                $maintenancePartIds[] = $id;
             } else {
                 $sparePartIds[] = $id;
             }
@@ -45,6 +49,10 @@ class StocktakeService
             ->whereIn('id', array_unique($sparePartIds))
             ->get(['id', 'name', 'sku', 'part_number', 'stock_quantity']);
 
+        $maintenanceParts = MaintenancePart::query()
+            ->whereIn('id', array_unique($maintenancePartIds))
+            ->get(['id', 'name', 'sku', 'part_number', 'stock_quantity']);
+
         $rows = [];
 
         foreach ($products as $product) {
@@ -56,6 +64,13 @@ class StocktakeService
 
         foreach ($spareParts as $sparePart) {
             $row = $this->buildRow('spare_part', 'Spare Part', $sparePart, $countedByKey["spare_part:{$sparePart->id}"] ?? null);
+            if ($row !== null) {
+                $rows[] = $row;
+            }
+        }
+
+        foreach ($maintenanceParts as $maintenancePart) {
+            $row = $this->buildRow('maintenance_part', 'Maintenance Part', $maintenancePart, $countedByKey["maintenance_part:{$maintenancePart->id}"] ?? null);
             if ($row !== null) {
                 $rows[] = $row;
             }

@@ -8,7 +8,7 @@ use App\Support\InventoryImageRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class SparePartRequest extends FormRequest
+class MaintenancePartRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,18 +17,18 @@ class SparePartRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('spare_part');
+        $id = $this->route('maintenance_part');
         if (is_object($id)) {
             $id = $id->id;
         }
 
         return [
             'name' => 'required|string|max:255',
-            'sku' => ['required', 'string', 'max:255', Rule::unique('spare_parts', 'sku')->ignore($id)],
-            'part_number' => ['nullable', 'string', 'max:255', Rule::unique('spare_parts', 'part_number')->ignore($id)],
+            'sku' => ['required', 'string', 'max:255', Rule::unique('maintenance_parts', 'sku')->ignore($id)],
+            'part_number' => ['nullable', 'string', 'max:255', Rule::unique('maintenance_parts', 'part_number')->ignore($id)],
             'stock_quantity' => 'required|integer|min:0',
             'low_stock_alarm' => 'required|integer|min:0',
-            'spare_parts_category_id' => 'required|integer|exists:spare_part_categories,id',
+            'maintenance_parts_category_id' => 'required|integer|exists:maintenance_part_categories,id',
             'cost_price' => 'required|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             ...CatalogPricingRules::fieldRules(false),
@@ -51,7 +51,7 @@ class SparePartRequest extends FormRequest
         return [
             'sku.unique' => 'This SKU already exists.',
             'part_number.unique' => 'This Part Number already exists.',
-            'spare_parts_category_id.exists' => 'Selected category does not exist.',
+            'maintenance_parts_category_id.exists' => 'Selected category does not exist.',
             'brand_id.exists' => 'Selected brand does not exist.',
         ];
     }
@@ -66,7 +66,6 @@ class SparePartRequest extends FormRequest
                 $validator->errors()->add('sale_price', 'Sale price is required for manual sale pricing.');
             }
 
-            // Only enforce when client explicitly disables Universal Part
             if (! $this->has('universal') || $this->boolean('universal')) {
                 return;
             }

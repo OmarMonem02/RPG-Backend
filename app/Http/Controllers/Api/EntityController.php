@@ -17,6 +17,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SaleItem;
 use App\Models\Seller;
+use App\Models\MaintenancePartCategory;
 use App\Models\SparePartCategory;
 use App\Models\TicketItem;
 use App\Models\Setting;
@@ -44,6 +45,7 @@ class EntityController extends Controller
             'products' => Product::class,
             'product_categories' => ProductCategory::class,
             'spare_part_categories' => SparePartCategory::class,
+            'maintenance_part_categories' => MaintenancePartCategory::class,
             'maintenance_services' => MaintenanceService::class,
             'maintenance_service_sectors' => MaintenanceServiceSector::class,
             'brands' => Brand::class,
@@ -135,6 +137,7 @@ class EntityController extends Controller
                 break;
 
             case 'spare_part_categories':
+            case 'maintenance_part_categories':
             case 'spare_parts':
                 if ($search) $query = $query->search($search);
                 if ($categoryId) $query = $query->byCategory($categoryId);

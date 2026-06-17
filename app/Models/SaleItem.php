@@ -21,6 +21,7 @@ class SaleItem extends Model
         'sale_id',
         'product_id',
         'spare_part_id',
+        'maintenance_part_id',
         'maintenance_service_id',
         'bike_for_sale_id',
         'selling_price',
@@ -51,6 +52,11 @@ class SaleItem extends Model
     public function sparePart(): BelongsTo
     {
         return $this->belongsTo(SparePart::class);
+    }
+
+    public function maintenancePart(): BelongsTo
+    {
+        return $this->belongsTo(MaintenancePart::class);
     }
 
     public function maintenanceService(): BelongsTo

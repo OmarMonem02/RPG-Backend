@@ -85,6 +85,9 @@ class TicketPublicResource extends JsonResource
         if ($item->spare_part_id !== null) {
             $type = 'part';
             $label = $item->sparePart?->name ?? 'Spare part';
+        } elseif ($item->maintenance_part_id !== null) {
+            $type = 'maintenance_part';
+            $label = $item->maintenancePart?->name ?? 'Maintenance part';
         } elseif ($item->product_id !== null) {
             $type = 'product';
             $label = $item->product?->name ?? 'Product';
@@ -93,7 +96,7 @@ class TicketPublicResource extends JsonResource
             $label = $item->maintenanceService?->name ?? 'Service';
         }
 
-        $catalog = $item->sparePart ?? $item->product ?? $item->maintenanceService;
+        $catalog = $item->sparePart ?? $item->maintenancePart ?? $item->product ?? $item->maintenanceService;
         $catalogUnitPrice = $catalog
             ? (float) ($catalog->service_price ?? $catalog->sale_price ?? 0)
             : 0;

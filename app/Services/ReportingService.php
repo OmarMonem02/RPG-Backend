@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SparePart;
+use App\Models\MaintenancePart;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -400,7 +401,7 @@ class ReportingService
     {
         $inventory = [];
         foreach ($this->supportedCurrencies() as $code) {
-            $inventory[$code] = ['products' => 0.0, 'spare_parts' => 0.0, 'bikes' => 0.0, 'total' => 0.0];
+            $inventory[$code] = ['products' => 0.0, 'spare_parts' => 0.0, 'maintenance_parts' => 0.0, 'bikes' => 0.0, 'total' => 0.0];
         }
 
         foreach (Product::query()->get() as $product) {
@@ -421,6 +422,15 @@ class ReportingService
             $inventory[$currency]['spare_parts'] += $value;
         }
 
+        foreach (MaintenancePart::query()->get() as $maintenancePart) {
+            $currency = $maintenancePart->sale_currency;
+            if (! isset($inventory[$currency])) {
+                continue;
+            }
+            $value = (float) $maintenancePart->cost_price * (int) $maintenancePart->stock_quantity;
+            $inventory[$currency]['maintenance_parts'] += $value;
+        }
+
         foreach (BikeForSale::query()->where('status', '!=', 'sold')->get() as $bike) {
             $currency = $bike->sale_currency;
             if (! isset($inventory[$currency])) {
@@ -433,9 +443,10 @@ class ReportingService
         foreach (array_keys($inventory) as $currency) {
             $inventory[$currency]['products'] = round($inventory[$currency]['products'], 2);
             $inventory[$currency]['spare_parts'] = round($inventory[$currency]['spare_parts'], 2);
+            $inventory[$currency]['maintenance_parts'] = round($inventory[$currency]['maintenance_parts'], 2);
             $inventory[$currency]['bikes'] = round($inventory[$currency]['bikes'], 2);
             $inventory[$currency]['total'] = round(
-                $inventory[$currency]['products'] + $inventory[$currency]['spare_parts'] + $inventory[$currency]['bikes'],
+                $inventory[$currency]['products'] + $inventory[$currency]['spare_parts'] + $inventory[$currency]['maintenance_parts'] + $inventory[$currency]['bikes'],
                 2
             );
         }

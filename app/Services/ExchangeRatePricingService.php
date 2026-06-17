@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BikeForSale;
+use App\Models\MaintenancePart;
 use App\Models\Product;
 use App\Models\SparePart;
 use Illuminate\Database\Eloquent\Model;
@@ -118,6 +119,7 @@ class ExchangeRatePricingService
 
         Product::query()->get()->each(fn (Product $p) => $items->push([$p, 'product']));
         SparePart::query()->get()->each(fn (SparePart $p) => $items->push([$p, 'spare_part']));
+        MaintenancePart::query()->get()->each(fn (MaintenancePart $p) => $items->push([$p, 'maintenance_part']));
         BikeForSale::query()->with('bikeBlueprint.brand')->get()->each(fn (BikeForSale $b) => $items->push([$b, 'bike']));
 
         return $items;
@@ -165,11 +167,12 @@ class ExchangeRatePricingService
         return ['updated' => $count, 'items' => $updated];
     }
 
-    private function resolveItem(string $type, int $id): Product|SparePart|BikeForSale|null
+    private function resolveItem(string $type, int $id): Product|SparePart|MaintenancePart|BikeForSale|null
     {
         return match ($type) {
             'product' => Product::query()->find($id),
             'spare_part' => SparePart::query()->find($id),
+            'maintenance_part' => MaintenancePart::query()->find($id),
             'bike' => BikeForSale::query()->with('bikeBlueprint.brand')->find($id),
             default => null,
         };

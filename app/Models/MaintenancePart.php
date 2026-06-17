@@ -9,12 +9,13 @@ use App\Traits\HasInventoryImages;
 use App\Traits\HasInventoryTags;
 use App\Traits\LogsHistory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Product extends Model
+class MaintenancePart extends Model
 {
     use HasCatalogPricing, HasInventoryImages, HasInventoryTags, LogsHistory, SoftDeletes;
+
+    protected $table = 'maintenance_parts';
 
     protected $fillable = [
         'name',
@@ -25,7 +26,7 @@ class Product extends Model
         'item_status',
         'stock_quantity',
         'low_stock_alarm',
-        'products_category_id',
+        'maintenance_parts_category_id',
         'cost_currency',
         'sale_currency',
         'cost_price',
@@ -53,24 +54,24 @@ class Product extends Model
         'item_status' => ItemStatus::class,
     ];
 
-    public function category(): BelongsTo
+    public function category()
     {
-        return $this->belongsTo(ProductCategory::class, 'products_category_id');
+        return $this->belongsTo(MaintenancePartCategory::class, 'maintenance_parts_category_id');
     }
 
-    public function brand(): BelongsTo
+    public function brand()
     {
         return $this->belongsTo(Brand::class);
     }
 
-    public function bikeBlueprintProducts()
+    public function bikeBlueprintMaintenanceParts()
     {
-        return $this->hasMany(BikeBlueprintProduct::class);
+        return $this->hasMany(BikeBlueprintMaintenancePart::class);
     }
 
     public function bikeBlueprints()
     {
-        return $this->belongsToMany(BikeBlueprint::class, 'bike_blueprint_products', 'product_id', 'bike_blueprint_id')
+        return $this->belongsToMany(BikeBlueprint::class, 'bike_blueprint_maintenance_parts', 'maintenance_part_id', 'bike_blueprint_id')
             ->withTimestamps()
             ->withTrashed()
             ->orderBy('bike_blueprints.model')
@@ -91,7 +92,21 @@ class Product extends Model
         return $this->appendInventoryImagesToArray($array);
     }
 
-    // Scopes
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function ticketItems()
+    {
+        return $this->hasMany(TicketItem::class);
+    }
+
+    public function scopeLowStock($query)
+    {
+        return $query->whereColumn('stock_quantity', '<=', 'low_stock_alarm');
+    }
+
     public function scopeSearch($query, ?string $search)
     {
         if (! $search) {
@@ -106,14 +121,19 @@ class Product extends Model
         });
     }
 
-    public function scopeByCategory($query, ?int $categoryId)
-    {
-        return $categoryId ? $query->where('products_category_id', $categoryId) : $query;
-    }
-
     public function scopeByBrand($query, ?int $brandId)
     {
         return $brandId ? $query->where('brand_id', $brandId) : $query;
+    }
+
+    public function scopeByCategory($query, ?int $categoryId)
+    {
+        return $categoryId ? $query->where('maintenance_parts_category_id', $categoryId) : $query;
+    }
+
+    public function scopeUniversal($query)
+    {
+        return $query->where('universal', true);
     }
 
     public function scopeByPrice($query, ?float $minPrice = null, ?float $maxPrice = null)
@@ -131,11 +151,6 @@ class Product extends Model
     public function scopeByCurrency($query, ?string $currency)
     {
         return $currency ? $query->where('sale_currency', $currency) : $query;
-    }
-
-    public function scopeLowStock($query)
-    {
-        return $query->whereColumn('stock_quantity', '<=', 'low_stock_alarm');
     }
 
     public function scopeByBikeBrand($query, ?int $bikeBrandId)

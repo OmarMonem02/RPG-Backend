@@ -42,6 +42,7 @@ class SaleRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['nullable', 'exists:products,id'],
             'items.*.spare_part_id' => ['nullable', 'exists:spare_parts,id'],
+            'items.*.maintenance_part_id' => ['nullable', 'exists:maintenance_parts,id'],
             'items.*.maintenance_service_id' => ['nullable', 'exists:maintenance_services,id'],
             'items.*.bike_for_sale_id' => ['nullable', 'exists:bike_for_sale,id'],
             'items.*.selling_price' => ['required', 'numeric', 'min:0'],

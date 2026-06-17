@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\CaseInsensitiveLike;
+use App\Support\ItemStatus;
 use App\Traits\HasCatalogPricing;
 use App\Traits\HasInventoryImages;
 use App\Traits\HasInventoryTags;
@@ -20,6 +21,9 @@ class SparePart extends Model
         'name',
         'sku',
         'part_number',
+        'size',
+        'color',
+        'item_status',
         'stock_quantity',
         'low_stock_alarm',
         'spare_parts_category_id',
@@ -47,6 +51,7 @@ class SparePart extends Model
         'max_discount_value' => 'decimal:2',
         'universal' => 'boolean',
         'tags' => 'array',
+        'item_status' => ItemStatus::class,
     ];
 
     // Relationships

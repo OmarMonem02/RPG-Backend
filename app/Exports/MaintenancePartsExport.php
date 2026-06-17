@@ -4,7 +4,7 @@ namespace App\Exports;
 
 use App\Exports\Concerns\HasOrderedExportColumns;
 use App\Exports\Concerns\StylesProfessionalSheets;
-use App\Models\Product;
+use App\Models\MaintenancePart;
 use App\Support\ImportExport\ImportExportImageHelper;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -14,7 +14,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
-class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
+class MaintenancePartsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle, WithEvents
 {
     use HasOrderedExportColumns;
     use StylesProfessionalSheets;
@@ -29,12 +29,12 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function title(): string
     {
-        return 'Products';
+        return 'Maintenance Parts';
     }
 
     public function collection()
     {
-        return Product::query()->with(['category', 'brand', 'bikeBlueprints.brand', 'images'])->get();
+        return MaintenancePart::query()->with(['category', 'brand', 'bikeBlueprints.brand', 'images'])->get();
     }
 
     protected function exportColumnMap(): array
@@ -71,36 +71,36 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
         ];
     }
 
-    protected function mapColumn(string $key, mixed $product): mixed
+    protected function mapColumn(string $key, mixed $part): mixed
     {
-        /** @var Product $product */
+        /** @var MaintenancePart $part */
         $imageHelper = new ImportExportImageHelper();
-        $images = $imageHelper->exportImageColumns($product->images);
+        $images = $imageHelper->exportImageColumns($part->images);
 
         return match ($key) {
-            'id' => $product->id,
-            'name' => $product->name,
-            'sku' => $product->sku,
-            'part_number' => $product->part_number,
-            'size' => $product->size,
-            'color' => $product->color,
-            'item_status' => $product->item_status instanceof \BackedEnum ? $product->item_status->value : $product->item_status,
-            'stock_quantity' => $product->stock_quantity,
-            'low_stock_alarm' => $product->low_stock_alarm,
-            'category_name' => $product->category?->name,
-            'cost_currency' => $product->cost_currency,
-            'sale_currency' => $product->sale_currency,
-            'cost_price' => $product->cost_price,
-            'sale_price' => $product->sale_price,
-            'sale_price_mode' => $product->sale_price_mode,
-            'sale_margin_type' => $product->sale_margin_type,
-            'sale_margin_value' => $product->sale_margin_value,
-            'brand_name' => $product->brand?->name,
-            'max_discount_type' => $product->max_discount_type,
-            'max_discount_value' => $product->max_discount_value,
-            'universal' => $product->universal ? 'Yes' : 'No',
-            'notes' => $product->notes,
-            'bike_blueprints' => $product->bikeBlueprints
+            'id' => $part->id,
+            'name' => $part->name,
+            'sku' => $part->sku,
+            'part_number' => $part->part_number,
+            'size' => $part->size,
+            'color' => $part->color,
+            'item_status' => $part->item_status instanceof \BackedEnum ? $part->item_status->value : $part->item_status,
+            'stock_quantity' => $part->stock_quantity,
+            'low_stock_alarm' => $part->low_stock_alarm,
+            'category_name' => $part->category?->name,
+            'cost_currency' => $part->cost_currency,
+            'sale_currency' => $part->sale_currency,
+            'cost_price' => $part->cost_price,
+            'sale_price' => $part->sale_price,
+            'sale_price_mode' => $part->sale_price_mode,
+            'sale_margin_type' => $part->sale_margin_type,
+            'sale_margin_value' => $part->sale_margin_value,
+            'brand_name' => $part->brand?->name,
+            'max_discount_type' => $part->max_discount_type,
+            'max_discount_value' => $part->max_discount_value,
+            'universal' => $part->universal ? 'Yes' : 'No',
+            'notes' => $part->notes,
+            'bike_blueprints' => $part->bikeBlueprints
                 ->map(fn ($bp) => trim(implode(' | ', array_filter([
                     $bp->brand?->name,
                     $bp->model,
@@ -108,7 +108,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, WithS
                 ]))))
                 ->filter()
                 ->implode('; '),
-            'tags' => $product->tags ? implode('; ', $product->tags) : null,
+            'tags' => $part->tags ? implode('; ', $part->tags) : null,
             'image_1' => $images[0] ?? null,
             'image_2' => $images[1] ?? null,
             'image_3' => $images[2] ?? null,

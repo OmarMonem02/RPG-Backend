@@ -87,6 +87,7 @@ class SaleService
                     ! empty($itemData['spare_part_id']) ? (int) $itemData['spare_part_id'] : null,
                     ! empty($itemData['maintenance_service_id']) ? (int) $itemData['maintenance_service_id'] : null,
                     ! empty($itemData['bike_for_sale_id']) ? (int) $itemData['bike_for_sale_id'] : null,
+                    ! empty($itemData['maintenance_part_id']) ? (int) $itemData['maintenance_part_id'] : null,
                     isset($itemData['discount_approval_request_id'])
                         ? (int) $itemData['discount_approval_request_id']
                         : null,

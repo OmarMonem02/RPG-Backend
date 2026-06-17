@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MaintenancePart;
 use App\Models\MaintenanceService;
 use App\Models\Product;
 use App\Models\Setting;
@@ -50,6 +51,10 @@ class TicketService
                             $price = $this->convertCatalogPriceToEgp(
                                 SparePart::find($itemData['spare_part_id']),
                             );
+                        } elseif (! empty($itemData['maintenance_part_id'])) {
+                            $price = $this->convertCatalogPriceToEgp(
+                                MaintenancePart::find($itemData['maintenance_part_id']),
+                            );
                         } elseif (! empty($itemData['product_id'])) {
                             $price = $this->convertCatalogPriceToEgp(
                                 Product::find($itemData['product_id']),
@@ -75,6 +80,7 @@ class TicketService
                     $ticket->items()->create([
                         'task_id' => $task->id,
                         'spare_part_id' => $itemData['spare_part_id'] ?? null,
+                        'maintenance_part_id' => $itemData['maintenance_part_id'] ?? null,
                         'maintenance_service_id' => $itemData['maintenance_service_id'] ?? null,
                         'product_id' => $itemData['product_id'] ?? null,
                         'price_snapshot' => $price,
@@ -133,6 +139,10 @@ class TicketService
                     $price = $this->convertCatalogPriceToEgp(
                         SparePart::find($data['spare_part_id']),
                     );
+                } elseif (! empty($data['maintenance_part_id'])) {
+                    $price = $this->convertCatalogPriceToEgp(
+                        MaintenancePart::find($data['maintenance_part_id']),
+                    );
                 } elseif (! empty($data['product_id'])) {
                     $price = $this->convertCatalogPriceToEgp(
                         Product::find($data['product_id']),
@@ -151,6 +161,8 @@ class TicketService
                 ! empty($data['product_id']) ? (int) $data['product_id'] : null,
                 ! empty($data['spare_part_id']) ? (int) $data['spare_part_id'] : null,
                 ! empty($data['maintenance_service_id']) ? (int) $data['maintenance_service_id'] : null,
+                null,
+                ! empty($data['maintenance_part_id']) ? (int) $data['maintenance_part_id'] : null,
                 approvalRequestId: isset($data['discount_approval_request_id'])
                     ? (int) $data['discount_approval_request_id']
                     : null,
@@ -161,6 +173,7 @@ class TicketService
             $item = $task->items()->create([
                 'ticket_id' => $task->ticket_id,
                 'spare_part_id' => $data['spare_part_id'] ?? null,
+                'maintenance_part_id' => $data['maintenance_part_id'] ?? null,
                 'maintenance_service_id' => $data['maintenance_service_id'] ?? null,
                 'product_id' => $data['product_id'] ?? null,
                 'price_snapshot' => $price,
@@ -172,7 +185,7 @@ class TicketService
             $this->updateTaskTotal($task);
             $this->updateTicketTotal($task->ticket);
 
-            return $item->load(['sparePart', 'maintenanceService', 'product']);
+            return $item->load(['sparePart', 'maintenancePart', 'maintenanceService', 'product']);
         });
     }
 
@@ -191,6 +204,8 @@ class TicketService
                     $item->product_id ? (int) $item->product_id : null,
                     $item->spare_part_id ? (int) $item->spare_part_id : null,
                     $item->maintenance_service_id ? (int) $item->maintenance_service_id : null,
+                    null,
+                    $item->maintenance_part_id ? (int) $item->maintenance_part_id : null,
                     approvalRequestId: $approvalRequestId,
                     consumedTicketId: (int) $item->ticket_id,
                 );
@@ -215,7 +230,7 @@ class TicketService
                 );
             }
 
-            return $item->load(['sparePart', 'maintenanceService', 'product']);
+            return $item->load(['sparePart', 'maintenancePart', 'maintenanceService', 'product']);
         });
     }
 
@@ -452,7 +467,7 @@ class TicketService
         return round($amount * $multiplier, 2);
     }
 
-    private function convertCatalogPriceToEgp(SparePart|Product|MaintenanceService|null $catalog): float
+    private function convertCatalogPriceToEgp(SparePart|MaintenancePart|Product|MaintenanceService|null $catalog): float
     {
         if (! $catalog) {
             return 0;

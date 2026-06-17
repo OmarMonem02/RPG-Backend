@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BikeForSale;
+use App\Models\MaintenancePart;
 use App\Models\MaintenanceService;
 use App\Models\Product;
 use App\Models\Sale;
@@ -27,6 +28,7 @@ class SaleInventoryService
     private const SELLABLE_MODELS = [
         'product' => Product::class,
         'spare_part' => SparePart::class,
+        'maintenance_part' => MaintenancePart::class,
         'maintenance_service' => MaintenanceService::class,
         'bike' => BikeForSale::class,
     ];
@@ -37,6 +39,7 @@ class SaleInventoryService
     private const ITEM_TYPE_COLUMNS = [
         'product' => 'product_id',
         'spare_part' => 'spare_part_id',
+        'maintenance_part' => 'maintenance_part_id',
         'maintenance_service' => 'maintenance_service_id',
         'bike' => 'bike_for_sale_id',
     ];
@@ -50,6 +53,7 @@ class SaleInventoryService
         return $sale->items()->create([
             'product_id' => $itemData['product_id'] ?? null,
             'spare_part_id' => $itemData['spare_part_id'] ?? null,
+            'maintenance_part_id' => $itemData['maintenance_part_id'] ?? null,
             'maintenance_service_id' => $itemData['maintenance_service_id'] ?? null,
             'bike_for_sale_id' => $itemData['bike_for_sale_id'] ?? null,
             'selling_price' => $itemData['selling_price'],
@@ -89,7 +93,7 @@ class SaleInventoryService
         [$type, $model] = $this->resolveSellableFromSaleItem($saleItem);
 
         match ($type) {
-            'product', 'spare_part' => $model->increment('stock_quantity', $qty),
+            'product', 'spare_part', 'maintenance_part' => $model->increment('stock_quantity', $qty),
             'bike' => $this->markBikeAsAvailable($model, $qty),
             default => null,
         };
@@ -107,7 +111,7 @@ class SaleInventoryService
 
         if ($deltaQty > 0) {
             match ($type) {
-                'product', 'spare_part' => $this->deductStockQuantity($model, $deltaQty),
+                'product', 'spare_part', 'maintenance_part' => $this->deductStockQuantity($model, $deltaQty),
                 'bike' => $this->markBikeAsSold($model, $deltaQty),
                 default => null,
             };
@@ -129,11 +133,12 @@ class SaleInventoryService
 
     public function describeSaleItem(SaleItem $saleItem): string
     {
-        $saleItem->loadMissing('product', 'sparePart', 'maintenanceService', 'bikeForSale.bikeBlueprint.brand');
+        $saleItem->loadMissing('product', 'sparePart', 'maintenancePart', 'maintenanceService', 'bikeForSale.bikeBlueprint.brand');
 
         return match (true) {
             ! is_null($saleItem->product) => "product {$saleItem->product->name}",
             ! is_null($saleItem->sparePart) => "spare part {$saleItem->sparePart->name}",
+            ! is_null($saleItem->maintenancePart) => "maintenance part {$saleItem->maintenancePart->name}",
             ! is_null($saleItem->maintenanceService) => "maintenance service {$saleItem->maintenanceService->name}",
             ! is_null($saleItem->bikeForSale) => 'bike ' . trim(($saleItem->bikeForSale->bikeBlueprint?->brand?->name ?? '') . ' ' . ($saleItem->bikeForSale->bikeBlueprint?->model ?? $saleItem->bikeForSale->vin)),
             default => 'unknown item',
@@ -148,6 +153,7 @@ class SaleInventoryService
         return match (true) {
             ! is_null($saleItem->product_id) => ['product', Product::query()->lockForUpdate()->findOrFail($saleItem->product_id)],
             ! is_null($saleItem->spare_part_id) => ['spare_part', SparePart::query()->lockForUpdate()->findOrFail($saleItem->spare_part_id)],
+            ! is_null($saleItem->maintenance_part_id) => ['maintenance_part', MaintenancePart::query()->lockForUpdate()->findOrFail($saleItem->maintenance_part_id)],
             ! is_null($saleItem->maintenance_service_id) => ['maintenance_service', MaintenanceService::query()->lockForUpdate()->findOrFail($saleItem->maintenance_service_id)],
             ! is_null($saleItem->bike_for_sale_id) => ['bike', BikeForSale::query()->lockForUpdate()->findOrFail($saleItem->bike_for_sale_id)],
             default => throw ValidationException::withMessages([
@@ -184,7 +190,7 @@ class SaleInventoryService
         $qty = (int) $itemData['qty'];
 
         match ($type) {
-            'product', 'spare_part' => $this->deductStockQuantity($model, $qty),
+            'product', 'spare_part', 'maintenance_part' => $this->deductStockQuantity($model, $qty),
             'bike' => $this->markBikeAsSold($model, $qty),
             default => null,
         };
@@ -253,6 +259,7 @@ class SaleInventoryService
         $tag = match ($type) {
             'product' => 'products',
             'spare_part' => 'spare_parts',
+            'maintenance_part' => 'maintenance_parts',
             'bike' => 'bikes',
             default => null,
         };

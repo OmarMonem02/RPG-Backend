@@ -36,12 +36,14 @@ class UserPermissions
         'products',
         'bikes',
         'spare-parts',
+        'maintenance-parts',
         'maintenance-services',
         'users',
         'import-export',
         'payment-methods',
         'product-categories',
         'spare-part-categories',
+        'maintenance-part-categories',
         'bike-blueprints',
         'sellers',
         'reporting',
@@ -107,6 +109,12 @@ class UserPermissions
             'description' => 'Manage spare parts, compatibility links, and stock.',
             'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
+        'maintenance-parts' => [
+            'label' => 'Maintenance Parts',
+            'group' => 'inventory',
+            'description' => 'Manage maintenance parts, compatibility links, and stock.',
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
+        ],
         'maintenance-services' => [
             'label' => 'Maintenance Services',
             'group' => 'maintenance',
@@ -141,6 +149,12 @@ class UserPermissions
             'label' => 'Spare Part Categories',
             'group' => 'master-data',
             'description' => 'Maintain spare part classification data.',
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
+        ],
+        'maintenance-part-categories' => [
+            'label' => 'Maintenance Part Categories',
+            'group' => 'master-data',
+            'description' => 'Maintain maintenance part classification data.',
             'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
         'bike-blueprints' => [
@@ -297,12 +311,14 @@ class UserPermissions
         self::grant($matrix, 'products', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'bikes', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'spare-parts', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'maintenance-parts', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'maintenance-services', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'users', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'import-export', ['read', 'display', 'export', 'import']);
         self::grant($matrix, 'payment-methods', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'product-categories', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'spare-part-categories', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'maintenance-part-categories', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'bike-blueprints', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'sellers', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'reporting', ['create', 'read', 'display', 'update', 'delete']);

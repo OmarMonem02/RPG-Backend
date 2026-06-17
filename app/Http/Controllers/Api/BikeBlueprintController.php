@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AssignMaintenancePartRequest;
 use App\Http\Requests\AssignSparePartRequest;
 use App\Http\Requests\BikeBlueprintRequest;
 use App\Http\Requests\BulkCreateBikeBlueprintByYearRangeRequest;
 use App\Models\BikeBlueprint;
+use App\Models\MaintenancePart;
 use App\Models\SparePart;
 use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
@@ -413,6 +415,135 @@ class BikeBlueprintController extends Controller
             'message' => 'Spare parts assigned to blueprints successfully',
             'blueprints_updated' => $updated,
             'spare_parts_assigned' => count($validated['spare_part_ids']),
+        ], 201);
+    }
+
+    public function getLinkedMaintenanceParts(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
+    {
+        $cacheKey = sprintf(
+            '%s:linked_maintenance_parts:%s:%s',
+            self::BLUEPRINT_TAG,
+            $bike_blueprint->id,
+            ApiCache::hashQuery($request->query())
+        );
+        $tags = [self::BLUEPRINT_TAG, 'maintenance_parts'];
+        $cacheHit = ApiCache::has($cacheKey, $tags);
+        $maintenanceParts = ApiCache::remember($cacheKey, self::LIST_TTL_SECONDS, $tags, function () use ($request, $bike_blueprint) {
+            $query = $bike_blueprint->maintenanceParts()
+                ->search($request->query('search'))
+                ->byBrand($request->query('brand_id'))
+                ->byCategory($request->query('category_id'));
+
+            return $query->with(['category', 'brand'])
+                ->paginate((int) $request->query('per_page', 15));
+        });
+
+        return response()
+            ->json($maintenanceParts)
+            ->header('X-Cache-Hit', $cacheHit ? 'true' : 'false');
+    }
+
+    public function assignMaintenanceParts(AssignMaintenancePartRequest $request, BikeBlueprint $bike_blueprint): JsonResponse
+    {
+        $validated = $request->validated();
+
+        if (! empty($validated['maintenance_part_id'])) {
+            $bike_blueprint->maintenanceParts()->syncWithoutDetaching([$validated['maintenance_part_id']]);
+            $maintenancePart = MaintenancePart::findOrFail($validated['maintenance_part_id']);
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+            return response()->json([
+                'message' => 'Maintenance part assigned successfully',
+                'bike_blueprint_id' => $bike_blueprint->id,
+                'maintenance_part_id' => $maintenancePart->id,
+                'maintenance_part' => $maintenancePart->load(['category', 'brand']),
+            ], 201);
+        }
+
+        if (! empty($validated['maintenance_part_ids'])) {
+            $bike_blueprint->maintenanceParts()->syncWithoutDetaching($validated['maintenance_part_ids']);
+            $maintenanceParts = MaintenancePart::whereIn('id', $validated['maintenance_part_ids'])
+                ->with(['category', 'brand'])
+                ->get();
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+            return response()->json([
+                'message' => 'Maintenance parts assigned successfully',
+                'bike_blueprint_id' => $bike_blueprint->id,
+                'maintenance_parts' => $maintenanceParts,
+                'count' => $maintenanceParts->count(),
+            ], 201);
+        }
+
+        if (! empty($validated['maintenance_part_data'])) {
+            $maintenancePart = MaintenancePart::create($validated['maintenance_part_data'] + [
+                'max_discount_value' => 0,
+            ]);
+            $bike_blueprint->maintenanceParts()->syncWithoutDetaching([$maintenancePart->id]);
+            ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+            return response()->json([
+                'message' => 'Maintenance part created and assigned successfully',
+                'bike_blueprint_id' => $bike_blueprint->id,
+                'maintenance_part' => $maintenancePart->load(['category', 'brand']),
+            ], 201);
+        }
+
+        return response()->json(['error' => 'No maintenance part data provided'], 422);
+    }
+
+    public function removeMaintenancePart(BikeBlueprint $bike_blueprint, MaintenancePart $maintenance_part): JsonResponse
+    {
+        $bike_blueprint->maintenanceParts()->detach($maintenance_part->id);
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+        return response()->json([
+            'message' => 'Maintenance part removed successfully',
+            'bike_blueprint_id' => $bike_blueprint->id,
+            'maintenance_part_id' => $maintenance_part->id,
+        ]);
+    }
+
+    public function replaceMaintenanceParts(Request $request, BikeBlueprint $bike_blueprint): JsonResponse
+    {
+        $validated = $request->validate([
+            'maintenance_part_ids' => 'required|array',
+            'maintenance_part_ids.*' => 'integer|exists:maintenance_parts,id',
+        ]);
+
+        $bike_blueprint->maintenanceParts()->sync($validated['maintenance_part_ids']);
+        $maintenanceParts = $bike_blueprint->maintenanceParts()->with(['category', 'brand'])->get();
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+        return response()->json([
+            'message' => 'Maintenance parts updated successfully',
+            'bike_blueprint_id' => $bike_blueprint->id,
+            'maintenance_parts' => $maintenanceParts,
+            'count' => $maintenanceParts->count(),
+        ]);
+    }
+
+    public function bulkAssignMaintenanceParts(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'blueprint_ids' => 'required|array|min:1',
+            'blueprint_ids.*' => 'integer|exists:bike_blueprints,id',
+            'maintenance_part_ids' => 'required|array|min:1',
+            'maintenance_part_ids.*' => 'integer|exists:maintenance_parts,id',
+        ]);
+
+        $updated = 0;
+        foreach ($validated['blueprint_ids'] as $blueprintId) {
+            $blueprint = BikeBlueprint::findOrFail($blueprintId);
+            $blueprint->maintenanceParts()->syncWithoutDetaching($validated['maintenance_part_ids']);
+            $updated++;
+        }
+        ApiCache::invalidateTags([self::BLUEPRINT_TAG, 'maintenance_parts']);
+
+        return response()->json([
+            'message' => 'Maintenance parts assigned to blueprints successfully',
+            'blueprints_updated' => $updated,
+            'maintenance_parts_assigned' => count($validated['maintenance_part_ids']),
         ], 201);
     }
 

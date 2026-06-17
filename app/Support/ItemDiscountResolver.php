@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\ApprovalRequest;
 use App\Models\BikeForSale;
+use App\Models\MaintenancePart;
 use App\Models\MaintenanceService;
 use App\Models\Product;
 use App\Models\SparePart;
@@ -21,9 +22,17 @@ final class ItemDiscountResolver
         ?int $sparePartId,
         ?int $maintenanceServiceId,
         ?int $bikeForSaleId = null,
+        ?int $maintenancePartId = null,
     ): array {
         if ($sparePartId) {
             $part = SparePart::query()->find($sparePartId);
+            if ($part) {
+                return [$part->max_discount_type, (float) $part->max_discount_value];
+            }
+        }
+
+        if ($maintenancePartId) {
+            $part = MaintenancePart::query()->find($maintenancePartId);
             if ($part) {
                 return [$part->max_discount_type, (float) $part->max_discount_value];
             }
@@ -61,6 +70,7 @@ final class ItemDiscountResolver
         ?int $sparePartId = null,
         ?int $maintenanceServiceId = null,
         ?int $bikeForSaleId = null,
+        ?int $maintenancePartId = null,
         ?int $approvalRequestId = null,
         ?int $consumedTicketId = null,
     ): float {
@@ -88,6 +98,7 @@ final class ItemDiscountResolver
             $sparePartId,
             $maintenanceServiceId,
             $bikeForSaleId,
+            $maintenancePartId,
         );
         $allowedUnit = MaxDiscount::maxLineDiscount($unitPrice, $maxType, $maxValue);
 

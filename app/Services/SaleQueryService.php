@@ -15,6 +15,7 @@ class SaleQueryService
     private const ITEM_TYPE_COLUMNS = [
         'product' => 'product_id',
         'spare_part' => 'spare_part_id',
+        'maintenance_part' => 'maintenance_part_id',
         'maintenance_service' => 'maintenance_service_id',
         'bike' => 'bike_for_sale_id',
     ];

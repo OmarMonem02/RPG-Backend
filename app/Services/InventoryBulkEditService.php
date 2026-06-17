@@ -156,7 +156,7 @@ class InventoryBulkEditService
     }
 
     /**
-     * @param  Model&Product|SparePart  $record
+     * @param  Model&Product|SparePart|\App\Models\MaintenancePart  $record
      * @param  array<string, array{mode: string, value: float|int|string}>  $changes
      * @return array<string, mixed>
      */

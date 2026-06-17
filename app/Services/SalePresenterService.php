@@ -21,6 +21,9 @@ class SalePresenterService
         'items.sparePart.brand',
         'items.sparePart.category',
         'items.sparePart.bikeBlueprints.brand',
+        'items.maintenancePart.brand',
+        'items.maintenancePart.category',
+        'items.maintenancePart.bikeBlueprints.brand',
         'items.maintenanceService.sector',
         'items.bikeForSale.bikeBlueprint.brand',
         'items.replacedFrom',
@@ -85,7 +88,7 @@ class SalePresenterService
 
     public function serializeSaleItem(SaleItem $item): array
     {
-        $item = $item->loadMissing('product.brand', 'product.category', 'sparePart.brand', 'sparePart.category', 'maintenanceService.sector', 'bikeForSale.bikeBlueprint.brand');
+        $item = $item->loadMissing('product.brand', 'product.category', 'sparePart.brand', 'sparePart.category', 'maintenancePart.brand', 'maintenancePart.category', 'maintenanceService.sector', 'bikeForSale.bikeBlueprint.brand');
         [$type, $resolvedItem] = $this->resolveSellableForSerialization($item);
 
         return [
@@ -93,6 +96,7 @@ class SalePresenterService
             'sale_id' => $item->sale_id,
             'product_id' => $item->product_id,
             'spare_part_id' => $item->spare_part_id,
+            'maintenance_part_id' => $item->maintenance_part_id,
             'maintenance_service_id' => $item->maintenance_service_id,
             'bike_for_sale_id' => $item->bike_for_sale_id,
             'selling_price' => (float) $item->selling_price,
@@ -152,6 +156,7 @@ class SalePresenterService
         return match (true) {
             ! is_null($item->product) => ['product', $item->product->toArray()],
             ! is_null($item->sparePart) => ['spare_part', $item->sparePart->toArray()],
+            ! is_null($item->maintenancePart) => ['maintenance_part', $item->maintenancePart->toArray()],
             ! is_null($item->maintenanceService) => ['maintenance_service', $item->maintenanceService->toArray()],
             ! is_null($item->bikeForSale) => ['bike', $item->bikeForSale->toArray()],
             default => [null, null],

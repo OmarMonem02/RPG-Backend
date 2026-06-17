@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BikeForSale;
+use App\Models\MaintenancePart;
 use App\Models\MaintenanceService;
 use App\Models\Product;
 use App\Models\SparePart;
@@ -15,9 +16,9 @@ class SaleCatalogService
 {
     public function catalog(array $filters): LengthAwarePaginator
     {
-        $types = $filters['type'] ?? ['product', 'spare_part', 'bike', 'maintenance_service'];
+        $types = $filters['type'] ?? ['product', 'spare_part', 'maintenance_part', 'bike', 'maintenance_service'];
         if ($types === []) {
-            $types = ['product', 'spare_part', 'bike', 'maintenance_service'];
+            $types = ['product', 'spare_part', 'maintenance_part', 'bike', 'maintenance_service'];
         }
 
         $items = collect();
@@ -26,6 +27,7 @@ class SaleCatalogService
             $items = $items->merge(match ($type) {
                 'product' => $this->productItems($filters),
                 'spare_part' => $this->sparePartItems($filters),
+                'maintenance_part' => $this->maintenancePartItems($filters),
                 'bike' => $this->bikeItems($filters),
                 'maintenance_service' => $this->maintenanceServiceItems($filters),
                 default => collect(),
@@ -123,8 +125,20 @@ class SaleCatalogService
                         'brand' => $blueprint->brand ? $blueprint->brand->name : null,
                     ])->values(),
                 ],
+                ...$this->catalogItemAttributes($product),
             ];
         });
+    }
+
+    private function catalogItemAttributes(Product|SparePart|MaintenancePart $item): array
+    {
+        $status = $item->item_status;
+
+        return [
+            'size' => $item->size,
+            'color' => $item->color,
+            'item_status' => $status instanceof \BackedEnum ? $status->value : $status,
+        ];
     }
 
     private function sparePartItems(array $filters): Collection
@@ -195,6 +209,80 @@ class SaleCatalogService
                         'brand' => $blueprint->brand ? $blueprint->brand->name : null,
                     ])->values(),
                 ],
+                ...$this->catalogItemAttributes($part),
+            ];
+        });
+    }
+
+    private function maintenancePartItems(array $filters): Collection
+    {
+        $query = MaintenancePart::query()->with(['brand', 'category', 'bikeBlueprints.brand']);
+
+        if (! empty($filters['search'])) {
+            $query->search($filters['search']);
+        }
+
+        if (! empty($filters['brand_id'])) {
+            $query->where('brand_id', $filters['brand_id']);
+        }
+
+        if (! empty($filters['category_id'])) {
+            $query->where('maintenance_parts_category_id', $filters['category_id']);
+        }
+
+        if (! empty($filters['currency'])) {
+            $query->where('sale_currency', strtoupper($filters['currency']));
+        }
+
+        if (array_key_exists('price_min', $filters) && $filters['price_min'] !== null) {
+            $query->where('sale_price', '>=', $filters['price_min']);
+        }
+
+        if (array_key_exists('price_max', $filters) && $filters['price_max'] !== null) {
+            $query->where('sale_price', '<=', $filters['price_max']);
+        }
+
+        if (! empty($filters['in_stock_only'])) {
+            $query->where('stock_quantity', '>', 0);
+        }
+
+        if (! empty($filters['compatible_with_blueprint_id'])) {
+            $blueprintId = (int) $filters['compatible_with_blueprint_id'];
+            $query->where(function (Builder $part) use ($blueprintId): void {
+                $part
+                    ->where('universal', true)
+                    ->orWhereHas('bikeBlueprints', fn (Builder $blueprints) => $blueprints->where('bike_blueprints.id', $blueprintId));
+            });
+        }
+
+        if (! empty($filters['bike_blueprint_id'])) {
+            $query->whereHas('bikeBlueprints', fn (Builder $blueprints) => $blueprints->where('bike_blueprints.id', $filters['bike_blueprint_id']));
+        }
+
+        return $query->get()->map(function (MaintenancePart $part): array {
+            return [
+                'item_type' => 'maintenance_part',
+                'id' => $part->id,
+                'display_name' => $part->name,
+                'sku_or_vin' => $part->sku,
+                'sale_price' => (float) $part->sale_price,
+                'sale_currency' => $part->sale_currency,
+                'stock_quantity' => (int) $part->stock_quantity,
+                'is_available' => (int) $part->stock_quantity > 0,
+                'brand' => $part->brand ? ['id' => $part->brand->id, 'name' => $part->brand->name] : null,
+                'category' => $part->category ? ['id' => $part->category->id, 'name' => $part->category->name] : null,
+                'sector' => null,
+                'bike_blueprint' => null,
+                'compatibility' => [
+                    'universal' => (bool) $part->universal,
+                    'bike_blueprints' => $part->bikeBlueprints->map(fn ($blueprint) => [
+                        'id' => $blueprint->id,
+                        'model' => $blueprint->model,
+                        'year' => $blueprint->year,
+                        'brand' => $blueprint->brand ? $blueprint->brand->name : null,
+                    ])->values(),
+                ],
+                ...$this->catalogItemAttributes($part),
             ];
         });
     }

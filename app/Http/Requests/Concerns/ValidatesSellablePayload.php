@@ -14,6 +14,7 @@ trait ValidatesSellablePayload
         $fields = [
             'product_id',
             'spare_part_id',
+            'maintenance_part_id',
             'maintenance_service_id',
             'bike_for_sale_id',
         ];

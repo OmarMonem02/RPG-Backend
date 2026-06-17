@@ -23,6 +23,7 @@ class TicketItemRequest extends FormRequest
         return [
             'product_id' => ['nullable', 'exists:products,id'],
             'spare_part_id' => ['nullable', 'exists:spare_parts,id'],
+            'maintenance_part_id' => ['nullable', 'exists:maintenance_parts,id'],
             'maintenance_service_id' => ['nullable', 'exists:maintenance_services,id'],
             'price_snapshot' => ['nullable', 'numeric'],
             'discount' => ['nullable', 'numeric', 'min:0'],

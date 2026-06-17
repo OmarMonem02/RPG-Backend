@@ -5,6 +5,8 @@ namespace App\Support\ImportExport;
 use App\Exports\BikeBlueprintsExport;
 use App\Exports\BikesExport;
 use App\Exports\BrandsExport;
+use App\Exports\MaintenancePartCategoriesExport;
+use App\Exports\MaintenancePartsExport;
 use App\Exports\MaintenanceServicesExport;
 use App\Exports\MaintenanceServiceSectorsExport;
 use App\Exports\ProductCategoriesExport;
@@ -14,6 +16,8 @@ use App\Exports\SparePartsExport;
 use App\Models\BikeBlueprint;
 use App\Models\BikeForSale;
 use App\Models\Brand;
+use App\Models\MaintenancePart;
+use App\Models\MaintenancePartCategory;
 use App\Models\MaintenanceService;
 use App\Models\MaintenanceServiceSector;
 use App\Models\Product;
@@ -36,6 +40,9 @@ class ImportExportDefinitions
                     $this->column('name', 'Name', true, 'text', 'Product display name.'),
                     $this->column('sku', 'SKU', true, 'text', 'Unique product stock keeping unit.'),
                     $this->column('part_number', 'Part Number', false, 'text', 'Manufacturer or supplier part number.'),
+                    $this->column('size', 'Size', false, 'text', 'Optional size label.'),
+                    $this->column('color', 'Color', false, 'text', 'Optional color label.'),
+                    $this->column('item_status', 'Item Status', false, 'select', 'new or used.', ['new', 'used']),
                     $this->column('stock_quantity', 'Stock Quantity', false, 'integer', 'Current quantity on hand.'),
                     $this->column('low_stock_alarm', 'Low Stock Alarm', false, 'integer', 'Quantity threshold for low-stock alerts.'),
                     $this->column('category_name', 'Category Name', true, 'reference', 'Existing product category name.', reference: 'product_categories.name'),
@@ -69,6 +76,9 @@ class ImportExportDefinitions
                     $this->column('name', 'Name', true, 'text', 'Spare part display name.'),
                     $this->column('sku', 'SKU', true, 'text', 'Unique spare part SKU.'),
                     $this->column('part_number', 'Part Number', false, 'text', 'Manufacturer or supplier part number.'),
+                    $this->column('size', 'Size', false, 'text', 'Optional size label.'),
+                    $this->column('color', 'Color', false, 'text', 'Optional color label.'),
+                    $this->column('item_status', 'Item Status', false, 'select', 'new or used.', ['new', 'used']),
                     $this->column('stock_quantity', 'Stock Quantity', false, 'integer', 'Current quantity on hand.'),
                     $this->column('low_stock_alarm', 'Low Stock Alarm', false, 'integer', 'Quantity threshold for low-stock alerts.'),
                     $this->column('category_name', 'Category Name', true, 'reference', 'Existing spare part category name.', reference: 'spare_part_categories.name'),
@@ -90,6 +100,42 @@ class ImportExportDefinitions
                     $this->column('image_2', 'Image 2', false, 'url', 'Additional spare part image URL (optional).'),
                     $this->column('image_3', 'Image 3', false, 'url', 'Additional spare part image URL (optional).'),
                     $this->column('image_4', 'Image 4', false, 'url', 'Additional spare part image URL (optional).'),
+                ],
+            ],
+            'maintenance_parts' => [
+                'label' => 'Maintenance Parts',
+                'model' => MaintenancePart::class,
+                'export' => MaintenancePartsExport::class,
+                'unique' => ['sku'],
+                'duplicate_label' => 'maintenance part',
+                'columns' => [
+                    $this->column('name', 'Name', true, 'text', 'Maintenance part display name.'),
+                    $this->column('sku', 'SKU', true, 'text', 'Unique maintenance part SKU.'),
+                    $this->column('part_number', 'Part Number', false, 'text', 'Manufacturer or supplier part number.'),
+                    $this->column('size', 'Size', false, 'text', 'Optional size label.'),
+                    $this->column('color', 'Color', false, 'text', 'Optional color label.'),
+                    $this->column('item_status', 'Item Status', false, 'select', 'new or used.', ['new', 'used']),
+                    $this->column('stock_quantity', 'Stock Quantity', false, 'integer', 'Current quantity on hand.'),
+                    $this->column('low_stock_alarm', 'Low Stock Alarm', false, 'integer', 'Quantity threshold for low-stock alerts.'),
+                    $this->column('category_name', 'Category Name', true, 'reference', 'Existing maintenance part category name.', reference: 'maintenance_part_categories.name'),
+                    $this->column('cost_currency', 'Cost Currency', false, 'text', 'Cost price currency: EGP, USD, or EUR.'),
+                    $this->column('sale_currency', 'Sale Currency', false, 'text', 'Sale price currency: EGP, USD, or EUR.'),
+                    $this->column('cost_price', 'Cost Price', false, 'decimal', 'Purchase cost.'),
+                    $this->column('sale_price', 'Sale Price', false, 'decimal', 'Retail sale price.'),
+                    $this->column('sale_price_mode', 'Sale Price Mode', false, 'select', 'manual or margin.', ['manual', 'margin']),
+                    $this->column('sale_margin_type', 'Sale Margin Type', false, 'select', 'percentage or fixed.', ['percentage', 'fixed']),
+                    $this->column('sale_margin_value', 'Sale Margin Value', false, 'decimal', 'Margin percentage or fixed EGP amount.'),
+                    $this->column('brand_name', 'Brand Name', true, 'reference', 'Existing maintenance part brand name.', reference: 'brands.name'),
+                    $this->column('max_discount_type', 'Max Discount Type', false, 'select', 'fixed or percentage.', ['fixed', 'percentage']),
+                    $this->column('max_discount_value', 'Max Discount Value', false, 'decimal', 'Maximum discount amount or percentage.'),
+                    $this->column('universal', 'Universal', false, 'boolean', 'Yes/No, true/false, or 1/0.'),
+                    $this->column('notes', 'Notes', false, 'text', 'Internal notes.'),
+                    $this->column('bike_blueprints', 'Compatible Bike Blueprints', false, 'reference_list', 'Optional list: Brand | Model | Year; Brand | Model | Year.', reference: 'bike_blueprints.brand_model_year'),
+                    $this->column('tags', 'Tags', false, 'tag_list', 'Semicolon-separated tags, e.g. Matte Black; High Load'),
+                    $this->column('image_1', 'Image 1 (Primary)', false, 'url', 'Primary maintenance part image URL (optional).'),
+                    $this->column('image_2', 'Image 2', false, 'url', 'Additional maintenance part image URL (optional).'),
+                    $this->column('image_3', 'Image 3', false, 'url', 'Additional maintenance part image URL (optional).'),
+                    $this->column('image_4', 'Image 4', false, 'url', 'Additional maintenance part image URL (optional).'),
                 ],
             ],
             'maintenance_services' => [
@@ -156,7 +202,7 @@ class ImportExportDefinitions
                 'duplicate_label' => 'brand',
                 'columns' => [
                     $this->column('name', 'Name', true, 'text', 'Brand name.'),
-                    $this->column('types', 'Types', true, 'reference_list', 'Comma-separated: products, spare_parts, bikes.', reference: 'brands.types'),
+                    $this->column('types', 'Types', true, 'reference_list', 'Comma-separated: products, spare_parts, maintenance_parts, bikes.', reference: 'brands.types'),
                 ],
             ],
             'product_categories' => [
@@ -177,6 +223,16 @@ class ImportExportDefinitions
                 'duplicate_label' => 'spare part category',
                 'columns' => [
                     $this->column('name', 'Name', true, 'text', 'Spare part category name.'),
+                ],
+            ],
+            'maintenance_part_categories' => [
+                'label' => 'Maintenance Part Categories',
+                'model' => MaintenancePartCategory::class,
+                'export' => MaintenancePartCategoriesExport::class,
+                'unique' => ['name'],
+                'duplicate_label' => 'maintenance part category',
+                'columns' => [
+                    $this->column('name', 'Name', true, 'text', 'Maintenance part category name.'),
                 ],
             ],
             'maintenance_service_sectors' => [

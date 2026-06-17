@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ReportingController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SellerController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\MaintenancePartController;
 use App\Http\Controllers\Api\SparePartController;
 use App\Http\Controllers\Api\StocktakeController;
 use App\Http\Controllers\Api\PublicTicketMessageController;
@@ -133,17 +134,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'patch'], '/spare_parts/{spare_part}', [SparePartController::class, 'update'])->middleware('permission:spare-parts,update');
     Route::delete('/spare_parts/{spare_part}', [SparePartController::class, 'destroy'])->middleware('permission:spare-parts,delete');
 
+    Route::get('/maintenance_parts/low-stock', [MaintenancePartController::class, 'lowStock'])->middleware('permission:maintenance-parts,read');
+    Route::get('/maintenance_parts', [MaintenancePartController::class, 'index'])->middleware('permission:maintenance-parts,read');
+    Route::post('/maintenance_parts', [MaintenancePartController::class, 'store'])->middleware('permission:maintenance-parts,create');
+    Route::patch('/maintenance_parts/{maintenance_part}/stock', [MaintenancePartController::class, 'updateStock'])->middleware('permission:maintenance-parts,update');
+    Route::post('/maintenance_parts/bulk/preview', [MaintenancePartController::class, 'bulkPreview'])->middleware('permission:maintenance-parts,update');
+    Route::patch('/maintenance_parts/bulk/apply', [MaintenancePartController::class, 'bulkApply'])->middleware('permission:maintenance-parts,update');
+    Route::post('/maintenance_parts/bulk/create', [MaintenancePartController::class, 'bulkCreate'])->middleware('permission:maintenance-parts,create');
+    Route::patch('/maintenance_parts/bulk/update', [MaintenancePartController::class, 'bulkUpdate'])->middleware('permission:maintenance-parts,update');
+    Route::delete('/maintenance_parts/bulk/delete', [MaintenancePartController::class, 'bulkDelete'])->middleware('permission:maintenance-parts,delete');
+    Route::get('/maintenance_parts/{maintenance_part}', [MaintenancePartController::class, 'show'])->middleware('permission:maintenance-parts,read');
+    Route::match(['put', 'patch'], '/maintenance_parts/{maintenance_part}', [MaintenancePartController::class, 'update'])->middleware('permission:maintenance-parts,update');
+    Route::delete('/maintenance_parts/{maintenance_part}', [MaintenancePartController::class, 'destroy'])->middleware('permission:maintenance-parts,delete');
+
     Route::get('/bike_blueprints', [BikeBlueprintController::class, 'index'])->middleware('permission:bike-blueprints,read');
     Route::post('/bike_blueprints', [BikeBlueprintController::class, 'store'])->middleware('permission:bike-blueprints,create');
     // Allow spare-part users to use compatibility cascading filters (brand -> model -> year)
-    Route::get('/bike_blueprints/filter/models', [BikeBlueprintController::class, 'getModelsByBrand'])->middleware('any_permission:spare-parts,read,products,read');
-    Route::get('/bike_blueprints/filter/years', [BikeBlueprintController::class, 'getYearsByBrandAndModel'])->middleware('any_permission:spare-parts,read,products,read');
+    Route::get('/bike_blueprints/filter/models', [BikeBlueprintController::class, 'getModelsByBrand'])->middleware('any_permission:spare-parts,read,products,read,maintenance-parts,read');
+    Route::get('/bike_blueprints/filter/years', [BikeBlueprintController::class, 'getYearsByBrandAndModel'])->middleware('any_permission:spare-parts,read,products,read,maintenance-parts,read');
     Route::post('/bike_blueprints/bulk/create-by-range', [BikeBlueprintController::class, 'bulkCreateByYearRange'])->middleware('permission:bike-blueprints,create');
     Route::post('/bike_blueprints/bulk/assign-spare-parts', [BikeBlueprintController::class, 'bulkAssignSpareParts'])->middleware('permission:bike-blueprints,update');
+    Route::post('/bike_blueprints/bulk/assign-maintenance-parts', [BikeBlueprintController::class, 'bulkAssignMaintenanceParts'])->middleware('permission:bike-blueprints,update');
     Route::get('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'getLinkedSpareParts'])->middleware('permission:bike-blueprints,read');
     Route::post('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'assignSpareParts'])->middleware('permission:bike-blueprints,update');
     Route::put('/bike_blueprints/{bike_blueprint}/spare_parts', [BikeBlueprintController::class, 'replaceSpareParts'])->middleware('permission:bike-blueprints,update');
     Route::delete('/bike_blueprints/{bike_blueprint}/spare_parts/{spare_part}', [BikeBlueprintController::class, 'removeSparePart'])->middleware('permission:bike-blueprints,delete');
+    Route::get('/bike_blueprints/{bike_blueprint}/maintenance_parts', [BikeBlueprintController::class, 'getLinkedMaintenanceParts'])->middleware('permission:bike-blueprints,read');
+    Route::post('/bike_blueprints/{bike_blueprint}/maintenance_parts', [BikeBlueprintController::class, 'assignMaintenanceParts'])->middleware('permission:bike-blueprints,update');
+    Route::put('/bike_blueprints/{bike_blueprint}/maintenance_parts', [BikeBlueprintController::class, 'replaceMaintenanceParts'])->middleware('permission:bike-blueprints,update');
+    Route::delete('/bike_blueprints/{bike_blueprint}/maintenance_parts/{maintenance_part}', [BikeBlueprintController::class, 'removeMaintenancePart'])->middleware('permission:bike-blueprints,delete');
     Route::get('/bike_blueprints/{bike_blueprint}/bikes', [BikeBlueprintController::class, 'getLinkedBikes'])->middleware('permission:bike-blueprints,read');
     Route::get('/bike_blueprints/{bike_blueprint}', [BikeBlueprintController::class, 'show'])->middleware('permission:bike-blueprints,read');
     Route::match(['put', 'patch'], '/bike_blueprints/{bike_blueprint}', [BikeBlueprintController::class, 'update'])->middleware('permission:bike-blueprints,update');
@@ -153,13 +172,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/products/bulk/apply', [ProductBulkController::class, 'apply'])->middleware('permission:products,update');
 
     Route::post('/stocktake/discrepancy-export', [StocktakeController::class, 'discrepancyExport'])
-        ->middleware('any_permission:products,read,spare-parts,read');
+        ->middleware('any_permission:products,read,spare-parts,read,maintenance-parts,read');
 
     $permissionEntities = [
         'brands' => 'brands',
         'products' => 'products',
         'product_categories' => 'product-categories',
         'spare_part_categories' => 'spare-part-categories',
+        'maintenance_part_categories' => 'maintenance-part-categories',
         'maintenance_services' => 'maintenance-services',
         'bike_for_sale' => 'bikes',
         'payment_methods' => 'payment-methods',
