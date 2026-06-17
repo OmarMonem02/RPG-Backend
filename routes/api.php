@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApprovalRequestController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BikeBlueprintController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\EntityController;
@@ -254,5 +255,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/settings', [SettingController::class, 'update']);
         Route::get('/history', [HistoryController::class, 'index']);
         Route::get('/history/export', [HistoryController::class, 'export']);
+
+        Route::get('/backup/export', [BackupController::class, 'export']);
+        Route::post('/backup/preview', [BackupController::class, 'preview']);
+        Route::post('/backup/import', [BackupController::class, 'import']);
     });
 });
