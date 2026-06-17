@@ -64,6 +64,7 @@ class SaleService
 
             $sale = Sale::create([
                 'customer_id' => $data['customer_id'],
+                'customer_address_id' => $data['customer_address_id'] ?? null,
                 'user_id' => $userId,
                 'seller_id' => $data['seller_id'] ?? null,
                 'total' => 0,

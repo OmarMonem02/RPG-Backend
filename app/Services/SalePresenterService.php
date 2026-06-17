@@ -13,6 +13,7 @@ class SalePresenterService
      */
     public const SALE_RELATIONS = [
         'customer',
+        'customerAddress',
         'user',
         'seller',
         'paymentMethod',
@@ -46,6 +47,7 @@ class SalePresenterService
         return [
             'id' => $sale->id,
             'customer_id' => $sale->customer_id,
+            'customer_address_id' => $sale->customer_address_id,
             'user_id' => $sale->user_id,
             'seller_id' => $sale->seller_id,
             'total' => (float) $sale->total,
@@ -58,7 +60,10 @@ class SalePresenterService
             'is_maintenance' => (bool) $sale->is_maintenance,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
-            'customer' => $sale->customer,
+            'customer' => $this->serializeSaleCustomer($sale),
+            'customer_address' => $sale->customerAddress
+                ? $this->serializeCustomerAddress($sale->customerAddress)
+                : null,
             'user' => $sale->user,
             'seller' => $sale->seller,
             'payment_method' => $sale->paymentMethod,
@@ -161,5 +166,39 @@ class SalePresenterService
             ! is_null($item->bikeForSale) => ['bike', $item->bikeForSale->toArray()],
             default => [null, null],
         };
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function serializeSaleCustomer(Sale $sale): ?array
+    {
+        if (! $sale->customer) {
+            return null;
+        }
+
+        $customer = $sale->customer->toArray();
+
+        if ($sale->customerAddress) {
+            $customer['address'] = $sale->customerAddress->formatted();
+        }
+
+        return $customer;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeCustomerAddress(\App\Models\CustomerAddress $address): array
+    {
+        return [
+            'id' => $address->id,
+            'customer_id' => $address->customer_id,
+            'label' => $address->label,
+            'full_address' => $address->full_address,
+            'city' => $address->city,
+            'is_default' => (bool) $address->is_default,
+            'formatted' => $address->formatted(),
+        ];
     }
 }

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\BikeBlueprint;
 use App\Models\Brand;
 use App\Models\Customer;
+use App\Models\CustomerAddress;
 use App\Models\MaintenanceService;
 use App\Models\MaintenanceServiceSector;
 use App\Models\PaymentMethod;
@@ -363,6 +364,64 @@ class SalesApiTest extends TestCase
                 'delivery_status',
                 'items.0.discount',
             ]);
+    }
+
+    public function test_rejects_online_sale_without_customer_address(): void
+    {
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['type'] = 'online';
+        $payload['status'] = 'pending';
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_address_id']);
+    }
+
+    public function test_accepts_delivery_sale_with_valid_customer_address(): void
+    {
+        $address = CustomerAddress::create([
+            'customer_id' => $this->customer->id,
+            'full_address' => '10 Delivery Lane',
+            'city' => 'Alexandria',
+            'is_default' => true,
+        ]);
+
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['type'] = 'delivery';
+        $payload['status'] = 'pending';
+        $payload['customer_address_id'] = $address->id;
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertCreated()
+            ->assertJsonPath('customer_address_id', $address->id)
+            ->assertJsonPath('customer_address.full_address', '10 Delivery Lane');
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $response->json('id'),
+            'customer_address_id' => $address->id,
+        ]);
+    }
+
+    public function test_rejects_customer_address_that_does_not_belong_to_customer(): void
+    {
+        $otherAddress = CustomerAddress::create([
+            'customer_id' => $this->otherCustomer->id,
+            'full_address' => '99 Other Street',
+            'city' => 'Cairo',
+            'is_default' => true,
+        ]);
+
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['type'] = 'online';
+        $payload['status'] = 'pending';
+        $payload['customer_address_id'] = $otherAddress->id;
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_address_id']);
     }
 
     public function test_catalog_items_support_filters_and_spare_part_compatibility(): void

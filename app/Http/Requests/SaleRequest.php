@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesSaleDiscountAdminPassword;
 use App\Http\Requests\Concerns\ValidatesSellablePayload;
+use App\Models\CustomerAddress;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,6 +30,12 @@ class SaleRequest extends FormRequest
     {
         return [
             'customer_id' => ['required', 'exists:customers,id'],
+            'customer_address_id' => [
+                Rule::requiredIf(fn () => in_array($this->input('type'), ['online', 'delivery'], true)),
+                'nullable',
+                'integer',
+                'exists:customer_addresses,id',
+            ],
             'seller_id' => ['nullable', 'exists:sellers,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'type' => ['required', Rule::in(['site', 'online', 'delivery'])],
@@ -78,6 +85,19 @@ class SaleRequest extends FormRequest
                 }
 
                 $this->validateSaleDiscountAdminPassword($validator);
+
+                if (in_array($this->input('type'), ['online', 'delivery'], true)) {
+                    $addressId = $this->input('customer_address_id');
+                    if ($addressId) {
+                        $address = CustomerAddress::query()->find($addressId);
+                        if ($address && (int) $address->customer_id !== (int) $this->input('customer_id')) {
+                            $validator->errors()->add(
+                                'customer_address_id',
+                                'The selected address does not belong to this customer.',
+                            );
+                        }
+                    }
+                }
             },
         ];
     }

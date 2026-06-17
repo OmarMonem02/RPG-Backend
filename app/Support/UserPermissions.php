@@ -313,14 +313,14 @@ class UserPermissions
         self::grant($matrix, 'spare-parts', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'maintenance-parts', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'maintenance-services', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'users', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'import-export', ['read', 'display', 'export', 'import']);
+        self::grant($matrix, 'bike-blueprints', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'sellers', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'payment-methods', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'product-categories', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'spare-part-categories', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'maintenance-part-categories', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'bike-blueprints', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'sellers', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'users', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'import-export', ['read', 'display', 'export', 'import']);
         self::grant($matrix, 'reporting', ['create', 'read', 'display', 'update', 'delete']);
 
         return $matrix;
@@ -328,16 +328,40 @@ class UserPermissions
 
     private static function staffDefaults(array $matrix): array
     {
-        self::grant($matrix, 'sales', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update', 'delete']);
-        self::grant($matrix, 'inventory', ['read', 'display']);
-
+        self::grant($matrix, 'sales', ['create', 'read', 'display', 'update']);
+        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update']);
+        self::grant($matrix, 'inventory', ['read']);
+        self::grant($matrix, 'brands', ['read']);
+        self::grant($matrix, 'products', ['read']);
+        self::grant($matrix, 'bikes', ['read']);
+        self::grant($matrix, 'spare-parts', ['read']);
+        self::grant($matrix, 'maintenance-parts', ['read']);
+        self::grant($matrix, 'maintenance-services', ['read']);
+        self::grant($matrix, 'bike-blueprints', ['read']);
+        self::grant($matrix, 'sellers', ['read']);
+        self::grant($matrix, 'payment-methods', ['read']);
+        self::grant($matrix, 'product-categories', ['read']);
+        self::grant($matrix, 'spare-part-categories', ['read']);
+        self::grant($matrix, 'maintenance-part-categories', ['read']);
         return $matrix;
     }
 
     private static function technicianDefaults(array $matrix): array
     {
-        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'maintenance', ['create', 'read', 'display', 'update']);
+        self::grant($matrix, 'inventory', ['read']);
+        self::grant($matrix, 'brands', ['read']);
+        self::grant($matrix, 'products', ['read']);
+        self::grant($matrix, 'bikes', ['read']);
+        self::grant($matrix, 'spare-parts', ['read']);
+        self::grant($matrix, 'maintenance-parts', ['read']);
+        self::grant($matrix, 'maintenance-services', ['read']);
+        self::grant($matrix, 'bike-blueprints', ['read']);
+        self::grant($matrix, 'payment-methods', ['read']);
+        self::grant($matrix, 'product-categories', ['read']);
+        self::grant($matrix, 'spare-part-categories', ['read']);
+        self::grant($matrix, 'maintenance-part-categories', ['read']);
+
 
         return $matrix;
     }

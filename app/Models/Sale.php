@@ -22,6 +22,7 @@ class Sale extends Model
 
     protected $fillable = [
         'customer_id',
+        'customer_address_id',
         'user_id',
         'seller_id',
         'total',
@@ -44,6 +45,11 @@ class Sale extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function customerAddress(): BelongsTo
+    {
+        return $this->belongsTo(CustomerAddress::class);
     }
 
     public function user(): BelongsTo

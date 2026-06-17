@@ -30,6 +30,16 @@ class Customer extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class);
+    }
+
+    public function defaultAddress(): ?CustomerAddress
+    {
+        return $this->addresses()->where('is_default', true)->first();
+    }
+
     // Scopes
     public function scopeSearch($query, ?string $search)
     {
