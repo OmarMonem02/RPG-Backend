@@ -98,6 +98,10 @@ class SaleQueryService
             });
         }
 
+        if (! empty($filters['remote_only'])) {
+            $query->whereIn('type', ['online', 'delivery']);
+        }
+
         foreach (['user_id', 'seller_id', 'payment_method_id', 'type', 'status', 'delivery_status'] as $field) {
             if (array_key_exists($field, $filters) && $filters[$field] !== null) {
                 $query->where($field, $filters[$field]);

@@ -424,6 +424,137 @@ class SalesApiTest extends TestCase
             ->assertJsonValidationErrors(['customer_address_id']);
     }
 
+    public function test_remote_only_filter_returns_online_and_delivery_excludes_site(): void
+    {
+        $address = CustomerAddress::create([
+            'customer_id' => $this->customer->id,
+            'full_address' => '10 Delivery Lane',
+            'city' => 'Alexandria',
+            'is_default' => true,
+        ]);
+
+        $siteSale = $this->createSaleThroughApi(['type' => 'site']);
+
+        $onlinePayload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $onlinePayload['type'] = 'online';
+        $onlinePayload['status'] = 'pending';
+        $onlinePayload['customer_address_id'] = $address->id;
+        $onlineSale = $this->actingAs($this->admin)
+            ->postJson('/api/sales', $onlinePayload)
+            ->assertCreated()
+            ->json();
+
+        $deliveryPayload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $deliveryPayload['type'] = 'delivery';
+        $deliveryPayload['status'] = 'pending';
+        $deliveryPayload['customer_address_id'] = $address->id;
+        $deliverySale = $this->actingAs($this->admin)
+            ->postJson('/api/sales', $deliveryPayload)
+            ->assertCreated()
+            ->json();
+
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/sales?' . http_build_query(['remote_only' => true, 'per_page' => 100]));
+
+        $response->assertOk();
+
+        $ids = collect($response->json('data'))->pluck('id')->all();
+
+        $this->assertContains($onlineSale['id'], $ids);
+        $this->assertContains($deliverySale['id'], $ids);
+        $this->assertNotContains($siteSale['id'], $ids);
+
+        $stringFlagResponse = $this->actingAs($this->admin)
+            ->getJson('/api/sales?remote_only=true&per_page=100');
+
+        $stringFlagResponse->assertOk();
+        $stringFlagIds = collect($stringFlagResponse->json('data'))->pluck('id')->all();
+        $this->assertContains($onlineSale['id'], $stringFlagIds);
+        $this->assertNotContains($siteSale['id'], $stringFlagIds);
+    }
+
+    public function test_can_update_remote_sale_delivery_fields_and_address(): void
+    {
+        $address = CustomerAddress::create([
+            'customer_id' => $this->customer->id,
+            'full_address' => '10 Delivery Lane',
+            'city' => 'Alexandria',
+            'is_default' => true,
+        ]);
+
+        $newAddress = CustomerAddress::create([
+            'customer_id' => $this->customer->id,
+            'full_address' => '22 New Harbor Road',
+            'city' => 'Cairo',
+            'is_default' => false,
+        ]);
+
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['type'] = 'delivery';
+        $payload['status'] = 'pending';
+        $payload['customer_address_id'] = $address->id;
+        $payload['delivery_status'] = 'pending';
+
+        $sale = $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertCreated()
+            ->json();
+
+        $saleId = $sale['id'];
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/sales/{$saleId}", [
+                'delivery_status' => 'in-transit',
+                'shipping_fee' => 75,
+                'customer_address_id' => $newAddress->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('delivery_status', 'in-transit')
+            ->assertJsonPath('shipping_fee', 75)
+            ->assertJsonPath('customer_address_id', $newAddress->id)
+            ->assertJsonPath('customer_address.full_address', '22 New Harbor Road');
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'delivery_status' => 'in-transit',
+            'customer_address_id' => $newAddress->id,
+        ]);
+    }
+
+    public function test_rejects_customer_address_update_for_wrong_customer_on_remote_sale(): void
+    {
+        $address = CustomerAddress::create([
+            'customer_id' => $this->customer->id,
+            'full_address' => '10 Delivery Lane',
+            'city' => 'Alexandria',
+            'is_default' => true,
+        ]);
+
+        $otherAddress = CustomerAddress::create([
+            'customer_id' => $this->otherCustomer->id,
+            'full_address' => '99 Other Street',
+            'city' => 'Cairo',
+            'is_default' => true,
+        ]);
+
+        $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
+        $payload['type'] = 'delivery';
+        $payload['status'] = 'pending';
+        $payload['customer_address_id'] = $address->id;
+
+        $saleId = $this->actingAs($this->admin)
+            ->postJson('/api/sales', $payload)
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/sales/{$saleId}", [
+                'customer_address_id' => $otherAddress->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_address_id']);
+    }
+
     public function test_catalog_items_support_filters_and_spare_part_compatibility(): void
     {
         $response = $this->actingAs($this->admin)->getJson('/api/sales/catalog-items?' . http_build_query([
@@ -450,12 +581,10 @@ class SalesApiTest extends TestCase
         $serviceItemId = $this->findSaleItemIdByType($sale, 'maintenance_service');
 
         $updateSaleResponse = $this->actingAs($this->admin)->patchJson("/api/sales/{$saleId}", [
-            'status' => 'partial',
             'shipping_fee' => 60,
         ]);
 
         $updateSaleResponse->assertOk()
-            ->assertJsonPath('status', 'partial')
             ->assertJsonPath('shipping_fee', 60);
 
         $addItemResponse = $this->actingAs($this->admin)->postJson("/api/sales/{$saleId}/items", [

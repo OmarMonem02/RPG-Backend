@@ -91,7 +91,6 @@ class ExportColumnCatalog
                 $this->meta('customer_name', 'Customer name'),
                 $this->meta('customer_phone', 'Customer phone'),
                 $this->meta('channel', 'Channel'),
-                $this->meta('status', 'Status'),
                 $this->meta('delivery_status', 'Delivery status'),
                 $this->meta('payment_method', 'Payment method'),
                 $this->meta('seller', 'Seller'),

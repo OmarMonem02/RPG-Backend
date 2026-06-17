@@ -71,7 +71,7 @@ class SaleService
                 'discount' => (float) ($data['discount'] ?? 0),
                 'payment_method_id' => $data['payment_method_id'],
                 'type' => $data['type'],
-                'status' => $data['status'],
+                'status' => Sale::defaultStatusForType($data['type']),
                 'delivery_status' => $data['delivery_status'] ?? null,
                 'shipping_fee' => (float) ($data['shipping_fee'] ?? 0),
                 'is_maintenance' => (bool) ($data['is_maintenance'] ?? false),

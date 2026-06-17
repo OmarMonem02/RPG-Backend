@@ -12,6 +12,27 @@ class SaleFilterRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        foreach (['remote_only', 'is_maintenance'] as $field) {
+            if (! $this->has($field)) {
+                continue;
+            }
+
+            $raw = $this->input($field);
+
+            if (in_array($raw, [true, 1, '1', 'true', 'on', 'yes'], true)) {
+                $this->merge([$field => true]);
+
+                continue;
+            }
+
+            if (in_array($raw, [false, 0, '0', 'false', 'off', 'no'], true)) {
+                $this->merge([$field => false]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -23,6 +44,7 @@ class SaleFilterRequest extends FormRequest
             'seller_id' => ['nullable', 'integer', 'exists:sellers,id'],
             'payment_method_id' => ['nullable', 'integer', 'exists:payment_methods,id'],
             'type' => ['nullable', Rule::in(['site', 'online', 'delivery'])],
+            'remote_only' => ['nullable', 'boolean'],
             'status' => ['nullable', Rule::in(['completed', 'partial', 'pending'])],
             'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'is_maintenance' => ['nullable', 'boolean'],

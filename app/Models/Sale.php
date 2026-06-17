@@ -20,6 +20,13 @@ class Sale extends Model
     public const STATUS_PARTIAL = 'partial';
     public const STATUS_PENDING = 'pending';
 
+    public static function defaultStatusForType(string $type): string
+    {
+        return $type === self::TYPE_SITE
+            ? self::STATUS_COMPLETED
+            : self::STATUS_PENDING;
+    }
+
     protected $fillable = [
         'customer_id',
         'customer_address_id',

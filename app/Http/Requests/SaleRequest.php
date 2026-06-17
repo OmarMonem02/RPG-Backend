@@ -39,7 +39,6 @@ class SaleRequest extends FormRequest
             'seller_id' => ['nullable', 'exists:sellers,id'],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'type' => ['required', Rule::in(['site', 'online', 'delivery'])],
-            'status' => ['required', Rule::in(['completed', 'partial', 'pending'])],
             'delivery_status' => ['nullable', Rule::in(['pending', 'in-transit', 'delivered'])],
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
