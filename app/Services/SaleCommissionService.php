@@ -6,6 +6,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Seller;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class SaleCommissionService
 {
@@ -166,7 +167,11 @@ class SaleCommissionService
         $d = 'COALESCE(sellers.bikes_for_sale_commission_rate, 0)';
         $e = 'COALESCE(sellers.maintenance_services_commission_rate, 0)';
 
-        return "MAX(MAX(MAX({$a}, {$b}), MAX({$c}, {$d})), {$e})";
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return "MAX(MAX(MAX({$a}, {$b}), MAX({$c}, {$d})), {$e})";
+        }
+
+        return "GREATEST({$a}, {$b}, {$c}, {$d}, {$e})";
     }
 
     public function applyCommissionJoins(Builder $query): Builder
