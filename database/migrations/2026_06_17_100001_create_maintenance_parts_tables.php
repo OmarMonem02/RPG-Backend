@@ -55,11 +55,15 @@ return new class extends Migration
         });
 
         Schema::table('sale_items', function (Blueprint $table) {
-            $table->foreignId('maintenance_part_id')->nullable()->after('spare_part_id')->constrained('maintenance_parts');
+            if (! Schema::hasColumn('sale_items', 'maintenance_part_id')) {
+                $table->foreignId('maintenance_part_id')->nullable()->constrained('maintenance_parts');
+            }
         });
 
         Schema::table('ticket_items', function (Blueprint $table) {
-            $table->foreignId('maintenance_part_id')->nullable()->after('spare_part_id')->constrained('maintenance_parts');
+            if (! Schema::hasColumn('ticket_items', 'maintenance_part_id')) {
+                $table->foreignId('maintenance_part_id')->nullable()->constrained('maintenance_parts');
+            }
         });
     }
 

@@ -7,9 +7,13 @@ use App\Models\SaleItem;
 use App\Models\Seller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SaleCommissionService
 {
+    /** @var array<string, mixed>|null */
+    private ?array $commissionSchema = null;
+
     public function lineSubtotalSql(): string
     {
         $remainingQty = 'CASE WHEN (sale_items.qty - sale_items.returned_qty) > 0 THEN (sale_items.qty - sale_items.returned_qty) ELSE 0 END';
@@ -20,35 +24,12 @@ class SaleCommissionService
 
     public function eligibleLineSubtotalSql(): string
     {
-        $lineSubtotal = $this->lineSubtotalSql();
-
-        return "CASE
-            WHEN sale_items.product_id IS NOT NULL AND COALESCE(products.have_commission, 0) = 1 THEN {$lineSubtotal}
-            WHEN sale_items.spare_part_id IS NOT NULL AND COALESCE(spare_parts.have_commission, 0) = 1 THEN {$lineSubtotal}
-            WHEN sale_items.maintenance_part_id IS NOT NULL AND COALESCE(maintenance_parts.have_commission, 0) = 1 THEN {$lineSubtotal}
-            WHEN sale_items.bike_for_sale_id IS NOT NULL AND COALESCE(bike_for_sale.have_commission, 0) = 1 THEN {$lineSubtotal}
-            WHEN sale_items.maintenance_service_id IS NOT NULL AND COALESCE(maintenance_services.have_commission, 0) = 1 THEN {$lineSubtotal}
-            ELSE 0
-        END";
+        return $this->buildCaseSql($this->eligibleLineBranches());
     }
 
     public function lineCommissionAmountSql(): string
     {
-        $lineSubtotal = $this->lineSubtotalSql();
-
-        return "CASE
-            WHEN sale_items.product_id IS NOT NULL AND COALESCE(products.have_commission, 0) = 1
-                THEN {$lineSubtotal} * COALESCE(sellers.products_commission_rate, 0) / 100
-            WHEN sale_items.spare_part_id IS NOT NULL AND COALESCE(spare_parts.have_commission, 0) = 1
-                THEN {$lineSubtotal} * COALESCE(sellers.spare_parts_commission_rate, 0) / 100
-            WHEN sale_items.maintenance_part_id IS NOT NULL AND COALESCE(maintenance_parts.have_commission, 0) = 1
-                THEN {$lineSubtotal} * COALESCE(sellers.maintenance_parts_commission_rate, 0) / 100
-            WHEN sale_items.bike_for_sale_id IS NOT NULL AND COALESCE(bike_for_sale.have_commission, 0) = 1
-                THEN {$lineSubtotal} * COALESCE(sellers.bikes_for_sale_commission_rate, 0) / 100
-            WHEN sale_items.maintenance_service_id IS NOT NULL AND COALESCE(maintenance_services.have_commission, 0) = 1
-                THEN {$lineSubtotal} * COALESCE(sellers.maintenance_services_commission_rate, 0) / 100
-            ELSE 0
-        END";
+        return $this->buildCaseSql($this->commissionAmountBranches());
     }
 
     public function lineCommissionBase(SaleItem $item): float
@@ -138,13 +119,25 @@ class SaleCommissionService
      */
     public function sellerRates(Seller $seller): array
     {
-        return [
-            (float) $seller->products_commission_rate,
-            (float) $seller->spare_parts_commission_rate,
-            (float) $seller->maintenance_parts_commission_rate,
-            (float) $seller->bikes_for_sale_commission_rate,
-            (float) $seller->maintenance_services_commission_rate,
-        ];
+        $schema = $this->commissionSchema();
+
+        if ($schema['seller_per_type_rates']) {
+            return [
+                (float) $seller->products_commission_rate,
+                (float) $seller->spare_parts_commission_rate,
+                (float) $seller->maintenance_parts_commission_rate,
+                (float) $seller->bikes_for_sale_commission_rate,
+                (float) $seller->maintenance_services_commission_rate,
+            ];
+        }
+
+        if ($schema['seller_legacy_rate']) {
+            $rate = (float) $seller->commission_rate;
+
+            return [$rate, $rate, $rate, $rate, $rate];
+        }
+
+        return [0.0, 0.0, 0.0, 0.0, 0.0];
     }
 
     public function sellerAverageRate(Seller $seller): float
@@ -161,6 +154,16 @@ class SaleCommissionService
 
     public function maxRateOrderExpression(): string
     {
+        $schema = $this->commissionSchema();
+
+        if (! $schema['seller_per_type_rates']) {
+            if ($schema['seller_legacy_rate']) {
+                return 'COALESCE(sellers.commission_rate, 0)';
+            }
+
+            return '0';
+        }
+
         $a = 'COALESCE(sellers.products_commission_rate, 0)';
         $b = 'COALESCE(sellers.spare_parts_commission_rate, 0)';
         $c = 'COALESCE(sellers.maintenance_parts_commission_rate, 0)';
@@ -176,13 +179,187 @@ class SaleCommissionService
 
     public function applyCommissionJoins(Builder $query): Builder
     {
-        return $query
+        $query
             ->leftJoin('products', 'sale_items.product_id', '=', 'products.id')
-            ->leftJoin('spare_parts', 'sale_items.spare_part_id', '=', 'spare_parts.id')
-            ->leftJoin('maintenance_parts', 'sale_items.maintenance_part_id', '=', 'maintenance_parts.id')
+            ->leftJoin('spare_parts', 'sale_items.spare_part_id', '=', 'spare_parts.id');
+
+        if ($this->commissionSchema()['maintenance_parts']) {
+            $query->leftJoin('maintenance_parts', 'sale_items.maintenance_part_id', '=', 'maintenance_parts.id');
+        }
+
+        return $query
             ->leftJoin('bike_for_sale', 'sale_items.bike_for_sale_id', '=', 'bike_for_sale.id')
             ->leftJoin('maintenance_services', 'sale_items.maintenance_service_id', '=', 'maintenance_services.id')
             ->leftJoin('sellers', 'sales.seller_id', '=', 'sellers.id');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function commissionSchema(): array
+    {
+        if ($this->commissionSchema !== null) {
+            return $this->commissionSchema;
+        }
+
+        return $this->commissionSchema = [
+            'maintenance_parts' => Schema::hasTable('maintenance_parts')
+                && Schema::hasColumn('sale_items', 'maintenance_part_id'),
+            'have_commission' => [
+                'products' => Schema::hasColumn('products', 'have_commission'),
+                'spare_parts' => Schema::hasColumn('spare_parts', 'have_commission'),
+                'maintenance_parts' => Schema::hasTable('maintenance_parts')
+                    && Schema::hasColumn('maintenance_parts', 'have_commission'),
+                'bike_for_sale' => Schema::hasColumn('bike_for_sale', 'have_commission'),
+                'maintenance_services' => Schema::hasColumn('maintenance_services', 'have_commission'),
+            ],
+            'seller_per_type_rates' => Schema::hasColumn('sellers', 'products_commission_rate'),
+            'seller_legacy_rate' => Schema::hasColumn('sellers', 'commission_rate'),
+        ];
+    }
+
+    /**
+     * @return list<array{condition: string, expression: string}>
+     */
+    private function eligibleLineBranches(): array
+    {
+        $lineSubtotal = $this->lineSubtotalSql();
+
+        return $this->mapLineTypeBranches(
+            fn (string $condition): string => $condition,
+            fn (string $condition): string => $condition.' THEN '.$lineSubtotal,
+        );
+    }
+
+    /**
+     * @return list<array{condition: string, expression: string}>
+     */
+    private function commissionAmountBranches(): array
+    {
+        $lineSubtotal = $this->lineSubtotalSql();
+
+        return $this->mapLineTypeBranches(
+            fn (string $condition): string => $condition,
+            fn (string $condition, string $rateSql): string => $condition.' THEN '.$lineSubtotal.' * '.$rateSql.' / 100',
+        );
+    }
+
+    /**
+     * @return list<array{condition: string, expression: string}>
+     */
+    private function mapLineTypeBranches(callable $mapCondition, callable $mapExpression): array
+    {
+        $branches = [];
+
+        foreach ($this->lineTypes() as $lineType) {
+            if ($lineType['key'] === 'maintenance_parts' && ! $this->commissionSchema()['maintenance_parts']) {
+                continue;
+            }
+
+            $condition = $this->lineEligibilityCondition(
+                $lineType['foreign_key'],
+                $lineType['join_alias'],
+                $lineType['have_commission_key'],
+            );
+
+            $branches[] = [
+                'condition' => $mapCondition($condition),
+                'expression' => $mapExpression($condition, $this->sellerRateSql($lineType['rate_column'])),
+            ];
+        }
+
+        return $branches;
+    }
+
+    /**
+     * @return list<array{key: string, foreign_key: string, join_alias: string, have_commission_key: string, rate_column: string}>
+     */
+    private function lineTypes(): array
+    {
+        return [
+            [
+                'key' => 'products',
+                'foreign_key' => 'product_id',
+                'join_alias' => 'products',
+                'have_commission_key' => 'products',
+                'rate_column' => 'products_commission_rate',
+            ],
+            [
+                'key' => 'spare_parts',
+                'foreign_key' => 'spare_part_id',
+                'join_alias' => 'spare_parts',
+                'have_commission_key' => 'spare_parts',
+                'rate_column' => 'spare_parts_commission_rate',
+            ],
+            [
+                'key' => 'maintenance_parts',
+                'foreign_key' => 'maintenance_part_id',
+                'join_alias' => 'maintenance_parts',
+                'have_commission_key' => 'maintenance_parts',
+                'rate_column' => 'maintenance_parts_commission_rate',
+            ],
+            [
+                'key' => 'bike_for_sale',
+                'foreign_key' => 'bike_for_sale_id',
+                'join_alias' => 'bike_for_sale',
+                'have_commission_key' => 'bike_for_sale',
+                'rate_column' => 'bikes_for_sale_commission_rate',
+            ],
+            [
+                'key' => 'maintenance_services',
+                'foreign_key' => 'maintenance_service_id',
+                'join_alias' => 'maintenance_services',
+                'have_commission_key' => 'maintenance_services',
+                'rate_column' => 'maintenance_services_commission_rate',
+            ],
+        ];
+    }
+
+    private function lineEligibilityCondition(
+        string $foreignKey,
+        string $joinAlias,
+        string $haveCommissionKey,
+    ): string {
+        $itemCondition = "sale_items.{$foreignKey} IS NOT NULL";
+
+        if ($this->commissionSchema()['have_commission'][$haveCommissionKey] ?? false) {
+            return "{$itemCondition} AND COALESCE({$joinAlias}.have_commission, 0) = 1";
+        }
+
+        return $itemCondition;
+    }
+
+    private function sellerRateSql(string $rateColumn): string
+    {
+        $schema = $this->commissionSchema();
+
+        if ($schema['seller_per_type_rates']) {
+            return "COALESCE(sellers.{$rateColumn}, 0)";
+        }
+
+        if ($schema['seller_legacy_rate']) {
+            return 'COALESCE(sellers.commission_rate, 0)';
+        }
+
+        return '0';
+    }
+
+    /**
+     * @param  list<array{condition: string, expression: string}>  $branches
+     */
+    private function buildCaseSql(array $branches): string
+    {
+        if ($branches === []) {
+            return '0';
+        }
+
+        $sql = "CASE\n";
+
+        foreach ($branches as $branch) {
+            $sql .= "            WHEN {$branch['expression']}\n";
+        }
+
+        return $sql."            ELSE 0\n        END";
     }
 
     private function rawLineSubtotal(SaleItem $item): float
@@ -195,17 +372,32 @@ class SaleCommissionService
     private function itemHasCommission(SaleItem $item): bool
     {
         return match (true) {
-            ! is_null($item->product_id) => (bool) ($item->product?->have_commission ?? false),
-            ! is_null($item->spare_part_id) => (bool) ($item->sparePart?->have_commission ?? false),
-            ! is_null($item->maintenance_part_id) => (bool) ($item->maintenancePart?->have_commission ?? false),
-            ! is_null($item->bike_for_sale_id) => (bool) ($item->bikeForSale?->have_commission ?? false),
-            ! is_null($item->maintenance_service_id) => (bool) ($item->maintenanceService?->have_commission ?? false),
+            ! is_null($item->product_id) => $this->modelHasCommission($item->product?->have_commission ?? null),
+            ! is_null($item->spare_part_id) => $this->modelHasCommission($item->sparePart?->have_commission ?? null),
+            ! is_null($item->maintenance_part_id) => $this->modelHasCommission($item->maintenancePart?->have_commission ?? null),
+            ! is_null($item->bike_for_sale_id) => $this->modelHasCommission($item->bikeForSale?->have_commission ?? null),
+            ! is_null($item->maintenance_service_id) => $this->modelHasCommission($item->maintenanceService?->have_commission ?? null),
             default => false,
         };
     }
 
+    private function modelHasCommission(?bool $haveCommission): bool
+    {
+        return $haveCommission ?? true;
+    }
+
     private function resolveCommissionRate(SaleItem $item, Seller $seller): float
     {
+        $schema = $this->commissionSchema();
+
+        if (! $schema['seller_per_type_rates']) {
+            if ($schema['seller_legacy_rate']) {
+                return (float) $seller->commission_rate;
+            }
+
+            return 0.0;
+        }
+
         return match (true) {
             ! is_null($item->product_id) => (float) $seller->products_commission_rate,
             ! is_null($item->spare_part_id) => (float) $seller->spare_parts_commission_rate,

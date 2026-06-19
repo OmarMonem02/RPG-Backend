@@ -320,15 +320,23 @@ class SellerController extends Controller
      */
     private function serializeSellerRates(Seller $seller): array
     {
+        [
+            $productsRate,
+            $sparePartsRate,
+            $maintenancePartsRate,
+            $bikesForSaleRate,
+            $maintenanceServicesRate,
+        ] = $this->commissionService->sellerRates($seller);
+
         return [
             'id' => $seller->id,
             'name' => $seller->name,
             'phone' => $seller->phone,
-            'products_commission_rate' => (float) $seller->products_commission_rate,
-            'spare_parts_commission_rate' => (float) $seller->spare_parts_commission_rate,
-            'maintenance_parts_commission_rate' => (float) $seller->maintenance_parts_commission_rate,
-            'bikes_for_sale_commission_rate' => (float) $seller->bikes_for_sale_commission_rate,
-            'maintenance_services_commission_rate' => (float) $seller->maintenance_services_commission_rate,
+            'products_commission_rate' => $productsRate,
+            'spare_parts_commission_rate' => $sparePartsRate,
+            'maintenance_parts_commission_rate' => $maintenancePartsRate,
+            'bikes_for_sale_commission_rate' => $bikesForSaleRate,
+            'maintenance_services_commission_rate' => $maintenanceServicesRate,
         ];
     }
 }
