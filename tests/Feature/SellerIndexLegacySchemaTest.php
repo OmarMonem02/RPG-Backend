@@ -11,6 +11,83 @@ class SellerIndexLegacySchemaTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_sellers_index_works_with_legacy_commission_rate_column_only(): void
+    {
+        foreach ([
+            'products_commission_rate',
+            'spare_parts_commission_rate',
+            'maintenance_parts_commission_rate',
+            'bikes_for_sale_commission_rate',
+            'maintenance_services_commission_rate',
+        ] as $column) {
+            if (Schema::hasColumn('sellers', $column)) {
+                Schema::table('sellers', function ($table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
+        if (! Schema::hasColumn('sellers', 'commission_rate')) {
+            Schema::table('sellers', function ($table) {
+                $table->decimal('commission_rate', 8, 2)->default(0);
+            });
+        }
+
+        app()->forgetInstance(\App\Services\SaleCommissionService::class);
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->getJson('/api/sellers?page=1&sort=newest&per_page=20')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data',
+                'summary' => [
+                    'total_sellers',
+                    'commission_base',
+                    'commission_amount',
+                ],
+            ]);
+    }
+
+    public function test_sellers_index_works_with_partial_seller_rate_columns(): void
+    {
+        foreach ([
+            'spare_parts_commission_rate',
+            'maintenance_parts_commission_rate',
+            'bikes_for_sale_commission_rate',
+            'maintenance_services_commission_rate',
+        ] as $column) {
+            if (Schema::hasColumn('sellers', $column)) {
+                Schema::table('sellers', function ($table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
+        if (Schema::hasColumn('sellers', 'commission_rate')) {
+            Schema::table('sellers', function ($table) {
+                $table->dropColumn('commission_rate');
+            });
+        }
+
+        app()->forgetInstance(\App\Services\SaleCommissionService::class);
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->getJson('/api/sellers?page=1&sort=rate_high&per_page=20')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data',
+                'summary' => [
+                    'total_sellers',
+                    'commission_base',
+                    'commission_amount',
+                ],
+            ]);
+    }
+
     public function test_sellers_index_works_without_maintenance_parts_table(): void
     {
         Schema::disableForeignKeyConstraints();

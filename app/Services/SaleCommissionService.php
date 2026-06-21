@@ -213,8 +213,33 @@ class SaleCommissionService
                 'bike_for_sale' => Schema::hasColumn('bike_for_sale', 'have_commission'),
                 'maintenance_services' => Schema::hasColumn('maintenance_services', 'have_commission'),
             ],
-            'seller_per_type_rates' => Schema::hasColumn('sellers', 'products_commission_rate'),
+            'seller_per_type_rates' => $this->sellerPerTypeRateColumnsExist(),
             'seller_legacy_rate' => Schema::hasColumn('sellers', 'commission_rate'),
+        ];
+    }
+
+    private function sellerPerTypeRateColumnsExist(): bool
+    {
+        foreach ($this->sellerRateColumns() as $column) {
+            if (! Schema::hasColumn('sellers', $column)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function sellerRateColumns(): array
+    {
+        return [
+            'products_commission_rate',
+            'spare_parts_commission_rate',
+            'maintenance_parts_commission_rate',
+            'bikes_for_sale_commission_rate',
+            'maintenance_services_commission_rate',
         ];
     }
 
