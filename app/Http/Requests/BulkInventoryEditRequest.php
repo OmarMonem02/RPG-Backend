@@ -24,8 +24,6 @@ class BulkInventoryEditRequest extends FormRequest
         'have_commission',
         'max_discount_type',
         'max_discount_value',
-        'universal',
-        'bike_blueprint_ids',
     ];
 
     public const NUMERIC_FIELDS = [
@@ -41,8 +39,6 @@ class BulkInventoryEditRequest extends FormRequest
         'have_commission',
         'max_discount_type',
         'max_discount_value',
-        'universal',
-        'bike_blueprint_ids',
     ];
 
     public function authorize(): bool
@@ -127,13 +123,6 @@ class BulkInventoryEditRequest extends FormRequest
             'changes.max_discount_value' => $setChangeRules,
             'changes.max_discount_value.mode' => ['required_with:changes.max_discount_value', 'string', Rule::in(self::SET_MODES)],
             'changes.max_discount_value.value' => ['required_with:changes.max_discount_value', 'numeric', 'min:0'],
-            'changes.universal' => $setChangeRules,
-            'changes.universal.mode' => ['required_with:changes.universal', 'string', Rule::in(self::SET_MODES)],
-            'changes.universal.value' => ['required_with:changes.universal', 'boolean'],
-            'changes.bike_blueprint_ids' => $setChangeRules,
-            'changes.bike_blueprint_ids.mode' => ['required_with:changes.bike_blueprint_ids', 'string', Rule::in(self::SET_MODES)],
-            'changes.bike_blueprint_ids.value' => ['required_with:changes.bike_blueprint_ids', 'array', 'min:1'],
-            'changes.bike_blueprint_ids.value.*' => ['integer', 'min:1'],
         ];
     }
 
@@ -169,18 +158,6 @@ class BulkInventoryEditRequest extends FormRequest
                     $validator->errors()->add("changes.{$field}.value", 'Percentage must be greater than -100.');
                 }
             }
-
-            $universalBlock = $changes['universal'] ?? null;
-            $blueprintBlock = $changes['bike_blueprint_ids'] ?? null;
-            if ($universalBlock !== null && ($universalBlock['value'] ?? null) === false) {
-                $blueprintIds = $blueprintBlock['value'] ?? [];
-                if (! is_array($blueprintIds) || count($blueprintIds) === 0) {
-                    $validator->errors()->add(
-                        'changes.bike_blueprint_ids',
-                        'At least one bike blueprint is required when compatibility is set to Specific.',
-                    );
-                }
-            }
         });
     }
 
@@ -197,10 +174,7 @@ class BulkInventoryEditRequest extends FormRequest
                 continue;
             }
             $value = $changes[$field]['value'];
-            if ($field === 'bike_blueprint_ids' && is_array($value)) {
-                $value = array_values(array_map('intval', $value));
-            }
-            if ($field === 'have_commission' || $field === 'universal') {
+            if ($field === 'have_commission') {
                 $value = (bool) $value;
             }
             if ($field === 'max_discount_value') {
@@ -214,13 +188,6 @@ class BulkInventoryEditRequest extends FormRequest
         }
 
         return $normalized;
-    }
-
-    public function touchesCompatibility(): bool
-    {
-        $changes = $this->normalizedChanges();
-
-        return isset($changes['universal']) || isset($changes['bike_blueprint_ids']);
     }
 
     /**

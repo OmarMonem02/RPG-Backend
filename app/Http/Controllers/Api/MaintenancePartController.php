@@ -197,11 +197,7 @@ class MaintenancePartController extends Controller
         $ids = $this->resolveBulkIds($request);
         $changes = $request->normalizedChanges();
         $result = $this->bulkEditService->apply(MaintenancePart::class, $ids, $changes);
-        $tags = self::TAGS;
-        if ($request->touchesCompatibility()) {
-            $tags[] = 'blueprints';
-        }
-        ApiCache::invalidateTags($tags);
+        ApiCache::invalidateTags(self::TAGS);
 
         return response()->json($result);
     }

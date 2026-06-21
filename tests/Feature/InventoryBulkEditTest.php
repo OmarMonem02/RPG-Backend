@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\BikeBlueprint;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -91,106 +90,6 @@ class InventoryBulkEditTest extends TestCase
         $this->assertTrue($product->have_commission);
         $this->assertSame('percentage', $product->max_discount_type);
         $this->assertEquals(20.0, (float) $product->max_discount_value);
-    }
-
-    public function test_apply_sets_universal_and_clears_blueprints(): void
-    {
-        $bikeBrand = Brand::create(['name' => 'Yamaha', 'types' => ['bikes']]);
-        $blueprint = BikeBlueprint::create([
-            'brand_id' => $bikeBrand->id,
-            'model' => 'R1',
-            'year' => 2024,
-        ]);
-
-        $product = $this->createProduct(['universal' => false]);
-        $product->bikeBlueprints()->sync([$blueprint->id]);
-
-        $response = $this->actingAs($this->admin)->patchJson('/api/products/bulk/apply', [
-            'ids' => [$product->id],
-            'changes' => [
-                'universal' => ['mode' => 'set', 'value' => true],
-            ],
-        ]);
-
-        $response->assertOk();
-        $product->refresh();
-        $this->assertTrue($product->universal);
-        $this->assertCount(0, $product->bikeBlueprints);
-    }
-
-    public function test_apply_sets_specific_compatibility_with_blueprints(): void
-    {
-        $bikeBrand = Brand::create(['name' => 'Honda', 'types' => ['bikes']]);
-        $blueprintA = BikeBlueprint::create([
-            'brand_id' => $bikeBrand->id,
-            'model' => 'CBR600',
-            'year' => 2020,
-        ]);
-        $blueprintB = BikeBlueprint::create([
-            'brand_id' => $bikeBrand->id,
-            'model' => 'CBR1000',
-            'year' => 2022,
-        ]);
-
-        $product = $this->createProduct(['universal' => true]);
-
-        $response = $this->actingAs($this->admin)->patchJson('/api/products/bulk/apply', [
-            'ids' => [$product->id],
-            'changes' => [
-                'universal' => ['mode' => 'set', 'value' => false],
-                'bike_blueprint_ids' => ['mode' => 'set', 'value' => [$blueprintA->id, $blueprintB->id]],
-            ],
-        ]);
-
-        $response->assertOk();
-        $product->refresh();
-        $this->assertFalse($product->universal);
-        $this->assertEqualsCanonicalizing(
-            [$blueprintA->id, $blueprintB->id],
-            $product->bikeBlueprints->pluck('id')->all(),
-        );
-    }
-
-    public function test_preview_includes_compatibility_labels(): void
-    {
-        $bikeBrand = Brand::create(['name' => 'Kawasaki', 'types' => ['bikes']]);
-        $blueprint = BikeBlueprint::create([
-            'brand_id' => $bikeBrand->id,
-            'model' => 'Ninja',
-            'year' => 2021,
-        ]);
-
-        $product = $this->createProduct(['universal' => true]);
-
-        $response = $this->actingAs($this->admin)->postJson('/api/products/bulk/preview', [
-            'ids' => [$product->id],
-            'changes' => [
-                'universal' => ['mode' => 'set', 'value' => false],
-                'bike_blueprint_ids' => ['mode' => 'set', 'value' => [$blueprint->id]],
-            ],
-        ]);
-
-        $response->assertOk();
-        $row = $response->json('rows.0');
-        $this->assertContains('compatibility', $row['changed_fields']);
-        $this->assertTrue($row['before']['universal']);
-        $this->assertFalse($row['after']['universal']);
-        $this->assertSame(['Ninja · 2021'], $row['after']['bike_blueprint_labels']);
-    }
-
-    public function test_validation_requires_blueprints_when_universal_is_false(): void
-    {
-        $product = $this->createProduct(['universal' => true]);
-
-        $response = $this->actingAs($this->admin)->postJson('/api/products/bulk/preview', [
-            'ids' => [$product->id],
-            'changes' => [
-                'universal' => ['mode' => 'set', 'value' => false],
-            ],
-        ]);
-
-        $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['changes.bike_blueprint_ids']);
     }
 
     public function test_preview_with_filter_only_payload(): void

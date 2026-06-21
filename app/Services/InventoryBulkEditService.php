@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Http\Requests\BulkInventoryEditRequest;
-use App\Models\BikeBlueprint;
 use App\Models\Product;
 use App\Models\SparePart;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +27,6 @@ class InventoryBulkEditService
         'have_commission',
         'max_discount_type',
         'max_discount_value',
-        'universal',
     ];
 
     /**
@@ -74,12 +72,11 @@ class InventoryBulkEditService
      */
     public function preview(string $modelClass, array $ids, array $changes): array
     {
-        $records = $this->loadRecords($modelClass, $ids, $changes);
-        $labelMap = $this->buildBlueprintLabelMap($records, $changes);
+        $records = $this->loadRecords($modelClass, $ids);
         $rows = [];
 
         foreach ($records as $record) {
-            $row = $this->computeRow($record, $changes, $labelMap);
+            $row = $this->computeRow($record, $changes);
             if (! empty($row['changed_fields'])) {
                 $rows[] = $row;
             }
@@ -99,40 +96,24 @@ class InventoryBulkEditService
      */
     public function apply(string $modelClass, array $ids, array $changes): array
     {
-        $records = $this->loadRecords($modelClass, $ids, $changes);
-        $labelMap = $this->buildBlueprintLabelMap($records, $changes);
+        $records = $this->loadRecords($modelClass, $ids);
         $rows = [];
         $updated = 0;
 
-        \DB::transaction(function () use ($records, $changes, $labelMap, &$rows, &$updated) {
+        \DB::transaction(function () use ($records, $changes, &$rows, &$updated) {
             foreach ($records as $record) {
-                $computed = $this->computeRow($record, $changes, $labelMap);
+                $computed = $this->computeRow($record, $changes);
                 if (empty($computed['changed_fields'])) {
                     continue;
                 }
 
                 $payload = [];
                 foreach ($computed['changed_fields'] as $field) {
-                    if ($field === 'bike_blueprint_ids') {
-                        continue;
-                    }
-                    if ($field === 'compatibility') {
-                        if (array_key_exists('universal', $computed['after'])) {
-                            $payload['universal'] = $computed['after']['universal'];
-                        }
-
-                        continue;
-                    }
                     $payload[$field] = $computed['after'][$field];
                 }
 
                 if ($payload !== []) {
                     $record->update($payload);
-                }
-
-                if ($this->shouldSyncBlueprints($changes, $computed['changed_fields'])) {
-                    $blueprintIds = $computed['after']['bike_blueprint_ids'] ?? [];
-                    $record->bikeBlueprints()->sync(is_array($blueprintIds) ? $blueprintIds : []);
                 }
 
                 $updated++;
@@ -183,10 +164,9 @@ class InventoryBulkEditService
     /**
      * @param  Model&Product|SparePart|\App\Models\MaintenancePart  $record
      * @param  array<string, array{mode: string, value: mixed}>  $changes
-     * @param  array<int, string>  $labelMap
      * @return array<string, mixed>
      */
-    public function computeRow(Model $record, array $changes, array $labelMap = []): array
+    public function computeRow(Model $record, array $changes): array
     {
         $before = [];
         $after = [];
@@ -194,10 +174,6 @@ class InventoryBulkEditService
 
         foreach ($changes as $field => $change) {
             if (! in_array($field, BulkInventoryEditRequest::ALLOWED_FIELDS, true)) {
-                continue;
-            }
-
-            if ($field === 'bike_blueprint_ids') {
                 continue;
             }
 
@@ -229,7 +205,7 @@ class InventoryBulkEditService
                 $new = (string) ($change['value'] ?? $old);
                 $before[$field] = $old;
                 $after[$field] = $new;
-            } elseif ($field === 'have_commission' || $field === 'universal') {
+            } elseif ($field === 'have_commission') {
                 $old = (bool) $record->getAttribute($field);
                 $new = (bool) ($change['value'] ?? $old);
                 $before[$field] = $old;
@@ -240,36 +216,6 @@ class InventoryBulkEditService
 
             if ($before[$field] !== $after[$field]) {
                 $changedFields[] = $field;
-            }
-        }
-
-        if (isset($changes['universal']) || isset($changes['bike_blueprint_ids'])) {
-            [$currentUniversal, $currentIds] = $this->currentCompatibilityState($record);
-            [$newUniversal, $newIds] = $this->resolveCompatibilityState($record, $changes);
-
-            $beforeLabels = $this->labelsForBlueprintIds($currentIds, $labelMap);
-            $afterLabels = $this->labelsForBlueprintIds($newIds, $labelMap);
-
-            $before['universal'] = $currentUniversal;
-            $after['universal'] = $newUniversal;
-            $before['bike_blueprint_ids'] = $currentIds;
-            $after['bike_blueprint_ids'] = $newIds;
-            $before['bike_blueprint_labels'] = $beforeLabels;
-            $after['bike_blueprint_labels'] = $afterLabels;
-
-            $compatibilityChanged = $currentUniversal !== $newUniversal
-                || $currentIds !== $newIds;
-
-            if ($compatibilityChanged) {
-                if (! in_array('compatibility', $changedFields, true)) {
-                    $changedFields[] = 'compatibility';
-                }
-                if ($currentUniversal !== $newUniversal && ! in_array('universal', $changedFields, true)) {
-                    $changedFields[] = 'universal';
-                }
-                if ($currentIds !== $newIds && ! in_array('bike_blueprint_ids', $changedFields, true)) {
-                    $changedFields[] = 'bike_blueprint_ids';
-                }
             }
         }
 
@@ -289,125 +235,11 @@ class InventoryBulkEditService
     /**
      * @param  class-string<Model>  $modelClass
      * @param  array<int>  $ids
-     * @param  array<string, array{mode: string, value: mixed}>  $changes
      * @return Collection<int, Model>
      */
-    private function loadRecords(string $modelClass, array $ids, array $changes): Collection
+    private function loadRecords(string $modelClass, array $ids): Collection
     {
-        $query = $modelClass::query()->whereIn('id', $ids)->orderBy('id');
-
-        if (isset($changes['universal']) || isset($changes['bike_blueprint_ids'])) {
-            $query->with('bikeBlueprints');
-        }
-
-        return $query->get();
-    }
-
-    /**
-     * @param  Collection<int, Model>  $records
-     * @param  array<string, array{mode: string, value: mixed}>  $changes
-     * @return array<int, string>
-     */
-    private function buildBlueprintLabelMap(Collection $records, array $changes): array
-    {
-        $ids = [];
-
-        foreach ($records as $record) {
-            [, $currentIds] = $this->currentCompatibilityState($record);
-            $ids = array_merge($ids, $currentIds);
-        }
-
-        if (isset($changes['bike_blueprint_ids']['value']) && is_array($changes['bike_blueprint_ids']['value'])) {
-            $ids = array_merge($ids, $changes['bike_blueprint_ids']['value']);
-        }
-
-        $ids = array_values(array_unique(array_map('intval', $ids)));
-        if ($ids === []) {
-            return [];
-        }
-
-        return BikeBlueprint::query()
-            ->whereIn('id', $ids)
-            ->get()
-            ->mapWithKeys(fn (BikeBlueprint $bp) => [
-                $bp->id => trim($bp->model.' · '.$bp->year),
-            ])
-            ->all();
-    }
-
-    /**
-     * @param  Model&Product|SparePart|\App\Models\MaintenancePart  $record
-     * @return array{0: bool, 1: array<int>}
-     */
-    private function currentCompatibilityState(Model $record): array
-    {
-        $universal = (bool) $record->getAttribute('universal');
-        $ids = [];
-
-        if ($record->relationLoaded('bikeBlueprints')) {
-            $ids = $record->bikeBlueprints->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
-        }
-
-        return [$universal, $ids];
-    }
-
-    /**
-     * @param  Model&Product|SparePart|\App\Models\MaintenancePart  $record
-     * @param  array<string, array{mode: string, value: mixed}>  $changes
-     * @return array{0: bool, 1: array<int>}
-     */
-    private function resolveCompatibilityState(Model $record, array $changes): array
-    {
-        [$currentUniversal, $currentIds] = $this->currentCompatibilityState($record);
-
-        $newUniversal = isset($changes['universal'])
-            ? (bool) $changes['universal']['value']
-            : $currentUniversal;
-
-        if ($newUniversal) {
-            return [true, []];
-        }
-
-        if (isset($changes['bike_blueprint_ids']['value']) && is_array($changes['bike_blueprint_ids']['value'])) {
-            $newIds = array_values(array_unique(array_map('intval', $changes['bike_blueprint_ids']['value'])));
-            sort($newIds);
-
-            return [false, $newIds];
-        }
-
-        if (isset($changes['universal'])) {
-            return [false, $currentIds];
-        }
-
-        return [$currentUniversal, $currentIds];
-    }
-
-    /**
-     * @param  array<int>  $ids
-     * @param  array<int, string>  $labelMap
-     * @return array<int, string>
-     */
-    private function labelsForBlueprintIds(array $ids, array $labelMap): array
-    {
-        return array_values(array_map(
-            fn (int $id) => $labelMap[$id] ?? ('Blueprint #'.$id),
-            $ids,
-        ));
-    }
-
-    /**
-     * @param  array<string, array{mode: string, value: mixed}>  $changes
-     * @param  array<int, string>  $changedFields
-     */
-    private function shouldSyncBlueprints(array $changes, array $changedFields): bool
-    {
-        if (! isset($changes['universal']) && ! isset($changes['bike_blueprint_ids'])) {
-            return false;
-        }
-
-        return in_array('compatibility', $changedFields, true)
-            || in_array('universal', $changedFields, true)
-            || in_array('bike_blueprint_ids', $changedFields, true);
+        return $modelClass::query()->whereIn('id', $ids)->orderBy('id')->get();
     }
 
     /**
