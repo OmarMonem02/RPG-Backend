@@ -196,8 +196,13 @@ class MaintenancePartController extends Controller
     public function bulkApply(BulkInventoryEditRequest $request): JsonResponse
     {
         $ids = $this->resolveBulkIds($request);
-        $result = $this->bulkEditService->apply(MaintenancePart::class, $ids, $request->normalizedChanges());
-        ApiCache::invalidateTags(self::TAGS);
+        $changes = $request->normalizedChanges();
+        $result = $this->bulkEditService->apply(MaintenancePart::class, $ids, $changes);
+        $tags = self::TAGS;
+        if ($request->touchesCompatibility()) {
+            $tags[] = 'blueprints';
+        }
+        ApiCache::invalidateTags($tags);
 
         return response()->json($result);
     }

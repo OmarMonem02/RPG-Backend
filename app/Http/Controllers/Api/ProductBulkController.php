@@ -38,7 +38,11 @@ class ProductBulkController extends Controller
         $changes = $request->normalizedChanges();
 
         $result = $this->bulkEditService->apply(Product::class, $ids, $changes);
-        ApiCache::invalidateTags(self::TAGS);
+        $tags = self::TAGS;
+        if ($request->touchesCompatibility()) {
+            $tags[] = 'blueprints';
+        }
+        ApiCache::invalidateTags($tags);
 
         return response()->json($result);
     }
