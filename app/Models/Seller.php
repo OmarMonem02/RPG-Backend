@@ -15,6 +15,7 @@ class Seller extends Model
     protected $fillable = [
         'name',
         'phone',
+        'commission_rate',
         'products_commission_rate',
         'spare_parts_commission_rate',
         'maintenance_parts_commission_rate',
@@ -23,6 +24,7 @@ class Seller extends Model
     ];
 
     protected $casts = [
+        'commission_rate' => 'decimal:2',
         'products_commission_rate' => 'decimal:2',
         'spare_parts_commission_rate' => 'decimal:2',
         'maintenance_parts_commission_rate' => 'decimal:2',

@@ -88,6 +88,53 @@ class SellerIndexLegacySchemaTest extends TestCase
             ]);
     }
 
+    public function test_can_create_seller_with_legacy_commission_rate_column_only(): void
+    {
+        foreach ([
+            'products_commission_rate',
+            'spare_parts_commission_rate',
+            'maintenance_parts_commission_rate',
+            'bikes_for_sale_commission_rate',
+            'maintenance_services_commission_rate',
+        ] as $column) {
+            if (Schema::hasColumn('sellers', $column)) {
+                Schema::table('sellers', function ($table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
+        if (! Schema::hasColumn('sellers', 'commission_rate')) {
+            Schema::table('sellers', function ($table) {
+                $table->decimal('commission_rate', 8, 2)->default(0);
+            });
+        }
+
+        app()->forgetInstance(\App\Services\SaleCommissionService::class);
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->postJson('/api/sellers', [
+                'name' => 'Legacy Seller',
+                'phone' => '01012345678',
+                'products_commission_rate' => 5,
+                'spare_parts_commission_rate' => 7,
+                'maintenance_parts_commission_rate' => 0,
+                'bikes_for_sale_commission_rate' => 0,
+                'maintenance_services_commission_rate' => 0,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('name', 'Legacy Seller')
+            ->assertJsonPath('products_commission_rate', 7)
+            ->assertJsonPath('spare_parts_commission_rate', 7);
+
+        $this->assertDatabaseHas('sellers', [
+            'name' => 'Legacy Seller',
+            'commission_rate' => 7,
+        ]);
+    }
+
     public function test_sellers_index_works_without_maintenance_parts_table(): void
     {
         Schema::disableForeignKeyConstraints();

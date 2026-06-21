@@ -125,11 +125,13 @@ class DatabaseBackupService
       );
     }
 
+    Artisan::call('migrate', ['--force' => true]);
+
     $this->invalidateCaches();
     $this->logRestore($user, $mode, $manifest);
 
     return [
-      'message' => 'System backup restored successfully.',
+      'message' => 'System backup restored successfully. Database migrations were applied to match the current application schema.',
       'mode' => $mode,
       'manifest' => $manifest->toArray(),
       'insert_statements' => $this->countInsertStatements($transformed),

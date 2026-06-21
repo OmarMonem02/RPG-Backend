@@ -194,6 +194,47 @@ class SaleCommissionService
     }
 
     /**
+     * Map validated seller input to database columns for the current schema.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    public function sellerAttributesFromInput(array $validated): array
+    {
+        $attributes = [
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+        ];
+
+        if ($this->commissionSchema()['seller_per_type_rates']) {
+            foreach ($this->sellerRateColumns() as $column) {
+                $attributes[$column] = (float) ($validated[$column] ?? 0);
+            }
+
+            return $attributes;
+        }
+
+        if ($this->commissionSchema()['seller_legacy_rate']) {
+            $attributes['commission_rate'] = $this->legacyCommissionRateFromInput($validated);
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function legacyCommissionRateFromInput(array $validated): float
+    {
+        $rates = array_map(
+            fn (string $column): float => (float) ($validated[$column] ?? 0),
+            $this->sellerRateColumns(),
+        );
+
+        return max($rates);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function commissionSchema(): array

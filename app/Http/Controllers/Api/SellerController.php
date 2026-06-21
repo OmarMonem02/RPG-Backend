@@ -46,7 +46,9 @@ class SellerController extends Controller
 
     public function store(SellerRequest $request): JsonResponse
     {
-        $seller = Seller::create($request->validated());
+        $seller = Seller::create(
+            $this->commissionService->sellerAttributesFromInput($request->validated())
+        );
 
         return response()->json($this->serializeSeller($seller), 201);
     }
@@ -118,7 +120,9 @@ class SellerController extends Controller
 
     public function update(SellerRequest $request, Seller $seller): JsonResponse
     {
-        $seller->update($request->validated());
+        $seller->update(
+            $this->commissionService->sellerAttributesFromInput($request->validated())
+        );
 
         return response()->json($this->serializeSeller($seller));
     }
