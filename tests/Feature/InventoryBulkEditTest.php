@@ -193,6 +193,54 @@ class InventoryBulkEditTest extends TestCase
         $response->assertJsonValidationErrors(['changes.bike_blueprint_ids']);
     }
 
+    public function test_preview_with_filter_only_payload(): void
+    {
+        $lowStock = $this->createProduct([
+            'sku' => 'LOW-001',
+            'stock_quantity' => 1,
+            'low_stock_alarm' => 5,
+            'item_status' => 'new',
+        ]);
+        $this->createProduct([
+            'sku' => 'OK-001',
+            'stock_quantity' => 20,
+            'low_stock_alarm' => 5,
+            'item_status' => 'used',
+        ]);
+
+        $response = $this->actingAs($this->admin)->postJson('/api/products/bulk/preview', [
+            'filters' => [
+                'item_status' => 'new',
+                'low_stock' => true,
+            ],
+            'changes' => [
+                'stock_quantity' => ['mode' => 'set', 'value' => 10],
+            ],
+        ]);
+
+        $response->assertOk();
+        $rows = $response->json('rows');
+        $this->assertCount(1, $rows);
+        $this->assertSame($lowStock->id, $rows[0]['id']);
+    }
+
+    public function test_preview_filters_by_item_status_without_ids(): void
+    {
+        $used = $this->createProduct(['sku' => 'USED-001', 'item_status' => 'used']);
+        $this->createProduct(['sku' => 'NEW-001', 'item_status' => 'new']);
+
+        $response = $this->actingAs($this->admin)->postJson('/api/products/bulk/preview', [
+            'filters' => ['item_status' => 'used'],
+            'changes' => [
+                'have_commission' => ['mode' => 'set', 'value' => false],
+            ],
+        ]);
+
+        $response->assertOk();
+        $ids = collect($response->json('rows'))->pluck('id')->all();
+        $this->assertSame([$used->id], $ids);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

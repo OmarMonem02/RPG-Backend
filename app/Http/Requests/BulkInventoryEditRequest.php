@@ -80,6 +80,28 @@ class BulkInventoryEditRequest extends FormRequest
             'filters.brand_id' => ['nullable', 'integer', 'min:1'],
             'filters.category_id' => ['nullable', 'integer', 'min:1'],
             'filters.currency' => ['nullable', 'string', ...$currencyIn],
+            'filters.price_range' => ['nullable', 'string', 'max:64'],
+            'filters.cost_price_range' => ['nullable', 'string', 'max:64'],
+            'filters.low_stock' => ['nullable', 'boolean'],
+            'filters.bike_brand_id' => ['nullable', 'integer', 'min:1'],
+            'filters.bike_model' => ['nullable', 'string', 'max:255'],
+            'filters.bike_year' => ['nullable', 'integer'],
+            'filters.bike_year_from' => ['nullable', 'integer'],
+            'filters.bike_year_to' => ['nullable', 'integer'],
+            'filters.tags' => ['nullable', 'string', 'max:500'],
+            'filters.stock_min' => ['nullable', 'integer', 'min:0'],
+            'filters.stock_max' => ['nullable', 'integer', 'min:0'],
+            'filters.item_status' => ['nullable', 'string', Rule::in(ItemStatus::values())],
+            'filters.size' => ['nullable', 'string', 'max:100'],
+            'filters.color' => ['nullable', 'string', 'max:100'],
+            'filters.universal' => ['nullable'],
+            'filters.max_discount_min' => ['nullable', 'numeric', 'min:0'],
+            'filters.max_discount_max' => ['nullable', 'numeric', 'min:0'],
+            'filters.profit_min' => ['nullable', 'numeric'],
+            'filters.profit_max' => ['nullable', 'numeric'],
+            'filters.profit_percent_min' => ['nullable', 'numeric'],
+            'filters.profit_percent_max' => ['nullable', 'numeric'],
+            'filters.stock_alert_level' => ['nullable', 'string', 'max:32'],
             'changes' => ['required', 'array', 'min:1'],
             'changes.sale_price' => $priceChangeRules,
             'changes.sale_price.mode' => ['required_with:changes.sale_price', 'string', Rule::in(self::PRICE_MODES)],
@@ -122,7 +144,7 @@ class BulkInventoryEditRequest extends FormRequest
             $filters = $this->input('filters', []);
             $changes = $this->input('changes', []);
 
-            if (empty($ids) && empty(array_filter($filters ?? [], fn ($v) => $v !== null && $v !== ''))) {
+            if (empty($ids) && ! self::hasActiveFilters($filters)) {
                 $validator->errors()->add('ids', 'Provide at least one item id or a filter to select items.');
             }
 
@@ -199,5 +221,31 @@ class BulkInventoryEditRequest extends FormRequest
         $changes = $this->normalizedChanges();
 
         return isset($changes['universal']) || isset($changes['bike_blueprint_ids']);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $filters
+     */
+    public static function hasActiveFilters(?array $filters): bool
+    {
+        if (empty($filters)) {
+            return false;
+        }
+
+        foreach ($filters as $key => $value) {
+            if ($value === null || $value === '' || $value === 'all') {
+                continue;
+            }
+            if ($key === 'low_stock' && $value === false) {
+                continue;
+            }
+            if (is_array($value) && count($value) === 0) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

@@ -15,6 +15,10 @@ class InventoryBulkEditService
 {
     public const MAX_ITEMS = 500;
 
+    public function __construct(
+        private readonly CatalogListFilterService $catalogListFilterService,
+    ) {}
+
     private const PRICE_FIELDS = ['sale_price', 'cost_price'];
 
     private const STOCK_FIELDS = ['stock_quantity', 'low_stock_alarm'];
@@ -39,18 +43,7 @@ class InventoryBulkEditService
         $query = $modelClass::query();
 
         $filters = $filters ?? [];
-        if (! empty($filters['search'])) {
-            $query->search($filters['search']);
-        }
-        if (! empty($filters['brand_id'])) {
-            $query->byBrand((int) $filters['brand_id']);
-        }
-        if (! empty($filters['category_id'])) {
-            $query->byCategory((int) $filters['category_id']);
-        }
-        if (! empty($filters['currency'])) {
-            $query->byCurrency(strtoupper((string) $filters['currency']));
-        }
+        $query = $this->catalogListFilterService->apply($query, $filters, $modelClass);
 
         if (! empty($ids)) {
             $query->whereIn('id', $ids);

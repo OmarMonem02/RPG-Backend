@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Concerns\AppliesCatalogItemFilters;
 use App\Http\Requests\BulkInventoryEditRequest;
 use App\Http\Requests\MaintenancePartRequest;
 use App\Models\MaintenancePart;
+use App\Services\CatalogListFilterService;
 use App\Services\InventoryBulkEditService;
 use App\Services\InventoryImageService;
 use App\Support\ApiCache;
@@ -15,13 +15,12 @@ use Illuminate\Http\Request;
 
 class MaintenancePartController extends Controller
 {
-    use AppliesCatalogItemFilters;
-
     private const TAGS = ['maintenance_parts'];
 
     public function __construct(
         private readonly InventoryBulkEditService $bulkEditService,
         private readonly InventoryImageService $inventoryImageService,
+        private readonly CatalogListFilterService $catalogListFilterService,
     ) {}
 
     /**
@@ -323,30 +322,9 @@ class MaintenancePartController extends Controller
 
     private function buildMaintenancePartsQuery(Request $request)
     {
-        $tags = MaintenancePart::parseTagsQueryParam($request->query('tags'));
-
-        $query = MaintenancePart::query()
-            ->search($request->query('search'))
-            ->byTags($tags)
-            ->byBrand($request->query('brand_id'))
-            ->byCategory($request->query('category_id'))
-            ->byCurrency($request->query('currency') ? strtoupper((string) $request->query('currency')) : null)
-            ->byBikeBrand($request->query('bike_brand_id'))
-            ->byBikeModel($request->query('bike_model'))
-            ->byBikeYear($request->query('bike_year'));
-
-        if ($request->query('bike_year_from') || $request->query('bike_year_to')) {
-            $query->byBikeYearRange(
-                $request->query('bike_year_from') ? (int) $request->query('bike_year_from') : null,
-                $request->query('bike_year_to') ? (int) $request->query('bike_year_to') : null
-            );
-        }
-
-        if ($request->boolean('low_stock')) {
-            $query->lowStock();
-        }
-
-        $query = $this->applyCatalogItemFilters($query, $request);
+        $query = MaintenancePart::query();
+        $filters = $request->query();
+        $query = $this->catalogListFilterService->apply($query, is_array($filters) ? $filters : [], MaintenancePart::class);
 
         return $query;
     }
