@@ -10,6 +10,7 @@ use App\Services\SaleCommissionService;
 use App\Support\AgentDebugLog;
 use App\Support\SchemaCache;
 use App\Support\SellerDebugCache;
+use App\Support\SqlDialect;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -349,10 +350,7 @@ class SellerController extends Controller
     {
         $commissionBase = $this->commissionService->eligibleLineSubtotalSql();
         $commissionAmount = $this->commissionService->lineCommissionAmountSql();
-        $driver = DB::connection()->getDriverName();
-        $periodExpression = $driver === 'sqlite'
-            ? "strftime('%Y-%m', sales.created_at)"
-            : "DATE_FORMAT(sales.created_at, '%Y-%m')";
+        $periodExpression = SqlDialect::monthPeriodExpression('sales.created_at');
 
         $from = Carbon::create($year, 1, 1)->startOfDay();
         $to = Carbon::create($year, 12, 31)->endOfDay();

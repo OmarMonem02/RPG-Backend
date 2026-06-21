@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Seller;
+use App\Support\SqlDialect;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -171,10 +172,10 @@ class SaleCommissionService
         $e = 'COALESCE(sellers.maintenance_services_commission_rate, 0)';
 
         if (DB::connection()->getDriverName() === 'sqlite') {
-            return "MAX(MAX(MAX({$a}, {$b}), MAX({$c}, {$d})), {$e})";
+            return SqlDialect::greatest([$a, $b, $c, $d, $e], 'sqlite');
         }
 
-        return "GREATEST({$a}, {$b}, {$c}, {$d}, {$e})";
+        return SqlDialect::greatest([$a, $b, $c, $d, $e]);
     }
 
     public function applyCommissionJoins(Builder $query): Builder
@@ -256,6 +257,7 @@ class SaleCommissionService
         return [
             'schema' => $schema,
             'seller_columns' => $sellerColumns,
+            'db_driver' => DB::connection()->getDriverName(),
             'seller_count' => (int) \App\Models\Seller::query()->count(),
             'completed_sales_count' => (int) \App\Models\Sale::query()->where('status', \App\Models\Sale::STATUS_COMPLETED)->count(),
         ];
@@ -416,7 +418,7 @@ class SaleCommissionService
         $itemCondition = "sale_items.{$foreignKey} IS NOT NULL";
 
         if ($this->commissionSchema()['have_commission'][$haveCommissionKey] ?? false) {
-            return "{$itemCondition} AND COALESCE({$joinAlias}.have_commission, 0) = 1";
+            return "{$itemCondition} AND ".SqlDialect::haveCommissionEnabled($joinAlias);
         }
 
         return $itemCondition;
