@@ -237,6 +237,33 @@ class SaleCommissionService
     /**
      * @return array<string, mixed>
      */
+    public function sellerSchemaSnapshot(): array
+    {
+        $schema = $this->commissionSchema();
+        $sellerColumns = [];
+
+        foreach ([
+            'commission_rate',
+            'products_commission_rate',
+            'spare_parts_commission_rate',
+            'maintenance_parts_commission_rate',
+            'bikes_for_sale_commission_rate',
+            'maintenance_services_commission_rate',
+        ] as $column) {
+            $sellerColumns[$column] = \Illuminate\Support\Facades\Schema::hasColumn('sellers', $column);
+        }
+
+        return [
+            'schema' => $schema,
+            'seller_columns' => $sellerColumns,
+            'seller_count' => (int) \App\Models\Seller::query()->count(),
+            'completed_sales_count' => (int) \App\Models\Sale::query()->where('status', \App\Models\Sale::STATUS_COMPLETED)->count(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function commissionSchema(): array
     {
         if ($this->commissionSchema !== null) {

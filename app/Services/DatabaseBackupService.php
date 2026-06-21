@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\ApiCache;
 use App\Support\Backup\BackupManifest;
 use App\Support\Backup\SqlRestoreTransformer;
+use App\Support\SchemaCache;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,7 @@ class DatabaseBackupService
     }
 
     Artisan::call('migrate', ['--force' => true]);
+    SchemaCache::clear();
 
     $this->invalidateCaches();
     $this->logRestore($user, $mode, $manifest);

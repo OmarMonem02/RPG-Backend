@@ -7,6 +7,9 @@ use App\Http\Requests\SellerRequest;
 use App\Models\Sale;
 use App\Models\Seller;
 use App\Services\SaleCommissionService;
+use App\Support\AgentDebugLog;
+use App\Support\SchemaCache;
+use App\Support\SellerDebugCache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -22,35 +25,129 @@ class SellerController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
-        $query = Seller::query()->search($request->query('search'));
-        [$from, $to] = $this->currentMonthRange();
-        $summary = $this->summarizeSellers(clone $query, $from, $to);
+        // #region agent log
+        AgentDebugLog::write('SellerController.php:index', 'sellers index start', [
+            'sort' => (string) $request->query('sort', 'newest'),
+            'page' => (int) $request->query('page', 1),
+            'schema' => $this->commissionService->sellerSchemaSnapshot(),
+        ], 'H2');
+        // #endregion
 
-        $sellers = $this->applySort($query, (string) $request->query('sort', 'newest'))
-            ->paginate($perPage)
-            ->withQueryString();
+        try {
+            $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+            $query = Seller::query()->search($request->query('search'));
+            [$from, $to] = $this->currentMonthRange();
+            $summary = $this->summarizeSellers(clone $query, $from, $to);
 
-        $metrics = $this->sellerMetrics($sellers->getCollection()->pluck('id')->all(), $from, $to);
-        $sellers->setCollection(
-            $sellers->getCollection()->map(
-                fn (Seller $seller) => $this->serializeSeller($seller, $metrics[$seller->id] ?? null)
-            )
-        );
+            $sellers = $this->applySort($query, (string) $request->query('sort', 'newest'))
+                ->paginate($perPage)
+                ->withQueryString();
 
-        $payload = $sellers->toArray();
-        $payload['summary'] = $summary;
+            $metrics = $this->sellerMetrics($sellers->getCollection()->pluck('id')->all(), $from, $to);
+            $sellers->setCollection(
+                $sellers->getCollection()->map(
+                    fn (Seller $seller) => $this->serializeSeller($seller, $metrics[$seller->id] ?? null)
+                )
+            );
 
-        return response()->json($payload);
+            $payload = $sellers->toArray();
+            $payload['summary'] = $summary;
+
+            // #region agent log
+            AgentDebugLog::write('SellerController.php:index', 'sellers index ok', [
+                'seller_count' => count($payload['data'] ?? []),
+            ], 'H2');
+            // #endregion
+
+            return response()->json($payload);
+        } catch (\Throwable $exception) {
+            // #region agent log
+            $debug = [
+                'action' => 'index',
+                'error' => $exception->getMessage(),
+                'class' => $exception::class,
+                'schema' => $this->commissionService->sellerSchemaSnapshot(),
+                'schema_cache_file' => is_file(base_path('bootstrap/cache/schema.php')),
+            ];
+            AgentDebugLog::write('SellerController.php:index', 'sellers index failed', $debug, 'H2');
+            SellerDebugCache::store($debug);
+            // #endregion
+
+            return response()->json([
+                'message' => 'Server error. Check browser console for details.',
+                '_debug' => $debug,
+            ], 500);
+        }
+    }
+
+    public function schemaDebug(): JsonResponse
+    {
+        return response()->json([
+            ...$this->commissionService->sellerSchemaSnapshot(),
+            'schema_cache_file' => is_file(base_path('bootstrap/cache/schema.php')),
+            'last_error' => SellerDebugCache::latest(),
+        ]);
+    }
+
+    public function lastDebug(): JsonResponse
+    {
+        return response()->json([
+            'last_error' => SellerDebugCache::latest(),
+            'schema_cache_file' => is_file(base_path('bootstrap/cache/schema.php')),
+        ]);
+    }
+
+    public function clearSchemaCache(): JsonResponse
+    {
+        SchemaCache::clear();
+        app()->forgetInstance(SaleCommissionService::class);
+
+        return response()->json([
+            'message' => 'Schema cache cleared.',
+            'schema_cache_file' => is_file(base_path('bootstrap/cache/schema.php')),
+        ]);
     }
 
     public function store(SellerRequest $request): JsonResponse
     {
-        $seller = Seller::create(
-            $this->commissionService->sellerAttributesFromInput($request->validated())
-        );
+        $attributes = $this->commissionService->sellerAttributesFromInput($request->validated());
 
-        return response()->json($this->serializeSeller($seller), 201);
+        // #region agent log
+        AgentDebugLog::write('SellerController.php:store', 'sellers store start', [
+            'attributes' => array_keys($attributes),
+            'schema' => $this->commissionService->sellerSchemaSnapshot(),
+        ], 'H1');
+        // #endregion
+
+        try {
+            $seller = Seller::create($attributes);
+
+            // #region agent log
+            AgentDebugLog::write('SellerController.php:store', 'sellers store ok', [
+                'seller_id' => $seller->id,
+            ], 'H1');
+            // #endregion
+
+            return response()->json($this->serializeSeller($seller), 201);
+        } catch (\Throwable $exception) {
+            // #region agent log
+            $debug = [
+                'action' => 'store',
+                'error' => $exception->getMessage(),
+                'class' => $exception::class,
+                'attributes' => array_keys($attributes),
+                'schema' => $this->commissionService->sellerSchemaSnapshot(),
+                'schema_cache_file' => is_file(base_path('bootstrap/cache/schema.php')),
+            ];
+            AgentDebugLog::write('SellerController.php:store', 'sellers store failed', $debug, 'H1');
+            SellerDebugCache::store($debug);
+            // #endregion
+
+            return response()->json([
+                'message' => 'Server error. Check browser console for details.',
+                '_debug' => $debug,
+            ], 500);
+        }
     }
 
     public function show(Seller $seller): JsonResponse

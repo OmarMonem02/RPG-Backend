@@ -119,6 +119,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users,delete');
     Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->middleware('permission:users,update');
 
+    Route::get('/sellers/schema-debug', [SellerController::class, 'schemaDebug'])->middleware('permission:sellers,read');
+    Route::get('/sellers/last-debug', [SellerController::class, 'lastDebug'])->middleware('permission:sellers,read');
+    Route::post('/sellers/clear-schema-cache', [SellerController::class, 'clearSchemaCache'])->middleware('permission:sellers,update');
     Route::get('/sellers', [SellerController::class, 'index'])->middleware('permission:sellers,read');
     Route::post('/sellers', [SellerController::class, 'store'])->middleware('permission:sellers,create');
     Route::get('/sellers/{seller}/monthly-history', [SellerController::class, 'monthlyHistory'])->middleware('permission:sellers,read');
