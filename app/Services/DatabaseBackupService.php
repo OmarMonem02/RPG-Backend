@@ -133,7 +133,7 @@ class DatabaseBackupService
     $this->logRestore($user, $mode, $manifest);
 
     return [
-      'message' => 'System backup restored successfully. Database migrations were applied to match the current application schema.',
+      'message' => 'System backup restored successfully.',
       'mode' => $mode,
       'manifest' => $manifest->toArray(),
       'insert_statements' => $this->countInsertStatements($transformed),
