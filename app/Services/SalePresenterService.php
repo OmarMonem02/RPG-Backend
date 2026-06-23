@@ -113,6 +113,11 @@ class SalePresenterService
             'maintenance_part_id' => $item->maintenance_part_id,
             'maintenance_service_id' => $item->maintenance_service_id,
             'bike_for_sale_id' => $item->bike_for_sale_id,
+            'is_unstored' => (bool) $item->is_unstored,
+            'custom_name' => $item->custom_name,
+            'custom_description' => $item->custom_description,
+            'unstored_type' => $item->unstored_type,
+            'cost_price' => $item->cost_price !== null ? (float) $item->cost_price : null,
             'selling_price' => (float) $item->selling_price,
             'discount' => (float) $item->discount,
             'qty' => (int) $item->qty,
@@ -169,6 +174,15 @@ class SalePresenterService
      */
     private function resolveSellableForSerialization(SaleItem $item): array
     {
+        if ($item->isUnstored()) {
+            return ['unstored', [
+                'custom_name' => $item->custom_name,
+                'custom_description' => $item->custom_description,
+                'unstored_type' => $item->unstored_type,
+                'cost_price' => $item->cost_price !== null ? (float) $item->cost_price : null,
+            ]];
+        }
+
         return match (true) {
             ! is_null($item->product) => ['product', $item->product->toArray()],
             ! is_null($item->sparePart) => ['spare_part', $item->sparePart->toArray()],

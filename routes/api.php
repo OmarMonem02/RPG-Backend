@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/approval-requests/{approvalRequest}/reject', [ApprovalRequestController::class, 'reject']);
     Route::delete('/approval-requests/{approvalRequest}', [ApprovalRequestController::class, 'destroy']);
 
+    Route::get('/tickets/export', [TicketController::class, 'export'])->middleware('permission:maintenance,read');
     Route::get('/tickets', [TicketController::class, 'index'])->middleware('permission:maintenance,read');
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->middleware('permission:maintenance,read');
     Route::post('/tickets', [TicketController::class, 'store'])->middleware('permission:maintenance,create');

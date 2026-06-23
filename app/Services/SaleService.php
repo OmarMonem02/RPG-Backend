@@ -37,6 +37,14 @@ class SaleService
         return $this->queryService->exportQuery($filters);
     }
 
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function exportUnstoredSaleItemsQuery(array $filters): Builder
+    {
+        return $this->queryService->exportUnstoredItemsQuery($filters);
+    }
+
     public function getSaleDetails(Sale $sale): array
     {
         return $this->presenter->serializeSale($this->presenter->loadSaleRelations($sale));

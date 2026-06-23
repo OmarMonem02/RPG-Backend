@@ -12,6 +12,7 @@ use App\Http\Requests\SaleRequest;
 use App\Http\Requests\SaleReturnRequest;
 use App\Http\Requests\SaleUpdateRequest;
 use App\Exports\SalesListExport;
+use App\Exports\UnstoredSaleItemsExport;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\SaleInventoryService;
@@ -41,12 +42,15 @@ class SaleController extends Controller
         $filters = $request->validated();
         unset($filters['page'], $filters['per_page']);
 
-        $query = $this->saleService->exportSalesQuery($filters);
+        $useUnstoredExport = ! empty($filters['has_unstored_items']);
+        $query = $useUnstoredExport
+            ? $this->saleService->exportUnstoredSaleItemsQuery($filters)
+            : $this->saleService->exportSalesQuery($filters);
         $count = (clone $query)->count();
 
         if ($count > 50_000) {
             return response()->json([
-                'message' => 'Too many sales match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
+                'message' => 'Too many rows match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
                 'matched_count' => $count,
             ], 422);
         }
@@ -57,12 +61,18 @@ class SaleController extends Controller
         };
 
         $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
-        $filename = 'sales_export_' . now()->format('Ymd_His') . $suffix;
+        $filename = ($useUnstoredExport ? 'unstored_sale_items_' : 'sales_export_')
+            . now()->format('Ymd_His') . $suffix;
 
-        $columnKeys = $this->columnResolver->resolve('sales', $request->query('columns'));
+        $columnKeys = $this->columnResolver->resolve(
+            $useUnstoredExport ? 'unstored_sale_items' : 'sales',
+            $request->query('columns'),
+        );
 
         return Excel::download(
-            new SalesListExport($query, $inventory, $columnKeys),
+            $useUnstoredExport
+                ? new UnstoredSaleItemsExport($query, $columnKeys)
+                : new SalesListExport($query, $inventory, $columnKeys),
             $filename,
             $format,
         );

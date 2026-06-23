@@ -51,6 +51,16 @@ class SaleRequest extends FormRequest
             'items.*.maintenance_part_id' => ['nullable', 'exists:maintenance_parts,id'],
             'items.*.maintenance_service_id' => ['nullable', 'exists:maintenance_services,id'],
             'items.*.bike_for_sale_id' => ['nullable', 'exists:bike_for_sale,id'],
+            'items.*.is_unstored' => ['nullable', 'boolean'],
+            'items.*.custom_name' => ['required_if:items.*.is_unstored,true', 'nullable', 'string', 'max:255'],
+            'items.*.custom_description' => ['required_if:items.*.is_unstored,true', 'nullable', 'string', 'max:5000'],
+            'items.*.unstored_type' => [
+                'required_if:items.*.is_unstored,true',
+                'nullable',
+                'string',
+                Rule::in(\App\Models\SaleItem::UNSTORED_TYPES),
+            ],
+            'items.*.cost_price' => ['required_if:items.*.is_unstored,true', 'nullable', 'numeric', 'min:0'],
             'items.*.selling_price' => ['required', 'numeric', 'min:0'],
             'items.*.discount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_approval_request_id' => ['nullable', 'integer', 'exists:approval_requests,id'],
@@ -64,7 +74,7 @@ class SaleRequest extends FormRequest
             function (Validator $validator): void {
                 $subtotal = 0.0;
                 foreach ($this->input('items', []) as $index => $item) {
-                    $this->validateSingleSellableReference($validator, $item, "items.{$index}");
+                    $this->validateLineItemReference($validator, $item, "items.{$index}");
 
                     $sellingPrice = $item['selling_price'] ?? null;
                     $discount = $item['discount'] ?? 0;

@@ -132,9 +132,12 @@ class TicketService
     public function addItem(TicketTask $task, array $data, ?User $user = null): TicketItem
     {
         return DB::transaction(function () use ($task, $data, $user) {
-            $price = $data['price_snapshot'] ?? 0;
+            $isUnstored = filter_var($data['is_unstored'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $price = (float) ($data['price_snapshot'] ?? 0);
 
-            if ($price <= 0) {
+            if ($isUnstored) {
+                $price = (float) ($data['price_snapshot'] ?? 0);
+            } elseif ($price <= 0) {
                 if (! empty($data['spare_part_id'])) {
                     $price = $this->convertCatalogPriceToEgp(
                         SparePart::find($data['spare_part_id']),
@@ -154,7 +157,9 @@ class TicketService
                 }
             }
 
-            $discount = ItemDiscountResolver::resolveUnitDiscount(
+            $discount = $isUnstored
+                ? (float) ($data['discount'] ?? 0)
+                : ItemDiscountResolver::resolveUnitDiscount(
                 $user,
                 (float) ($data['discount'] ?? 0),
                 (float) $price,
@@ -172,10 +177,15 @@ class TicketService
 
             $item = $task->items()->create([
                 'ticket_id' => $task->ticket_id,
-                'spare_part_id' => $data['spare_part_id'] ?? null,
-                'maintenance_part_id' => $data['maintenance_part_id'] ?? null,
-                'maintenance_service_id' => $data['maintenance_service_id'] ?? null,
-                'product_id' => $data['product_id'] ?? null,
+                'spare_part_id' => $isUnstored ? null : ($data['spare_part_id'] ?? null),
+                'maintenance_part_id' => $isUnstored ? null : ($data['maintenance_part_id'] ?? null),
+                'maintenance_service_id' => $isUnstored ? null : ($data['maintenance_service_id'] ?? null),
+                'product_id' => $isUnstored ? null : ($data['product_id'] ?? null),
+                'is_unstored' => $isUnstored,
+                'custom_name' => $isUnstored ? ($data['custom_name'] ?? null) : null,
+                'custom_description' => $isUnstored ? ($data['custom_description'] ?? null) : null,
+                'unstored_type' => $isUnstored ? ($data['unstored_type'] ?? null) : null,
+                'cost_price' => $isUnstored ? ($data['cost_price'] ?? null) : null,
                 'price_snapshot' => $price,
                 'discount' => $discount,
                 'qty' => $data['qty'],
