@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesSellablePayload;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -20,7 +19,7 @@ class TicketItemRequest extends FormRequest
     {
         $qtyRule = $this->isMethod('POST') ? 'required' : 'sometimes';
 
-        return [
+        return array_merge([
             'product_id' => ['nullable', 'exists:products,id'],
             'spare_part_id' => ['nullable', 'exists:spare_parts,id'],
             'maintenance_part_id' => ['nullable', 'exists:maintenance_parts,id'],
@@ -29,7 +28,7 @@ class TicketItemRequest extends FormRequest
             'discount' => ['nullable', 'numeric', 'min:0'],
             'discount_approval_request_id' => ['nullable', 'integer', 'exists:approval_requests,id'],
             'qty' => [$qtyRule, 'integer', 'min:1'],
-        ];
+        ], $this->unstoredFieldRules(requireSalePrice: false));
     }
 
     public function after(): array
@@ -37,7 +36,7 @@ class TicketItemRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 if ($this->isMethod('POST')) {
-                    $this->validateSingleSellableReference($validator, $this->all());
+                    $this->validateLineItemReference($validator, $this->all());
                 }
             },
         ];

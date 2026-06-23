@@ -92,8 +92,56 @@ return new class extends Migration
         DB::statement('ALTER TABLE tickets RENAME TO tickets_status_migration_old');
         DB::statement($newSql);
         DB::statement('INSERT INTO tickets SELECT * FROM tickets_status_migration_old');
+        $this->fixSqliteForeignKeyReferences('tickets_status_migration_old', 'tickets');
         DB::statement('DROP TABLE tickets_status_migration_old');
         DB::statement('PRAGMA foreign_keys = ON');
+    }
+
+    private function fixSqliteForeignKeyReferences(string $oldTable, string $newTable): void
+    {
+        $this->rebuildSqliteTableForeignKeys('ticket_tasks', [
+            $oldTable => $newTable,
+        ]);
+
+        $this->rebuildSqliteTableForeignKeys('ticket_items', [
+            $oldTable => $newTable,
+            'ticket_tasks_fk_migration_old' => 'ticket_tasks',
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $replacements
+     */
+    private function rebuildSqliteTableForeignKeys(string $tableName, array $replacements): void
+    {
+        if (! Schema::hasTable($tableName)) {
+            return;
+        }
+
+        $row = DB::selectOne(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+            [$tableName],
+        );
+
+        if ($row === null || ! isset($row->sql)) {
+            return;
+        }
+
+        $newSql = $row->sql;
+        foreach ($replacements as $from => $to) {
+            $newSql = str_replace($from, $to, $newSql);
+        }
+
+        if ($newSql === $row->sql) {
+            return;
+        }
+
+        $backup = "{$tableName}_fk_migration_old";
+
+        DB::statement("ALTER TABLE {$tableName} RENAME TO {$backup}");
+        DB::statement($newSql);
+        DB::statement("INSERT INTO {$tableName} SELECT * FROM {$backup}");
+        DB::statement("DROP TABLE {$backup}");
     }
 
     private function replacePostgresStatusCheck(string $allowedStatuses): void

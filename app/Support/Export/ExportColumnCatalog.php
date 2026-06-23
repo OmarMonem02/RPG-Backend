@@ -14,6 +14,8 @@ class ExportColumnCatalog
         return [
             'import_export' => $this->importExportContexts(),
             'sales' => $this->salesContext(),
+            'unstored_sale_items' => $this->unstoredSaleItemsContext(),
+            'unstored_ticket_items' => $this->unstoredTicketItemsContext(),
             'stocktake' => $this->stocktakeContext(),
             'history' => $this->historyContext(),
         ];
@@ -37,6 +39,8 @@ class ExportColumnCatalog
         return match ($context) {
             'import_export' => $this->importExportColumns($entity ?? '', $includeExportOnly),
             'sales' => $this->salesContext()['columns'],
+            'unstored_sale_items' => $this->unstoredSaleItemsContext()['columns'],
+            'unstored_ticket_items' => $this->unstoredTicketItemsContext()['columns'],
             'stocktake' => $this->stocktakeContext()['columns'],
             'history' => $this->historyContext()['columns'],
             default => abort(404, "Export context '{$context}' is not supported."),
@@ -101,6 +105,52 @@ class ExportColumnCatalog
                 $this->meta('maintenance_sale', 'Maintenance sale'),
                 $this->meta('line_item_count', 'Line item count'),
                 $this->meta('line_items_summary', 'Line items summary'),
+            ],
+        ];
+    }
+
+    /** @return array{label: string, columns: list<array<string, mixed>>} */
+    private function unstoredSaleItemsContext(): array
+    {
+        return [
+            'label' => 'Unstored sale items',
+            'columns' => [
+                $this->meta('sale_id', 'Sale ID'),
+                $this->meta('created_at', 'Sale created at'),
+                $this->meta('customer_name', 'Customer name'),
+                $this->meta('customer_phone', 'Customer phone'),
+                $this->meta('seller', 'Seller'),
+                $this->meta('payment_method', 'Payment method'),
+                $this->meta('sale_total', 'Sale total'),
+                $this->meta('item_name', 'Unstored item name'),
+                $this->meta('description', 'Description'),
+                $this->meta('item_type', 'Type'),
+                $this->meta('qty', 'Qty'),
+                $this->meta('cost_price', 'Cost (EGP)'),
+                $this->meta('sale_price', 'Sale price (EGP)'),
+            ],
+        ];
+    }
+
+    /** @return array{label: string, columns: list<array<string, mixed>>} */
+    private function unstoredTicketItemsContext(): array
+    {
+        return [
+            'label' => 'Unstored ticket items',
+            'columns' => [
+                $this->meta('ticket_id', 'Ticket ID'),
+                $this->meta('created_at', 'Ticket opened at'),
+                $this->meta('status', 'Ticket status'),
+                $this->meta('customer_name', 'Customer name'),
+                $this->meta('customer_phone', 'Customer phone'),
+                $this->meta('task_name', 'Task name'),
+                $this->meta('ticket_total', 'Ticket total'),
+                $this->meta('item_name', 'Unstored item name'),
+                $this->meta('description', 'Description'),
+                $this->meta('item_type', 'Type'),
+                $this->meta('qty', 'Qty'),
+                $this->meta('cost_price', 'Cost (EGP)'),
+                $this->meta('sale_price', 'Sale price (EGP)'),
             ],
         ];
     }

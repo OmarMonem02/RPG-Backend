@@ -17,7 +17,7 @@ class SaleItemStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'spare_part_id' => ['nullable', 'integer', 'exists:spare_parts,id'],
             'maintenance_part_id' => ['nullable', 'integer', 'exists:maintenance_parts,id'],
@@ -26,14 +26,14 @@ class SaleItemStoreRequest extends FormRequest
             'selling_price' => ['required', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'qty' => ['required', 'integer', 'min:1'],
-        ];
+        ], $this->unstoredFieldRules());
     }
 
     public function after(): array
     {
         return [
             function (Validator $validator): void {
-                $this->validateSingleSellableReference($validator, $this->all());
+                $this->validateLineItemReference($validator, $this->all());
 
                 $sellingPrice = $this->input('selling_price');
                 $discount = $this->input('discount', 0);

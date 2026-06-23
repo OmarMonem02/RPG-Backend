@@ -76,6 +76,24 @@ class SaleQueryService
     /**
      * @param  array<string, mixed>  $filters
      */
+    public function exportUnstoredItemsQuery(array $filters): Builder
+    {
+        $saleFilters = $filters;
+        unset($saleFilters['has_unstored_items']);
+
+        return \App\Models\SaleItem::query()
+            ->where('is_unstored', true)
+            ->whereHas('sale', function (Builder $saleQuery) use ($saleFilters): void {
+                $this->applyFilters($saleQuery, $saleFilters);
+            })
+            ->with(['sale.customer', 'sale.seller', 'sale.paymentMethod'])
+            ->orderByDesc('sale_id')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
     private function applyFilters(Builder $query, array $filters): void
     {
         if (! empty($filters['sale_id'])) {
@@ -135,6 +153,10 @@ class SaleQueryService
             }
         }
 
+        if (! empty($filters['has_unstored_items'])) {
+            $query->whereHas('items', fn (Builder $items) => $items->where('is_unstored', true));
+        }
+
         if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function (Builder $saleQuery) use ($search): void {
@@ -174,6 +196,13 @@ class SaleQueryService
                         $bike->orWhereHas('bikeBlueprint', function (Builder $blueprint) use ($search) {
                             CaseInsensitiveLike::where($blueprint, 'model', $search);
                         });
+                    })
+                    ->orWhereHas('items', function (Builder $items) use ($search) {
+                        $items->where('is_unstored', true)
+                            ->where(function (Builder $uncat) use ($search) {
+                                CaseInsensitiveLike::where($uncat, 'custom_name', $search);
+                                CaseInsensitiveLike::orWhere($uncat, 'custom_description', $search);
+                            });
                     });
             });
         }

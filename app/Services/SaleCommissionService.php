@@ -438,6 +438,10 @@ class SaleCommissionService
 
     private function itemHasCommission(SaleItem $item): bool
     {
+        if ($item->isUnstored()) {
+            return true;
+        }
+
         return match (true) {
             ! is_null($item->product_id) => $this->modelHasCommission($item->product?->have_commission ?? null),
             ! is_null($item->spare_part_id) => $this->modelHasCommission($item->sparePart?->have_commission ?? null),
@@ -466,11 +470,23 @@ class SaleCommissionService
         }
 
         return match (true) {
+            $item->isUnstored() => $this->resolveUnstoredCommissionRate($item, $seller),
             ! is_null($item->product_id) => (float) $seller->products_commission_rate,
             ! is_null($item->spare_part_id) => (float) $seller->spare_parts_commission_rate,
             ! is_null($item->maintenance_part_id) => (float) $seller->maintenance_parts_commission_rate,
             ! is_null($item->bike_for_sale_id) => (float) $seller->bikes_for_sale_commission_rate,
             ! is_null($item->maintenance_service_id) => (float) $seller->maintenance_services_commission_rate,
+            default => 0.0,
+        };
+    }
+
+    private function resolveUnstoredCommissionRate(SaleItem $item, Seller $seller): float
+    {
+        return match ($item->unstored_type) {
+            'product' => (float) $seller->products_commission_rate,
+            'spare_part' => (float) $seller->spare_parts_commission_rate,
+            'maintenance_part' => (float) $seller->maintenance_parts_commission_rate,
+            'maintenance_service' => (float) $seller->maintenance_services_commission_rate,
             default => 0.0,
         };
     }

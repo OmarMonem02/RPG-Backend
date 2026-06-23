@@ -21,10 +21,24 @@ class TicketItem extends Model
         'maintenance_part_id',
         'maintenance_service_id',
         'product_id',
+        'is_unstored',
+        'custom_name',
+        'custom_description',
+        'unstored_type',
+        'cost_price',
         'price_snapshot',
         'discount',
         'qty',
         'subtotal',
+    ];
+
+    protected $casts = [
+        'is_unstored' => 'boolean',
+        'cost_price' => 'decimal:2',
+        'price_snapshot' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'qty' => 'integer',
+        'subtotal' => 'decimal:2',
     ];
 
     public function task(): BelongsTo
@@ -57,8 +71,17 @@ class TicketItem extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function isUnstored(): bool
+    {
+        return (bool) $this->is_unstored;
+    }
+
     public function getItemNameAttribute(): string
     {
+        if ($this->isUnstored()) {
+            return (string) ($this->custom_name ?? 'Unstored Item');
+        }
+
         if ($this->maintenance_part_id !== null) {
             return $this->maintenancePart?->name ?? 'Maintenance Part';
         }

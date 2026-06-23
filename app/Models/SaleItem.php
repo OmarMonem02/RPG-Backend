@@ -17,6 +17,13 @@ class SaleItem extends Model
     public const STATUS_RETURNED = 'returned';
     public const STATUS_EXCHANGED = 'exchanged';
 
+    public const UNSTORED_TYPES = [
+        'product',
+        'spare_part',
+        'maintenance_part',
+        'maintenance_service',
+    ];
+
     protected $fillable = [
         'sale_id',
         'product_id',
@@ -24,6 +31,11 @@ class SaleItem extends Model
         'maintenance_part_id',
         'maintenance_service_id',
         'bike_for_sale_id',
+        'is_unstored',
+        'custom_name',
+        'custom_description',
+        'unstored_type',
+        'cost_price',
         'selling_price',
         'discount',
         'qty',
@@ -33,6 +45,8 @@ class SaleItem extends Model
     ];
 
     protected $casts = [
+        'is_unstored' => 'boolean',
+        'cost_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'discount' => 'decimal:2',
         'qty' => 'integer',
@@ -84,11 +98,21 @@ class SaleItem extends Model
         return max(0, (int) $this->qty - (int) $this->returned_qty);
     }
 
+    public function isUnstored(): bool
+    {
+        return (bool) $this->is_unstored;
+    }
+
     public function getSellableType(): ?string
     {
+        if ($this->isUnstored()) {
+            return $this->unstored_type;
+        }
+
         return match (true) {
             ! is_null($this->product_id) => 'product',
             ! is_null($this->spare_part_id) => 'spare_part',
+            ! is_null($this->maintenance_part_id) => 'maintenance_part',
             ! is_null($this->maintenance_service_id) => 'maintenance_service',
             ! is_null($this->bike_for_sale_id) => 'bike',
             default => null,

@@ -46,9 +46,13 @@ class SaleInventoryService
 
     public function createSaleItem(Sale $sale, array $itemData, ?int $replacedFromSaleItemId = null): SaleItem
     {
-        $this->validateSingleReference($itemData);
-        $this->assertQuantityRulesForPayload($itemData);
-        $this->deductInventoryForPayload($itemData);
+        $isUnstored = filter_var($itemData['is_unstored'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if (! $isUnstored) {
+            $this->validateSingleReference($itemData);
+            $this->assertQuantityRulesForPayload($itemData);
+            $this->deductInventoryForPayload($itemData);
+        }
 
         return $sale->items()->create([
             'product_id' => $itemData['product_id'] ?? null,
@@ -56,6 +60,11 @@ class SaleInventoryService
             'maintenance_part_id' => $itemData['maintenance_part_id'] ?? null,
             'maintenance_service_id' => $itemData['maintenance_service_id'] ?? null,
             'bike_for_sale_id' => $itemData['bike_for_sale_id'] ?? null,
+            'is_unstored' => $isUnstored,
+            'custom_name' => $isUnstored ? ($itemData['custom_name'] ?? null) : null,
+            'custom_description' => $isUnstored ? ($itemData['custom_description'] ?? null) : null,
+            'unstored_type' => $isUnstored ? ($itemData['unstored_type'] ?? null) : null,
+            'cost_price' => $isUnstored ? ($itemData['cost_price'] ?? null) : null,
             'selling_price' => $itemData['selling_price'],
             'discount' => $itemData['discount'] ?? 0,
             'qty' => $itemData['qty'],
@@ -72,6 +81,10 @@ class SaleInventoryService
 
     public function assertQuantityRulesForExistingItem(SaleItem $saleItem, int $qty): void
     {
+        if ($saleItem->isUnstored()) {
+            return;
+        }
+
         if ($saleItem->bike_for_sale_id && $qty !== 1) {
             throw ValidationException::withMessages([
                 'qty' => ['Bike sale items must use a quantity of 1.'],
@@ -90,6 +103,10 @@ class SaleInventoryService
 
     public function restoreInventoryForSaleItem(SaleItem $saleItem, int $qty): void
     {
+        if ($saleItem->isUnstored()) {
+            return;
+        }
+
         [$type, $model] = $this->resolveSellableFromSaleItem($saleItem);
 
         match ($type) {
@@ -103,7 +120,7 @@ class SaleInventoryService
 
     public function syncInventoryForQtyChange(SaleItem $saleItem, int $deltaQty): void
     {
-        if ($deltaQty === 0) {
+        if ($deltaQty === 0 || $saleItem->isUnstored()) {
             return;
         }
 
@@ -133,6 +150,12 @@ class SaleInventoryService
 
     public function describeSaleItem(SaleItem $saleItem): string
     {
+        if ($saleItem->isUnstored()) {
+            $typeLabel = str_replace('_', ' ', (string) $saleItem->unstored_type);
+
+            return 'unstored ' . $typeLabel . ' ' . ($saleItem->custom_name ?? '');
+        }
+
         $saleItem->loadMissing('product', 'sparePart', 'maintenancePart', 'maintenanceService', 'bikeForSale.bikeBlueprint.brand');
 
         return match (true) {
@@ -150,6 +173,12 @@ class SaleInventoryService
      */
     public function resolveSellableFromSaleItem(SaleItem $saleItem): array
     {
+        if ($saleItem->isUnstored()) {
+            throw ValidationException::withMessages([
+                'sale_item_id' => ['Unstored sale items do not reference catalog inventory.'],
+            ]);
+        }
+
         return match (true) {
             ! is_null($saleItem->product_id) => ['product', Product::query()->lockForUpdate()->findOrFail($saleItem->product_id)],
             ! is_null($saleItem->spare_part_id) => ['spare_part', SparePart::query()->lockForUpdate()->findOrFail($saleItem->spare_part_id)],
@@ -164,6 +193,10 @@ class SaleInventoryService
 
     private function validateSingleReference(array $itemData): void
     {
+        if (filter_var($itemData['is_unstored'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return;
+        }
+
         $count = collect(array_values(self::ITEM_TYPE_COLUMNS))
             ->filter(fn (string $column) => ! empty($itemData[$column]))
             ->count();
@@ -186,6 +219,10 @@ class SaleInventoryService
 
     private function deductInventoryForPayload(array $itemData): void
     {
+        if (filter_var($itemData['is_unstored'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return;
+        }
+
         [$type, $model] = $this->resolveSellableFromPayload($itemData);
         $qty = (int) $itemData['qty'];
 

@@ -4,27 +4,66 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TicketDiscountRequest;
+use App\Http\Requests\TicketFilterRequest;
 use App\Http\Requests\TicketItemRequest;
 use App\Http\Requests\TicketRequest;
 use App\Http\Requests\TicketTaskRequest;
 use App\Http\Requests\UpdateTicketNotesRequest;
+use App\Exports\UnstoredTicketItemsExport;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Models\TicketTask;
+use App\Services\TicketQueryService;
 use App\Services\TicketService;
+use App\Support\Export\ExportColumnResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelFormat;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TicketController extends Controller
 {
-    public function __construct(private readonly TicketService $ticketService)
-    {
+    public function __construct(
+        private readonly TicketService $ticketService,
+        private readonly TicketQueryService $ticketQueryService,
+        private readonly ExportColumnResolver $columnResolver,
+    ) {
     }
 
     public function index(): JsonResponse
     {
         return response()->json(Ticket::with(Ticket::detailRelations())->paginate(20));
+    }
+
+    public function export(TicketFilterRequest $request): BinaryFileResponse|JsonResponse
+    {
+        $filters = $request->validated();
+        $query = $this->ticketQueryService->exportUnstoredItemsQuery($filters);
+        $count = (clone $query)->count();
+
+        if ($count > 50_000) {
+            return response()->json([
+                'message' => 'Too many rows match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
+                'matched_count' => $count,
+            ], 422);
+        }
+
+        $format = match (strtolower((string) $request->query('format', 'xlsx'))) {
+            'csv' => ExcelFormat::CSV,
+            default => ExcelFormat::XLSX,
+        };
+
+        $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
+        $filename = 'unstored_ticket_items_' . now()->format('Ymd_His') . $suffix;
+        $columnKeys = $this->columnResolver->resolve('unstored_ticket_items', $request->query('columns'));
+
+        return Excel::download(
+            new UnstoredTicketItemsExport($query, $columnKeys),
+            $filename,
+            $format,
+        );
     }
 
     public function store(TicketRequest $request): JsonResponse
