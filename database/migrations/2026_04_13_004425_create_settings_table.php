@@ -11,15 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('settings')) {
-            Schema::create('settings', function (Blueprint $table) {
-                $table->id();
-                $table->string('key')->unique();
-                $table->integer('value');
-                $table->timestamps();
-                $table->softDeletes();
-            });
-        }
+        Schema::create('settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->decimal('value')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
     /**

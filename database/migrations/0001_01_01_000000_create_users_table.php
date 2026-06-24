@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->enum('role', ['admin', 'staff', 'Technician']);
+            $table->json('permissions_override')->nullable();
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

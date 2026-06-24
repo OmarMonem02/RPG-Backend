@@ -13,7 +13,9 @@ return new class extends Migration
             $table->foreignId('ticket_id')->constrained()->cascadeOnDelete();
             $table->string('sender_type', 16);
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->text('body');
+            $table->text('body')->nullable();
+            $table->string('image_url', 2048)->nullable();
+            $table->string('image_public_id', 512)->nullable();
             $table->timestamps();
 
             $table->index(['ticket_id', 'created_at']);

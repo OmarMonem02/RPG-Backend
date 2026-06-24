@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
+            $table->string('image')->nullable();
+            $table->string('image_public_id')->nullable();
             $table->string('title');
             $table->string('category');
             $table->enum('currency', ['EGP', 'USD', 'EUR']);

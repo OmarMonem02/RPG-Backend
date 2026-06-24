@@ -26,6 +26,7 @@ return new class extends Migration
             $table->json('payload');
             $table->timestamp('consumed_at')->nullable();
             $table->foreignId('consumed_sale_id')->nullable()->constrained('sales')->nullOnDelete();
+            $table->foreignId('consumed_ticket_id')->nullable()->constrained('tickets')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['type', 'status']);
