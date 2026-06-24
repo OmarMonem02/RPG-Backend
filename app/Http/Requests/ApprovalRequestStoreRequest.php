@@ -107,6 +107,7 @@ class ApprovalRequestStoreRequest extends FormRequest
             $rules['payload.item_context.catalog_max_discount_type'] = ['nullable', 'string'];
             $rules['payload.item_context.catalog_max_discount_value'] = ['nullable', 'numeric', 'min:0'];
             $rules['payload.item_context.cost_price'] = ['nullable', 'numeric', 'min:0'];
+            $rules['payload.item_context.cost_currency'] = ['nullable', 'string', 'in:EGP,USD,EUR'];
         }
 
         if ($type === ApprovalRequest::TYPE_SALE_ITEM_DISCOUNT) {
