@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CustomerSale;
+use App\Models\History;
 use App\Models\Sale;
 use App\Models\SaleAdjustment;
 use App\Models\SaleItem;
@@ -61,6 +62,34 @@ class SaleService
             ->with('user')
             ->paginate($perPage)
             ->through(fn (SaleAdjustment $adjustment) => $this->presenter->serializeAdjustment($adjustment));
+    }
+
+    public function paginateSaleHistory(Sale $sale, int $perPage = 50): LengthAwarePaginator
+    {
+        $itemIds = SaleItem::query()
+            ->withTrashed()
+            ->where('sale_id', $sale->id)
+            ->pluck('id');
+
+        return History::query()
+            ->with('user')
+            ->where(function (Builder $query) use ($sale, $itemIds): void {
+                $query->where(function (Builder $saleQuery) use ($sale): void {
+                    $saleQuery
+                        ->where('model_type', Sale::class)
+                        ->where('model_id', $sale->id);
+                });
+
+                if ($itemIds->isNotEmpty()) {
+                    $query->orWhere(function (Builder $itemQuery) use ($itemIds): void {
+                        $itemQuery
+                            ->where('model_type', SaleItem::class)
+                            ->whereIn('model_id', $itemIds);
+                    });
+                }
+            })
+            ->latest()
+            ->paginate($perPage);
     }
 
     public function catalog(array $filters): LengthAwarePaginator

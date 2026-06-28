@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SaleCatalogRequest;
 use App\Http\Requests\SaleExchangeRequest;
 use App\Http\Requests\SaleFilterRequest;
+use App\Http\Requests\SaleHistoryRequest;
 use App\Http\Requests\SaleItemStoreRequest;
 use App\Http\Requests\SaleItemUpdateRequest;
 use App\Http\Requests\SaleRequest;
 use App\Http\Requests\SaleReturnRequest;
 use App\Http\Requests\SaleUpdateRequest;
+use App\Http\Resources\HistoryResource;
 use App\Exports\SalesListExport;
 use App\Exports\UnstoredSaleItemsExport;
 use App\Models\Sale;
@@ -95,6 +97,17 @@ class SaleController extends Controller
         return response()->json(
             $this->saleService->paginateAdjustments($sale, (int) $request->query('per_page', 20))
         );
+    }
+
+    public function history(SaleHistoryRequest $request, Sale $sale): JsonResponse
+    {
+        $validated = $request->validated();
+        $paginator = $this->saleService->paginateSaleHistory(
+            $sale,
+            (int) ($validated['per_page'] ?? 50),
+        );
+
+        return response()->json(HistoryResource::collection($paginator)->response()->getData(true));
     }
 
     public function catalog(SaleCatalogRequest $request): JsonResponse

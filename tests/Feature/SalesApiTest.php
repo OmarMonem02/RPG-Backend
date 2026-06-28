@@ -622,6 +622,60 @@ class SalesApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_view_sale_scoped_history_and_staff_cannot(): void
+    {
+        $sale = $this->createSaleThroughApi();
+        $saleId = $sale['id'];
+
+        $this->actingAs($this->admin)->patchJson("/api/sales/{$saleId}", [
+            'shipping_fee' => 75,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('histories', [
+            'model_type' => Sale::class,
+            'model_id' => $saleId,
+            'action' => 'update',
+        ]);
+
+        $adminResponse = $this->actingAs($this->admin)->getJson("/api/sales/{$saleId}/history");
+        $adminResponse->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    [
+                        'id',
+                        'action',
+                        'entity_type',
+                        'changes',
+                        'user',
+                    ],
+                ],
+                'meta' => ['current_page', 'last_page'],
+            ]);
+
+        $entries = collect($adminResponse->json('data'));
+        $this->assertTrue($entries->contains(
+            fn (array $row) => ($row['model_id'] ?? null) === $saleId
+                && ($row['entity_type'] ?? null) === 'sale'
+                && ($row['action'] ?? null) === 'update',
+        ));
+        $this->assertTrue($entries->contains(
+            fn (array $row) => ($row['model_id'] ?? null) === $saleId
+                && ($row['entity_type'] ?? null) === 'sale'
+                && ($row['action'] ?? null) === 'create',
+        ));
+
+        $staff = User::create([
+            'name' => 'Staff User',
+            'email' => 'staff-history@example.com',
+            'password' => bcrypt('password'),
+            'role' => User::ROLE_STAFF,
+        ]);
+
+        $this->actingAs($staff)
+            ->getJson("/api/sales/{$saleId}/history")
+            ->assertForbidden();
+    }
+
     public function test_can_return_sale_items_and_restore_stock(): void
     {
         $sale = $this->createSaleThroughApi([

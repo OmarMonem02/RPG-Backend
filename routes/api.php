@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sales', [SaleController::class, 'index'])->middleware('permission:sales,read');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->middleware('permission:sales,read');
     Route::get('/sales/{sale}/adjustments', [SaleController::class, 'adjustments'])->middleware('permission:sales,read');
+    Route::get('/sales/{sale}/history', [SaleController::class, 'history'])->middleware('permission:sales,read');
     Route::post('/sales', [SaleController::class, 'store'])->middleware('permission:sales,create');
     Route::patch('/sales/{sale}', [SaleController::class, 'update'])->middleware('permission:sales,update');
     Route::post('/sales/{sale}/items', [SaleController::class, 'addItem'])->middleware('permission:sales,update');
