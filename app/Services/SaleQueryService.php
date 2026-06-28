@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Support\CaseInsensitiveLike;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,8 +33,25 @@ class SaleQueryService
         'user',
         'items.product',
         'items.sparePart',
+        'items.maintenancePart',
         'items.maintenanceService',
         'items.bikeForSale.bikeBlueprint.brand',
+    ];
+
+    /**
+     * Eager loads for sold line-item spreadsheet export.
+     *
+     * @var array<int, string>
+     */
+    private const EXPORT_ITEM_RELATIONS = [
+        'sale.customer',
+        'sale.seller',
+        'sale.paymentMethod',
+        'product',
+        'sparePart',
+        'maintenancePart',
+        'maintenanceService',
+        'bikeForSale.bikeBlueprint.brand',
     ];
 
     public function __construct(private readonly SalePresenterService $presenter)
@@ -81,7 +99,7 @@ class SaleQueryService
         $saleFilters = $filters;
         unset($saleFilters['has_unstored_items']);
 
-        return \App\Models\SaleItem::query()
+        return SaleItem::query()
             ->where('is_unstored', true)
             ->whereHas('sale', function (Builder $saleQuery) use ($saleFilters): void {
                 $this->applyFilters($saleQuery, $saleFilters);
@@ -89,6 +107,42 @@ class SaleQueryService
             ->with(['sale.customer', 'sale.seller', 'sale.paymentMethod'])
             ->orderByDesc('sale_id')
             ->orderByDesc('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function exportSoldItemsQuery(array $filters): Builder
+    {
+        $saleFilters = $filters;
+        unset($saleFilters['item_type'], $saleFilters['has_unstored_items']);
+
+        $query = SaleItem::query()
+            ->whereHas('sale', function (Builder $saleQuery) use ($saleFilters): void {
+                $this->applyFilters($saleQuery, $saleFilters);
+            })
+            ->with(self::EXPORT_ITEM_RELATIONS);
+
+        $this->applySoldItemFilters($query, $filters);
+
+        return $query->orderByDesc('sale_id')->orderByDesc('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function applySoldItemFilters(Builder $query, array $filters): void
+    {
+        if (! empty($filters['item_type'])) {
+            $column = self::ITEM_TYPE_COLUMNS[$filters['item_type']] ?? null;
+            if ($column) {
+                $query->whereNotNull($column);
+            }
+        }
+
+        if (! empty($filters['has_unstored_items'])) {
+            $query->where('is_unstored', true);
+        }
     }
 
     /**

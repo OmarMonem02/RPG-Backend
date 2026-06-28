@@ -967,6 +967,120 @@ class SalesApiTest extends TestCase
         $this->assertSame('Ahmed Saleh', (string) $sheet->getCell('C2')->getValue());
     }
 
+    public function test_sales_export_items_scope_returns_sold_item_rows(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query(['export_scope' => 'items', 'format' => 'xlsx'])
+        );
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'sold_items_export_',
+            (string) $response->headers->get('content-disposition'),
+        );
+
+        $path = tempnam(sys_get_temp_dir(), 'sold_items_export_') . '.xlsx';
+        file_put_contents($path, $response->streamedContent());
+
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet();
+        @unlink($path);
+
+        $this->assertSame('Line item ID', (string) $sheet->getCell('H1')->getValue());
+        $this->assertSame(5, (int) $sheet->getHighestDataRow());
+    }
+
+    public function test_sales_export_items_scope_returns_csv_with_sold_item_headers(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query(['export_scope' => 'items', 'format' => 'csv'])
+        );
+
+        $response->assertOk();
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Line item ID', $content);
+        $this->assertStringContainsString('PR-001', $content);
+    }
+
+    public function test_sales_export_both_scope_returns_workbook_with_two_sheets(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query(['export_scope' => 'both', 'format' => 'xlsx'])
+        );
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'sales_workbook_',
+            (string) $response->headers->get('content-disposition'),
+        );
+
+        $path = tempnam(sys_get_temp_dir(), 'sales_workbook_') . '.xlsx';
+        file_put_contents($path, $response->streamedContent());
+
+        $workbook = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        @unlink($path);
+
+        $this->assertCount(2, $workbook->getAllSheets());
+        $this->assertSame('Sales', $workbook->getSheet(0)->getTitle());
+        $this->assertSame('Sold Items', $workbook->getSheet(1)->getTitle());
+        $this->assertSame(2, (int) $workbook->getSheet(0)->getHighestDataRow());
+        $this->assertSame(5, (int) $workbook->getSheet(1)->getHighestDataRow());
+    }
+
+    public function test_sales_export_both_scope_rejects_csv(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->getJson(
+            '/api/sales/export?' . http_build_query(['export_scope' => 'both', 'format' => 'csv'])
+        );
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Combined export requires Excel (.xlsx).');
+    }
+
+    public function test_sales_export_items_scope_respects_item_type_filter(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query([
+                'export_scope' => 'items',
+                'item_type' => 'product',
+                'format' => 'csv',
+            ])
+        );
+
+        $response->assertOk();
+
+        $lines = preg_split('/\R/', trim($response->streamedContent())) ?: [];
+        $this->assertCount(2, $lines);
+        $this->assertStringContainsString('PR-001', $lines[1]);
+        $this->assertStringNotContainsString('SP-001', $response->streamedContent());
+    }
+
+    public function test_sales_export_item_columns_ordering_is_respected(): void
+    {
+        $this->createSaleThroughApi();
+
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query([
+                'export_scope' => 'items',
+                'item_columns' => 'item_name,sale_id',
+                'format' => 'csv',
+            ])
+        );
+
+        $response->assertOk();
+        $header = str_getcsv(preg_split('/\R/', trim($response->streamedContent()))[0] ?? '');
+        $this->assertSame(['Item name', 'Sale ID'], $header);
+    }
+
     private function createSaleThroughApi(?array $override = null): array
     {
         $payload = $this->mixedSalePayload(

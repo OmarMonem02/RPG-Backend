@@ -13,8 +13,9 @@ use App\Http\Requests\SaleRequest;
 use App\Http\Requests\SaleReturnRequest;
 use App\Http\Requests\SaleUpdateRequest;
 use App\Http\Resources\HistoryResource;
+use App\Exports\SaleSoldItemsExport;
 use App\Exports\SalesListExport;
-use App\Exports\UnstoredSaleItemsExport;
+use App\Exports\SalesWorkbookExport;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\SaleInventoryService;
@@ -44,16 +45,10 @@ class SaleController extends Controller
         $filters = $request->validated();
         unset($filters['page'], $filters['per_page']);
 
-        $useUnstoredExport = ! empty($filters['has_unstored_items']);
-        $query = $useUnstoredExport
-            ? $this->saleService->exportUnstoredSaleItemsQuery($filters)
-            : $this->saleService->exportSalesQuery($filters);
-        $count = (clone $query)->count();
-
-        if ($count > 50_000) {
+        $exportScope = strtolower((string) $request->query('export_scope', 'sales'));
+        if (! in_array($exportScope, ['sales', 'items', 'both'], true)) {
             return response()->json([
-                'message' => 'Too many rows match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
-                'matched_count' => $count,
+                'message' => 'Invalid export scope. Allowed values: sales, items, both.',
             ], 422);
         }
 
@@ -62,22 +57,82 @@ class SaleController extends Controller
             default => ExcelFormat::XLSX,
         };
 
-        $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
-        $filename = ($useUnstoredExport ? 'unstored_sale_items_' : 'sales_export_')
-            . now()->format('Ymd_His') . $suffix;
+        if ($exportScope === 'both' && $format === ExcelFormat::CSV) {
+            return response()->json([
+                'message' => 'Combined export requires Excel (.xlsx).',
+            ], 422);
+        }
 
-        $columnKeys = $this->columnResolver->resolve(
-            $useUnstoredExport ? 'unstored_sale_items' : 'sales',
-            $request->query('columns'),
-        );
+        $salesQuery = $this->saleService->exportSalesQuery($filters);
+        $itemsQuery = $this->saleService->exportSoldItemsQuery($filters);
+
+        if ($exportScope === 'sales') {
+            $count = (clone $salesQuery)->count();
+            if ($count > 50_000) {
+                return $this->exportLimitResponse($count);
+            }
+
+            $salesColumnKeys = $this->columnResolver->resolve('sales', $request->query('columns'));
+            $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
+            $filename = 'sales_export_' . now()->format('Ymd_His') . $suffix;
+
+            return Excel::download(
+                new SalesListExport($salesQuery, $inventory, $salesColumnKeys),
+                $filename,
+                $format,
+            );
+        }
+
+        if ($exportScope === 'items') {
+            $count = (clone $itemsQuery)->count();
+            if ($count > 50_000) {
+                return $this->exportLimitResponse($count);
+            }
+
+            $itemColumnKeys = $this->columnResolver->resolve('sale_items', $request->query('item_columns'));
+            $suffix = $format === ExcelFormat::CSV ? '.csv' : '.xlsx';
+            $filename = 'sold_items_export_' . now()->format('Ymd_His') . $suffix;
+
+            return Excel::download(
+                new SaleSoldItemsExport($itemsQuery, $inventory, $itemColumnKeys),
+                $filename,
+                $format,
+            );
+        }
+
+        $salesCount = (clone $salesQuery)->count();
+        if ($salesCount > 50_000) {
+            return $this->exportLimitResponse($salesCount);
+        }
+
+        $itemsCount = (clone $itemsQuery)->count();
+        if ($itemsCount > 50_000) {
+            return $this->exportLimitResponse($itemsCount);
+        }
+
+        $salesColumnKeys = $this->columnResolver->resolve('sales', $request->query('columns'));
+        $itemColumnKeys = $this->columnResolver->resolve('sale_items', $request->query('item_columns'));
+        $filename = 'sales_workbook_' . now()->format('Ymd_His') . '.xlsx';
 
         return Excel::download(
-            $useUnstoredExport
-                ? new UnstoredSaleItemsExport($query, $columnKeys)
-                : new SalesListExport($query, $inventory, $columnKeys),
+            new SalesWorkbookExport(
+                $salesQuery,
+                $itemsQuery,
+                $inventory,
+                $salesColumnKeys,
+                $itemColumnKeys,
+            ),
             $filename,
-            $format,
+            ExcelFormat::XLSX,
         );
+    }
+
+    private function exportLimitResponse(int $count): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Too many rows match these filters. Narrow your filters and try again. Maximum allowed is 50,000 rows.',
+            'matched_count' => $count,
+        ], 422);
     }
 
     public function store(SaleRequest $request): JsonResponse

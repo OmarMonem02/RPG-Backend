@@ -33,6 +33,7 @@ class ExportColumnOrderingTest extends TestCase
             ->assertJsonStructure([
                 'import_export' => ['products' => ['label', 'columns']],
                 'sales' => ['label', 'columns'],
+                'sale_items' => ['label', 'columns'],
                 'stocktake' => ['label', 'columns'],
                 'history' => ['label', 'columns'],
             ])

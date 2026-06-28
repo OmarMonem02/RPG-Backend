@@ -14,6 +14,7 @@ class ExportColumnCatalog
         return [
             'import_export' => $this->importExportContexts(),
             'sales' => $this->salesContext(),
+            'sale_items' => $this->saleItemsContext(),
             'unstored_sale_items' => $this->unstoredSaleItemsContext(),
             'unstored_ticket_items' => $this->unstoredTicketItemsContext(),
             'stocktake' => $this->stocktakeContext(),
@@ -39,6 +40,7 @@ class ExportColumnCatalog
         return match ($context) {
             'import_export' => $this->importExportColumns($entity ?? '', $includeExportOnly),
             'sales' => $this->salesContext()['columns'],
+            'sale_items' => $this->saleItemsContext()['columns'],
             'unstored_sale_items' => $this->unstoredSaleItemsContext()['columns'],
             'unstored_ticket_items' => $this->unstoredTicketItemsContext()['columns'],
             'stocktake' => $this->stocktakeContext()['columns'],
@@ -105,6 +107,35 @@ class ExportColumnCatalog
                 $this->meta('maintenance_sale', 'Maintenance sale'),
                 $this->meta('line_item_count', 'Line item count'),
                 $this->meta('line_items_summary', 'Line items summary'),
+            ],
+        ];
+    }
+
+    /** @return array{label: string, columns: list<array<string, mixed>>} */
+    private function saleItemsContext(): array
+    {
+        return [
+            'label' => 'Sold items',
+            'columns' => [
+                $this->meta('sale_id', 'Sale ID'),
+                $this->meta('sale_created_at', 'Sale created at'),
+                $this->meta('customer_name', 'Customer name'),
+                $this->meta('customer_phone', 'Customer phone'),
+                $this->meta('channel', 'Channel'),
+                $this->meta('seller', 'Seller'),
+                $this->meta('payment_method', 'Payment method'),
+                $this->meta('line_item_id', 'Line item ID'),
+                $this->meta('item_type', 'Item type'),
+                $this->meta('item_name', 'Item name'),
+                $this->meta('sku', 'SKU'),
+                $this->meta('qty', 'Qty'),
+                $this->meta('returned_qty', 'Returned qty'),
+                $this->meta('remaining_qty', 'Remaining qty'),
+                $this->meta('unit_price', 'Unit price'),
+                $this->meta('line_discount', 'Line discount'),
+                $this->meta('line_total', 'Line total'),
+                $this->meta('item_status', 'Item status'),
+                $this->meta('is_unstored', 'Unstored item'),
             ],
         ];
     }

@@ -426,9 +426,19 @@ class UnstoredLineItemsTest extends TestCase
             'qty' => 1,
         ]);
 
-        $response = $this->actingAs($this->admin)->get('/api/sales/export?has_unstored_items=1&format=xlsx');
+        $response = $this->actingAs($this->admin)->get(
+            '/api/sales/export?' . http_build_query([
+                'export_scope' => 'items',
+                'has_unstored_items' => 1,
+                'format' => 'xlsx',
+            ])
+        );
 
         $response->assertOk();
+        $this->assertStringContainsString(
+            'sold_items_export_',
+            (string) $response->headers->get('content-disposition'),
+        );
         $this->assertStringContainsString(
             'spreadsheet',
             (string) $response->headers->get('content-type'),
