@@ -50,6 +50,11 @@ class SaleService
         return $this->presenter->serializeSale($this->presenter->loadSaleRelations($sale));
     }
 
+    public function refreshSaleTotals(Sale $sale): Sale
+    {
+        return $this->recalculateSale($sale);
+    }
+
     public function paginateAdjustments(Sale $sale, int $perPage = 20): LengthAwarePaginator
     {
         return $sale->adjustments()
@@ -398,7 +403,8 @@ class SaleService
 
     private function recalculateSale(Sale $sale): Sale
     {
-        $sale->loadMissing('items');
+        $sale->unsetRelation('items');
+        $sale->load('items');
 
         $subtotal = $sale->items
             ->filter(fn (SaleItem $item) => ! $item->trashed())

@@ -625,6 +625,8 @@ class SalesApiTest extends TestCase
     public function test_can_return_sale_items_and_restore_stock(): void
     {
         $sale = $this->createSaleThroughApi([
+            'shipping_fee' => 0,
+            'discount' => 0,
             'items' => [
                 [
                     'product_id' => $this->product->id,
@@ -646,7 +648,13 @@ class SalesApiTest extends TestCase
 
         $partialReturn->assertOk()
             ->assertJsonPath('items.0.returned_qty', 2)
-            ->assertJsonPath('items.0.status', SaleItem::STATUS_PARTIALLY_RETURNED);
+            ->assertJsonPath('items.0.status', SaleItem::STATUS_PARTIALLY_RETURNED)
+            ->assertJsonPath('total', 200);
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'total' => 200,
+        ]);
 
         $fullReturn = $this->actingAs($this->admin)->postJson("/api/sales/{$saleId}/returns", [
             'sale_item_id' => $productItemId,
@@ -655,7 +663,13 @@ class SalesApiTest extends TestCase
 
         $fullReturn->assertOk()
             ->assertJsonPath('items.0.status', SaleItem::STATUS_RETURNED)
-            ->assertJsonPath('items.0.remaining_qty', 0);
+            ->assertJsonPath('items.0.remaining_qty', 0)
+            ->assertJsonPath('total', 0);
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'total' => 0,
+        ]);
 
         $this->assertDatabaseHas('products', [
             'id' => $this->product->id,
@@ -672,6 +686,8 @@ class SalesApiTest extends TestCase
     public function test_can_exchange_items_and_track_extra_amount_due(): void
     {
         $sale = $this->createSaleThroughApi([
+            'shipping_fee' => 0,
+            'discount' => 0,
             'items' => [
                 [
                     'spare_part_id' => $this->sparePart->id,
@@ -695,7 +711,13 @@ class SalesApiTest extends TestCase
             ],
         ]);
 
-        $response->assertOk();
+        $response->assertOk()
+            ->assertJsonPath('total', 150);
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'total' => 150,
+        ]);
 
         $this->assertDatabaseHas('sale_adjustments', [
             'sale_id' => $saleId,
