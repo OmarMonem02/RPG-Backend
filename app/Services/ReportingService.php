@@ -277,7 +277,7 @@ class ReportingService
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'year' => [$yearRequired ? 'required' : 'nullable', 'integer', 'min:2000', 'max:2100'],
-            'currency' => ['nullable', Rule::in(config('currencies.supported'))],
+            'currency' => ['nullable', Rule::in(['EGP'])],
             'payment_status' => ['nullable', Rule::in([Expense::STATUS_PAID, Expense::STATUS_UNPAID])],
             'category' => ['nullable', Rule::in(Expense::CATEGORIES)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -294,6 +294,10 @@ class ReportingService
             $endOfYear = Carbon::create((int) $validated['year'], 12, 31)->endOfDay();
             $validated['date_from'] = $validated['date_from'] ?? $startOfYear->toDateString();
             $validated['date_to'] = $validated['date_to'] ?? $endOfYear->toDateString();
+        }
+
+        if (empty($validated['currency'])) {
+            $validated['currency'] = 'EGP';
         }
 
         return $validated;

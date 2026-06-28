@@ -9,7 +9,8 @@ use App\Http\Controllers\Api\EntityController;
 use App\Http\Controllers\Api\ExportColumnController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\HistoryController;
-use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\MachineController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PricingAlarmsController;
@@ -53,6 +54,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/permissions/meta', [PermissionController::class, 'meta']);
     Route::post('/upload-image', [ImageController::class, 'upload']);
     Route::delete('/delete-image', [ImageController::class, 'destroy']);
+    Route::post('/upload-document', [DocumentController::class, 'upload'])->middleware('permission:machines,create');
+    Route::delete('/delete-document', [DocumentController::class, 'destroy'])->middleware('permission:machines,update');
+
+    Route::get('/machines', [MachineController::class, 'index'])->middleware('permission:machines,read');
+    Route::post('/machines', [MachineController::class, 'store'])->middleware('permission:machines,create');
+    Route::get('/machines/{machine}', [MachineController::class, 'show'])->middleware('permission:machines,read');
+    Route::put('/machines/{machine}', [MachineController::class, 'update'])->middleware('permission:machines,update');
+    Route::patch('/machines/{machine}', [MachineController::class, 'update'])->middleware('permission:machines,update');
+    Route::delete('/machines/{machine}', [MachineController::class, 'destroy'])->middleware('permission:machines,delete');
 
     Route::get('/sales/catalog-items', [SaleController::class, 'catalog'])->middleware('permission:sales,read');
     Route::get('/sales/export', [SaleController::class, 'export'])->middleware('permission:sales,export');
@@ -210,6 +220,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/parse', [ImportExportController::class, 'parse'])->middleware('permission:import-export,import');
     });
 
+    Route::get('/reporting/overview/export', [ReportingController::class, 'exportOverview'])->middleware('permission:reporting,read');
+    Route::get('/reporting/profit-loss/export', [ReportingController::class, 'exportProfitLoss'])->middleware('permission:reporting,read');
+    Route::get('/reporting/balance-sheet/export', [ReportingController::class, 'exportBalanceSheet'])->middleware('permission:reporting,read');
+    Route::get('/reporting/annual-summary/export', [ReportingController::class, 'exportAnnualSummary'])->middleware('permission:reporting,read');
+    Route::get('/reporting/expenses/export', [ReportingController::class, 'exportExpenses'])->middleware('permission:reporting,read');
     Route::get('/reporting/profit-loss', [ReportingController::class, 'profitLoss'])->middleware('permission:reporting,read');
     Route::get('/reporting/balance-sheet', [ReportingController::class, 'balanceSheet'])->middleware('permission:reporting,read');
     Route::get('/reporting/annual-summary', [ReportingController::class, 'annualSummary'])->middleware('permission:reporting,read');

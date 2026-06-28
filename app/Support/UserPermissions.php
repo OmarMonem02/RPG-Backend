@@ -47,6 +47,7 @@ class UserPermissions
         'bike-blueprints',
         'sellers',
         'reporting',
+        'machines',
     ];
 
     public const GROUPS = [
@@ -173,6 +174,12 @@ class UserPermissions
             'label' => 'Reporting & Expenses',
             'group' => 'reporting',
             'description' => 'View reports and manage the expense ledger.',
+            'actions' => ['create', 'read', 'display', 'update', 'delete'],
+        ],
+        'machines' => [
+            'label' => 'Assets',
+            'group' => 'reporting',
+            'description' => 'Track fixed assets and related invoices or contracts.',
             'actions' => ['create', 'read', 'display', 'update', 'delete'],
         ],
     ];
@@ -322,6 +329,7 @@ class UserPermissions
         self::grant($matrix, 'users', ['create', 'read', 'display', 'update', 'delete']);
         self::grant($matrix, 'import-export', ['read', 'display', 'export', 'import']);
         self::grant($matrix, 'reporting', ['create', 'read', 'display', 'update', 'delete']);
+        self::grant($matrix, 'machines', ['create', 'read', 'display', 'update', 'delete']);
 
         return $matrix;
     }
