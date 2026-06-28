@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Support\CaseInsensitiveLike;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
 class TicketQueryService
@@ -16,6 +17,10 @@ class TicketQueryService
     {
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['customer_id'])) {
+            $query->where('customer_id', (int) $filters['customer_id']);
         }
 
         if (! empty($filters['date_from'])) {
@@ -51,6 +56,40 @@ class TicketQueryService
                     });
             });
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function applySort(Builder $query, string $sort = 'newest'): void
+    {
+        if ($sort === 'oldest') {
+            $query->orderBy('created_at')->orderBy('id');
+
+            return;
+        }
+
+        $query->orderByDesc('created_at')->orderByDesc('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function paginate(array $filters): LengthAwarePaginator
+    {
+        $query = Ticket::query()->with(Ticket::detailRelations());
+
+        $this->applyTicketFilters($query, $filters);
+        $this->applySort($query, $filters['sort'] ?? 'newest');
+
+        $perPage = (int) ($filters['per_page'] ?? 20);
+        $page = array_key_exists('page', $filters) && $filters['page'] !== null
+            ? max(1, (int) $filters['page'])
+            : null;
+
+        return $page !== null
+            ? $query->paginate($perPage, ['*'], 'page', $page)
+            : $query->paginate($perPage);
     }
 
     /**

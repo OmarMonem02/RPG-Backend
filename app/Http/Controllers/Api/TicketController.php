@@ -32,9 +32,9 @@ class TicketController extends Controller
     ) {
     }
 
-    public function index(): JsonResponse
+    public function index(TicketFilterRequest $request): JsonResponse
     {
-        return response()->json(Ticket::with(Ticket::detailRelations())->paginate(20));
+        return response()->json($this->ticketQueryService->paginate($request->validated()));
     }
 
     public function export(TicketFilterRequest $request): BinaryFileResponse|JsonResponse
