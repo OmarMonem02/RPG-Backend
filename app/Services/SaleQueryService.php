@@ -158,7 +158,21 @@ class SaleQueryService
         }
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
+            $search = (string) $filters['search'];
+            $exactSaleId = $this->parseExactSaleIdSearch($search);
+
+            if ($exactSaleId !== null) {
+                $query->whereKey($exactSaleId);
+
+                return;
+            }
+
+            if (str_starts_with(trim($search), '#')) {
+                $query->whereKey(0);
+
+                return;
+            }
+
             $query->where(function (Builder $saleQuery) use ($search): void {
                 $hasStarted = false;
 
@@ -206,6 +220,26 @@ class SaleQueryService
                     });
             });
         }
+    }
+
+    /**
+     * Parse "#42" / "#000042" into an exact sale id. Returns null when not hash-prefixed.
+     */
+    private function parseExactSaleIdSearch(string $search): ?int
+    {
+        $term = trim($search);
+
+        if (! str_starts_with($term, '#')) {
+            return null;
+        }
+
+        $digits = substr($term, 1);
+
+        if ($digits === '' || ! ctype_digit($digits)) {
+            return null;
+        }
+
+        return (int) $digits;
     }
 
     private function applySort(Builder $query, string $sort): void

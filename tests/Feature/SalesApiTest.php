@@ -316,6 +316,49 @@ class SalesApiTest extends TestCase
             ->assertJsonPath('data.0.id', $lowSale['id']);
     }
 
+    public function test_search_hash_prefix_finds_exact_sale_id_only(): void
+    {
+        $collisionCustomer = Customer::create([
+            'name' => 'Phone 42 Customer',
+            'phone' => '01042424242',
+        ]);
+
+        $collisionSale = $this->createSaleThroughApi([
+            'customer_id' => $collisionCustomer->id,
+        ]);
+        $targetSale = $this->createSaleThroughApi();
+        $targetId = $targetSale['id'];
+        $paddedId = str_pad((string) $targetId, 6, '0', STR_PAD_LEFT);
+
+        $hashSearchResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'search' => '#' . $targetId,
+        ]));
+        $hashSearchResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $targetId);
+
+        $paddedHashSearchResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'search' => '#' . $paddedId,
+        ]));
+        $paddedHashSearchResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $targetId);
+
+        $fuzzySearchResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'search' => '42',
+        ]));
+        $fuzzySearchResponse->assertOk();
+        $fuzzyIds = collect($fuzzySearchResponse->json('data'))->pluck('id')->all();
+        $this->assertContains($collisionSale['id'], $fuzzyIds);
+        $this->assertNotEquals([$targetId], $fuzzyIds);
+
+        $invalidHashSearchResponse = $this->actingAs($this->admin)->getJson('/api/sales?' . http_build_query([
+            'search' => '#abc',
+        ]));
+        $invalidHashSearchResponse->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_overall_sale_discount_requires_admin_role(): void
     {
         $payload = $this->mixedSalePayload(bikeId: $this->createAvailableBike()->id);
